@@ -13,11 +13,26 @@ class Persona extends Model
     protected $primaryKey = 'id_persona';
 
     protected $fillable = [
-        'nombre', 'apellido', 'ci', 'genero', 'telefono', 'email'
+        'nombre_pers',   // Antes: nombre
+        'apellido_pers', // Antes: apellido
+        'ci_pers',       // Antes: ci
+        'telefono_pers', // Antes: telefono
+        'email_pers',    // Antes: email
     ];
 
+    /**
+     * RELACIONES DEPENDIENTES (Hijos)
+     */
+
+    // Una persona puede tener un usuario de sistema asociado
+    public function usuario()
+    {
+        return $this->hasOne(Usuario::class, 'id_persona', 'id_persona');
+    }
+
+    // Una persona puede estar registrada como competidor
     public function competidor()
     {
-        return $this->hasOne(Competidor::class, 'id_persona');
+        return $this->hasOne(Competidor::class, 'id_persona', 'id_persona');
     }
 }

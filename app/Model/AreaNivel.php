@@ -13,35 +13,62 @@ class AreaNivel extends Model
     protected $primaryKey = 'id_area_nivel';
 
     protected $fillable = [
-        'id_area',
+        'id_area_olimpiada',
         'id_nivel',
-        'id_grado_escolaridad',
-        'id_olimpiada',
-        'activo',
+        'es_activo_area_nivel',
     ];
 
-    public function area()
+    protected $casts = [
+        'es_activo_area_nivel' => 'boolean',
+    ];
+
+    /**
+     * RELACIONES DIRECTAS (Padres)
+     */
+
+    // Pertenece a una configuración de Área en una Olimpiada específica
+    public function areaOlimpiada()
     {
-        return $this->belongsTo(\App\Model\Area::class, 'id_area');
+        return $this->belongsTo(AreaOlimpiada::class, 'id_area_olimpiada', 'id_area_olimpiada');
     }
 
+    // Pertenece a un Nivel Académico (Primaria, Secundaria, etc.)
     public function nivel()
     {
-        return $this->belongsTo(\App\Model\Nivel::class, 'id_nivel');
+        return $this->belongsTo(Nivel::class, 'id_nivel', 'id_nivel');
     }
 
-    public function gradoEscolaridad()
+    /**
+     * RELACIONES DEPENDIENTES (Hijos)
+     */
+
+    // Las inscripciones de estudiantes a este nivel específico
+    public function inscripciones()
     {
-        return $this->belongsTo(\App\Model\GradoEscolaridad::class, 'id_grado_escolaridad');
+        return $this->hasMany(Inscripcion::class, 'id_area_nivel', 'id_area_nivel');
     }
 
-    public function olimpiada()
+    // Los exámenes (competencias) creados para este nivel
+    public function competencias()
     {
-        return $this->belongsTo(\App\Model\Olimpiada::class, 'id_olimpiada');
+        return $this->hasMany(Competencia::class, 'id_area_nivel', 'id_area_nivel');
     }
 
+    // Los evaluadores asignados para calificar en este nivel
+    public function evaluadores()
+    {
+        return $this->hasMany(EvaluadorAn::class, 'id_area_nivel', 'id_area_nivel');
+    }
+
+    // Parámetros de configuración (nota mínima, cantidad de clasificados)
     public function parametro()
     {
-        return $this->hasOne(\App\Model\Parametro::class, 'id_area_nivel');
+        return $this->hasOne(Parametro::class, 'id_area_nivel', 'id_area_nivel');
+    }
+
+    // Configuración de medallas para este nivel
+    public function parametroMedallero()
+    {
+        return $this->hasOne(ParametroMedallero::class, 'id_area_nivel', 'id_area_nivel');
     }
 }

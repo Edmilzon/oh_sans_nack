@@ -13,9 +13,9 @@ class RolesSeeder extends Seeder{
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         
         $roles = [
-        ['nombre' => 'Administrador'],
-        ['nombre' => 'Responsable Area'],
-        ['nombre' => 'Evaluador'],
+            ['nombre_rol' => 'Administrador'],
+            ['nombre_rol' => 'Responsable Area'],
+            ['nombre_rol' => 'Evaluador'],
         ];
         
         DB::table('rol')->insert($roles);

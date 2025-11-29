@@ -8,34 +8,20 @@ use Illuminate\Database\Eloquent\Model;
 class Area extends Model
 {
     use HasFactory;
-    
+
     protected $table = 'area';
     protected $primaryKey = 'id_area';
-    
+
     protected $fillable = [
-        'nombre',
+        'nombre_area', // Antes: 'nombre'
     ];
 
-    public function niveles()
+    /**
+     * Relación con las instancias de esta área en diferentes olimpiadas.
+     * Ej: "Matemáticas" -> [ "Matemáticas 2024", "Matemáticas 2025" ]
+     */
+    public function areaOlimpiadas()
     {
-        return $this->belongsToMany(Nivel::class, 'area_nivel', 'id_area', 'id_nivel')
-                    ->withPivot('id_olimpiada', 'activo')
-                    ->withTimestamps();
-    }
-
-    public function olimpiadas()
-    {
-        return $this->belongsToMany(Olimpiada::class, 'area_olimpiada', 'id_area', 'id_olimpiada')
-                    ->withTimestamps();
-    }
-
-    public function areaNiveles()
-    {
-        return $this->hasMany(AreaNivel::class, 'id_area', 'id_area');
-    }
-
-    public function areaOlimpiada()
-    {
-        return $this->hasMany(\App\Model\AreaOlimpiada::class, 'id_area');
+        return $this->hasMany(AreaOlimpiada::class, 'id_area', 'id_area');
     }
 }

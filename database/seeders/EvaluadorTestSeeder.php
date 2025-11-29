@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use App\Model\Usuario;
 use App\Model\Olimpiada;
 use App\Model\Area;
@@ -15,186 +16,172 @@ use App\Model\EvaluadorAn;
 use App\Model\Institucion;
 use App\Model\Persona;
 use App\Model\Competidor;
+use App\Model\Departamento;
+use App\Model\Inscripcion;
 
 class EvaluadorTestSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
     public function run(): void
     {
         DB::transaction(function () {
-            $this->command->info('Iniciando EvaluadorTestSeeder...');
+            $this->command->info('Iniciando EvaluadorTestSeeder V8...');
 
             // --- 1. Crear o encontrar el usuario evaluador ---
-            $evaluadorUser = Usuario::firstOrCreate(
-                ['ci' => '8888888'],
+            // Paso A: Persona
+            $personaEvaluador = Persona::firstOrCreate(
+                ['ci_pers' => '8888888'],
                 [
-                    'nombre' => 'Clao',
-                    'apellido' => 'Test',
-                    'email' => 'clao@gmail.com',
-                    'password' => bcrypt('claotest'),
-                    'telefono' => '78888888'
+                    'nombre_pers' => 'Clao',
+                    'apellido_pers' => 'Test',
+                    'email_pers' => 'clao@gmail.com',
+                    'telefono_pers' => '78888888'
                 ]
             );
-            $this->command->info("Usuario evaluador '{$evaluadorUser->nombre} {$evaluadorUser->apellido}' creado/encontrado.");
+
+            // Paso B: Usuario
+            $evaluadorUser = Usuario::firstOrCreate(
+                ['email_usuario' => 'clao@gmail.com'],
+                [
+                    'id_persona' => $personaEvaluador->id_persona,
+                    'password_usuario' => Hash::make('claotest')
+                ]
+            );
+            
+            $this->command->info("Usuario evaluador '{$personaEvaluador->nombre_pers}' listo.");
 
             // --- 2. Obtener o crear entidades necesarias ---
-            $olimpiada2025 = Olimpiada::firstOrCreate(['gestion' => '2025'], ['nombre' => 'Olimpiada Científica 2025']);
-            $areaMatematicas = Area::firstOrCreate(['nombre' => 'Matemáticas']);
-            $areaFisica = Area::firstOrCreate(['nombre' => 'Física']);
-            $nivel1 = Nivel::firstOrCreate(['nombre' => 'primero de Secundaria']);
-            $nivel2 = Nivel::firstOrCreate(['nombre' => 'segundo de Secundaria']);
-            $nivel3 = Nivel::firstOrCreate(['nombre' => 'tercero de Secundaria']);
-            $grado2do = GradoEscolaridad::firstOrCreate(['nombre' => '2ro de Secundaria']);
-            $rolEvaluador = Rol::where('nombre', 'Evaluador')->first();
+            $olimpiada2025 = Olimpiada::firstOrCreate(
+                ['gestion_olimp' => '2025'], 
+                ['nombre_olimp' => 'Olimpiada Científica 2025', 'estado_olimp' => true]
+            );
 
+            // Áreas
+            $areaMatematicas = Area::firstOrCreate(['nombre_area' => 'Matemáticas']);
+            $areaFisica = Area::firstOrCreate(['nombre_area' => 'Física']);
+            
+            // Niveles
+            $nivel1 = Nivel::firstOrCreate(['nombre_nivel' => 'Primaria']);
+            $nivel2 = Nivel::firstOrCreate(['nombre_nivel' => 'Secundaria']);
+            
+            // Grados
+            $grado2do = GradoEscolaridad::firstOrCreate(['nombre_grado' => '2do de Secundaria']);
+            
+            // Rol
+            $rolEvaluador = Rol::where('nombre_rol', 'Evaluador')->first();
             if (!$rolEvaluador) {
                 $this->command->error('El rol "Evaluador" no existe. Ejecuta RolesSeeder primero.');
                 return;
             }
 
             // --- 3. Asignar rol de Evaluador para la gestión 2025 ---
-            DB::table('usuario_rol')->insertOrIgnore([
-                'id_usuario' => $evaluadorUser->id_usuario,
-                'id_rol' => $rolEvaluador->id_rol,
-                'id_olimpiada' => $olimpiada2025->id_olimpiada,
-            ]);
+            // Usamos la relación del modelo para evitar conflictos de duplicados
+            if (!$evaluadorUser->tieneRol('Evaluador', $olimpiada2025->id_olimpiada)) {
+                $evaluadorUser->roles()->attach($rolEvaluador->id_rol, [
+                    'id_olimpiada' => $olimpiada2025->id_olimpiada,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
 
-            // --- 4. Crear las combinaciones de AreaNivel y asignarlas ---
+            // --- 4. Configurar AreaOlimpiada y AreaNivel ---
+            // Definimos qué asignaciones vamos a crear
             $asignaciones = [
-                // Matemáticas
-                ['id_area' => $areaMatematicas->id_area, 'id_nivel' => $nivel1->id_nivel, 'id_grado_escolaridad' => $grado2do->id_grado_escolaridad],
-                ['id_area' => $areaMatematicas->id_area, 'id_nivel' => $nivel1->id_nivel, 'id_grado_escolaridad' => $grado2do->id_grado_escolaridad],
-
-                ['id_area' => $areaMatematicas->id_area, 'id_nivel' => $nivel2->id_nivel, 'id_grado_escolaridad' => $grado2do->id_grado_escolaridad],
-                ['id_area' => $areaMatematicas->id_area, 'id_nivel' => $nivel2->id_nivel, 'id_grado_escolaridad' => $grado2do->id_grado_escolaridad],
-
-                ['id_area' => $areaMatematicas->id_area, 'id_nivel' => $nivel3->id_nivel, 'id_grado_escolaridad' => $grado2do->id_grado_escolaridad],
-                ['id_area' => $areaMatematicas->id_area, 'id_nivel' => $nivel3->id_nivel, 'id_grado_escolaridad' => $grado2do->id_grado_escolaridad],
-                // Física
-                ['id_area' => $areaFisica->id_area, 'id_nivel' => $nivel1->id_nivel, 'id_grado_escolaridad' => $grado2do->id_grado_escolaridad],
-                ['id_area' => $areaFisica->id_area, 'id_nivel' => $nivel1->id_nivel, 'id_grado_escolaridad' => $grado2do->id_grado_escolaridad],
-                
-                ['id_area' => $areaFisica->id_area, 'id_nivel' => $nivel2->id_nivel, 'id_grado_escolaridad' => $grado2do->id_grado_escolaridad],
-                ['id_area' => $areaFisica->id_area, 'id_nivel' => $nivel2->id_nivel, 'id_grado_escolaridad' => $grado2do->id_grado_escolaridad],
-
-                
+                ['area' => $areaMatematicas, 'nivel' => $nivel1], // Matematicas - Primaria
+                ['area' => $areaMatematicas, 'nivel' => $nivel2], // Matematicas - Secundaria
+                ['area' => $areaFisica,      'nivel' => $nivel2], // Fisica - Secundaria
             ];
 
             foreach ($asignaciones as $asignacion) {
-                // Crear la entrada en area_nivel
+                // A. Area -> Olimpiada
+                $areaOlimp = DB::table('area_olimpiada')->where([
+                    'id_area' => $asignacion['area']->id_area,
+                    'id_olimpiada' => $olimpiada2025->id_olimpiada
+                ])->first();
+
+                if (!$areaOlimp) {
+                    $idAreaOlimp = DB::table('area_olimpiada')->insertGetId([
+                        'id_area' => $asignacion['area']->id_area,
+                        'id_olimpiada' => $olimpiada2025->id_olimpiada,
+                        'created_at' => now(), 'updated_at' => now()
+                    ]);
+                } else {
+                    $idAreaOlimp = $areaOlimp->id_area_olimpiada;
+                }
+
+                // B. AreaOlimpiada -> Nivel (AreaNivel)
                 $areaNivel = AreaNivel::firstOrCreate([
-                    'id_area' => $asignacion['id_area'],
-                    'id_nivel' => $asignacion['id_nivel'],
-                    'id_grado_escolaridad' => $asignacion['id_grado_escolaridad'],
-                    'id_olimpiada' => $olimpiada2025->id_olimpiada,
+                    'id_area_olimpiada' => $idAreaOlimp,
+                    'id_nivel' => $asignacion['nivel']->id_nivel
+                ], [
+                    'es_activo_area_nivel' => true
                 ]);
 
-                // Asignar al evaluador
+                // C. Asignar al evaluador a este AreaNivel
                 EvaluadorAn::firstOrCreate([
                     'id_usuario' => $evaluadorUser->id_usuario,
                     'id_area_nivel' => $areaNivel->id_area_nivel,
-                ]);
+                ], ['estado_eva_an' => true]);
             }
 
-            // --- 5. Crear Instituciones para los competidores ---
-            $institucion1 = Institucion::firstOrCreate(['nombre' => 'Colegio Don Bosco (TEST)']);
-            $institucion2 = Institucion::firstOrCreate(['nombre' => 'Colegio La Salle (TEST)']);
-            $this->command->info('Instituciones para competidores de prueba creadas/encontradas.');
+            // --- 5. Crear Instituciones y Deptos ---
+            $institucion1 = Institucion::firstOrCreate(['nombre_inst' => 'Colegio Don Bosco (TEST)']);
+            $deptoLP = Departamento::firstOrCreate(['nombre_dep' => 'La Paz']);
 
-            // --- 6. Crear Personas para los competidores ---
-            $personaCompetidor1 = Persona::firstOrCreate(
-                ['ci' => '11122233'],
-                ['nombre' => 'Juan', 'apellido' => 'Perez', 'email' => 'juan.perez.test@test.com', 'genero' => 'M', 'telefono' => '71112233']
-            );
-            $personaCompetidor2 = Persona::firstOrCreate(
-                ['ci' => '44455566'],
-                ['nombre' => 'Ana', 'apellido' => 'Gomez', 'email' => 'ana.gomez.test@test.com', 'genero' => 'F', 'telefono' => '74445566']
-            );
-            $this->command->info('Personas para competidores de prueba creadas/encontradas.');
-            
-            // --- 6.1 Crear MUCHAS más Personas para competidores ---
-            $nuevasPersonasData = [
-                ['ci' => '20000001', 'nombre' => 'Carlos', 'apellido' => 'Solis', 'email' => 'carlos.solis.test@test.com', 'genero' => 'M', 'telefono' => '72000001'],
-                ['ci' => '20000002', 'nombre' => 'Maria', 'apellido' => 'Luna', 'email' => 'maria.luna.test@test.com', 'genero' => 'F', 'telefono' => '72000002'],
-                ['ci' => '20000003', 'nombre' => 'Pedro', 'apellido' => 'Arias', 'email' => 'pedro.arias.test@test.com', 'genero' => 'M', 'telefono' => '72000003'],
-                ['ci' => '20000004', 'nombre' => 'Lucia', 'apellido' => 'Campos', 'email' => 'lucia.campos.test@test.com', 'genero' => 'F', 'telefono' => '72000004'],
-                ['ci' => '20000005', 'nombre' => 'Jorge', 'apellido' => 'Vargas', 'email' => 'jorge.vargas.test@test.com', 'genero' => 'M', 'telefono' => '72000005'],
-                ['ci' => '20000006', 'nombre' => 'Sofia', 'apellido' => 'Mendoza', 'email' => 'sofia.mendoza.test@test.com', 'genero' => 'F', 'telefono' => '72000006'],
-                ['ci' => '20000007', 'nombre' => 'Luis', 'apellido' => 'Rojas', 'email' => 'luis.rojas.test@test.com', 'genero' => 'M', 'telefono' => '72000007'],
-                ['ci' => '20000008', 'nombre' => 'Elena', 'apellido' => 'Paz', 'email' => 'elena.paz.test@test.com', 'genero' => 'F', 'telefono' => '72000008'],
-                ['ci' => '20000009', 'nombre' => 'Miguel', 'apellido' => 'Suarez', 'email' => 'miguel.suarez.test@test.com', 'genero' => 'M', 'telefono' => '72000009'],
-                ['ci' => '20000010', 'nombre' => 'Isabel', 'apellido' => 'Castillo', 'email' => 'isabel.castillo.test@test.com', 'genero' => 'F', 'telefono' => '72000010'],
+            // --- 6. Crear Personas para Competidores ---
+            $personasData = [
+                ['ci' => '11122233', 'nombre' => 'Juan', 'apellido' => 'Perez', 'email' => 'juan.test@test.com', 'genero' => 'M'],
+                ['ci' => '44455566', 'nombre' => 'Ana', 'apellido' => 'Gomez', 'email' => 'ana.test@test.com', 'genero' => 'F'],
+                ['ci' => '20000001', 'nombre' => 'Carlos', 'apellido' => 'Solis', 'email' => 'carlos.test@test.com', 'genero' => 'M'],
             ];
 
-            // --- 7. Crear Competidores ---
-            // Obtener el primer AreaNivel de Matemáticas creado anteriormente
-            $areaNivelMat = AreaNivel::where('id_area', $areaMatematicas->id_area)
-                ->where('id_olimpiada', $olimpiada2025->id_olimpiada)
-                ->first();
+            // --- 7. Crear Competidores e Inscripciones ---
+            
+            // Recuperamos un area_nivel válido (ej: Matematicas Secundaria)
+            // Buscamos a través de las tablas para ser precisos
+            $idMatematica = $areaMatematicas->id_area;
+            $idSecundaria = $nivel2->id_nivel;
+            
+            $areaNivelTarget = AreaNivel::whereHas('areaOlimpiada', function($q) use ($idMatematica, $olimpiada2025) {
+                $q->where('id_area', $idMatematica)->where('id_olimpiada', $olimpiada2025->id_olimpiada);
+            })->where('id_nivel', $idSecundaria)->first();
 
-            // Obtener el primer AreaNivel de Física creado anteriormente
-            $areaNivelFis = AreaNivel::where('id_area', $areaFisica->id_area)
-                ->where('id_olimpiada', $olimpiada2025->id_olimpiada)
-                ->first();
-
-            if ($areaNivelMat) {
-                Competidor::firstOrCreate(
-                    ['id_persona' => $personaCompetidor1->id_persona, 'id_area_nivel' => $areaNivelMat->id_area_nivel],
-                    [
-                        'departamento' => 'La Paz',
-                        'id_grado_escolaridad' => $areaNivelMat->id_grado_escolaridad,
-                        'id_institucion' => $institucion1->id_institucion,
-                    ]
-                );
-            }
-
-            if ($areaNivelFis) {
-                Competidor::firstOrCreate(
-                    ['id_persona' => $personaCompetidor2->id_persona, 'id_area_nivel' => $areaNivelFis->id_area_nivel],
-                    [
-                        'departamento' => 'Cochabamba',
-                        'id_grado_escolaridad' => $areaNivelFis->id_grado_escolaridad,
-                        'id_institucion' => $institucion2->id_institucion,
-                    ]
-                );
-            }
-
-            $this->command->info('Competidores de prueba iniciales creados.');
-
-            // --- 7.1 Crear MUCHOS más Competidores ---
-            $this->command->info('Creando competidores adicionales...');
-            $areaNivelesDisponibles = AreaNivel::where('id_olimpiada', $olimpiada2025->id_olimpiada)->get();
-            $instituciones = [$institucion1, $institucion2];
-            $departamentos = ['La Paz', 'Cochabamba', 'Santa Cruz', 'Oruro', 'Potosí', 'Chuquisaca', 'Tarija', 'Beni', 'Pando'];
-
-            if ($areaNivelesDisponibles->isNotEmpty()) {
-                foreach ($nuevasPersonasData as $i => $personaData) {
-                    $persona = Persona::firstOrCreate(['ci' => $personaData['ci']], $personaData);
-
-                    // Asignar de forma rotativa
-                    $areaNivelAsignado = $areaNivelesDisponibles[$i % $areaNivelesDisponibles->count()];
-                    $institucionAsignada = $instituciones[$i % count($instituciones)];
-                    $departamentoAsignado = $departamentos[$i % count($departamentos)];
-
-                    $competidor = Competidor::firstOrCreate(
-                        ['id_persona' => $persona->id_persona, 'id_area_nivel' => $areaNivelAsignado->id_area_nivel],
+            if ($areaNivelTarget) {
+                foreach ($personasData as $pData) {
+                    // A. Persona
+                    $pers = Persona::firstOrCreate(
+                        ['ci_pers' => $pData['ci']],
                         [
-                            'departamento' => $departamentoAsignado,
-                            'id_grado_escolaridad' => $areaNivelAsignado->id_grado_escolaridad,
-                            'id_institucion' => $institucionAsignada->id_institucion,
+                            'nombre_pers' => $pData['nombre'],
+                            'apellido_pers' => $pData['apellido'],
+                            'email_pers' => $pData['email'],
+                            'telefono_pers' => '00000000'
                         ]
                     );
 
+                    // B. Competidor (Perfil)
+                    $comp = Competidor::firstOrCreate(
+                        ['id_persona' => $pers->id_persona],
+                        [
+                            'id_institucion' => $institucion1->id_institucion,
+                            'id_departamento' => $deptoLP->id_departamento,
+                            'id_grado_escolaridad' => $grado2do->id_grado_escolaridad, // 2do Secundaria
+                            'genero_competidor' => $pData['genero'],
+                            'contacto_tutor_compe' => 'Padre Test'
+                        ]
+                    );
+
+                    // C. Inscripción (Vinculación al AreaNivel)
+                    Inscripcion::firstOrCreate([
+                        'id_competidor' => $comp->id_competidor,
+                        'id_area_nivel' => $areaNivelTarget->id_area_nivel
+                    ]);
                 }
-                $this->command->info(count($nuevasPersonasData) . ' competidores adicionales han sido creados.');
+                $this->command->info('Competidores e inscripciones creadas en Matemáticas-Secundaria.');
+            } else {
+                $this->command->warn('No se pudo encontrar el AreaNivel objetivo para inscribir alumnos.');
             }
 
-            $this->command->info('Asignaciones de áreas y niveles para el evaluador completadas.');
-            $this->command->info('EvaluadorTestSeeder completado exitosamente!');
+            $this->command->info('EvaluadorTestSeeder V8 completado exitosamente!');
         });
     }
 }

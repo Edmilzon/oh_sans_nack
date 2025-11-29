@@ -14,18 +14,28 @@ class NivelesSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('nivel')->insert([
-            ['nombre' => '1ro de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '2do de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '3ro de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '4to de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '5to de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '6to de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Guacamayo', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Tapir', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Cóndor', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // Limpiar tabla antes de insertar para evitar duplicados en desarrollo
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::table('nivel')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
-        $this->command->info('Niveles base creados exitosamente.');
+        $now = now();
+
+        // Insertamos niveles genéricos o específicos según tu modelo académico actual.
+        // Nota: Ajustado a 'nombre_nivel' según migración V8.
+        $niveles = [
+            ['nombre_nivel' => '1ro de Secundaria', 'created_at' => $now, 'updated_at' => $now],
+            ['nombre_nivel' => '2do de Secundaria', 'created_at' => $now, 'updated_at' => $now],
+            ['nombre_nivel' => '3ro de Secundaria', 'created_at' => $now, 'updated_at' => $now],
+            ['nombre_nivel' => '4to de Secundaria', 'created_at' => $now, 'updated_at' => $now],
+            ['nombre_nivel' => '5to de Secundaria', 'created_at' => $now, 'updated_at' => $now],   
+            ['nombre_nivel' => '6to de Secundaria', 'created_at' => $now, 'updated_at' => $now], 
+            ['nombre_nivel' => 'Bufeo', 'created_at' => $now, 'updated_at' => $now],
+            ['nombre_nivel' => 'Guacamayo', 'created_at' => $now, 'updated_at' => $now],
+        ];
+
+        DB::table('nivel')->insert($niveles);
+
+        $this->command->info('✅ Niveles académicos (Primaria, Secundaria) creados exitosamente.');
     }
 }

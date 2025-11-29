@@ -6,9 +6,11 @@ use Illuminate\Database\Seeder;
 use App\Model\Competidor;
 use App\Model\Persona;
 use App\Model\Institucion;
+use App\Model\Departamento;
 use App\Model\AreaNivel;
 use App\Model\GradoEscolaridad;
 use App\Model\ArchivoCsv;
+use App\Model\Inscripcion;
 use Faker\Factory as Faker;
 
 class CompetidorSeeder extends Seeder
@@ -17,75 +19,76 @@ class CompetidorSeeder extends Seeder
     {
         $faker = Faker::create();
 
-        // Departamentos de Bolivia
-        $departamentos = [
-            'La Paz', 'Cochabamba', 'Santa Cruz', 'Oruro', 
-            'Potosí', 'Tarija', 'Pando'
-        ];
-
-        // 1️⃣ Crear instituciones si no existen
-        if (Institucion::count() == 0) {
-            $institucionesDummy = [
-                'Colegio Nacional(Sucre)', 'Unidad Educativa Santa Cruz 2', 
-                'Instituto Simón Bolívar', 'Colegio Bolívar "B"', 'Colegio La Paz'
-            ];
-            foreach ($institucionesDummy as $nombre) {
-                Institucion::create(['nombre' => $nombre]);
-            }
+        // 1️⃣ Departamentos (Ya deberían estar creados por DepartamentoSeeder, los buscamos)
+        $departamentos = Departamento::pluck('id_departamento')->toArray();
+        if(empty($departamentos)){
+             $this->command->error('Ejecuta DepartamentoSeeder primero.'); return;
         }
 
+        // 2️⃣ Instituciones
+        if (Institucion::count() == 0) {
+            $institucionesDummy = ['Colegio Nacional Sucre', 'Unidad Educativa Santa Cruz', 'Instituto Simón Bolívar'];
+            foreach ($institucionesDummy as $nombre) {
+                Institucion::create(['nombre_inst' => $nombre]);
+            }
+        }
         $instituciones = Institucion::pluck('id_institucion')->toArray();
 
-        // 2️⃣ Crear archivos CSV dummy si no existen
+        // 3️⃣ Archivos CSV
         if (ArchivoCsv::count() == 0) {
-            $olimpiadaId = 1; // Ajusta al id_olimpiada real si tienes más de una
-            for ($i = 1; $i <= 5; $i++) {
+            for ($i = 1; $i <= 3; $i++) {
                 ArchivoCsv::create([
-                    'nombre' => "Archivo CSV $i",
-                    'fecha' => $faker->date(),
-                    'id_olimpiada' => $olimpiadaId,
+                    'nombre_arc_csv' => "Importacion_$i.csv",
+                    'fecha_arc_csv' => $faker->date(),
                 ]);
             }
         }
-
         $archivos = ArchivoCsv::pluck('id_archivo_csv')->toArray();
 
-        // 3️⃣ Traer area_nivel y grados existentes
+        // 4️⃣ Áreas y Grados
         $areasNiveles = AreaNivel::pluck('id_area_nivel')->toArray();
         $grados = GradoEscolaridad::pluck('id_grado_escolaridad')->toArray();
 
         if (empty($areasNiveles) || empty($grados)) {
-            $this->command->info('Debes tener datos en area_nivel y grado_escolaridad antes de correr este seeder.');
+            $this->command->error('Faltan datos en area_nivel o grado_escolaridad.');
             return;
         }
 
-        // 4️⃣ Crear 100 competidores distribuidos uniformemente
-        $numCompetidores = 300;
+        // 5️⃣ Crear Competidores e Inscripciones
+        $numCompetidores = 50; // Reduje el número para que sea más rápido en pruebas
+        
         for ($i = 1; $i <= $numCompetidores; $i++) {
+            // A. Crear Persona
             $persona = Persona::create([
-                'nombre' => $faker->firstName,
-                'apellido' => $faker->lastName,
-                'ci' => $faker->unique()->numberBetween(1000000, 9999999),
-                'genero' => $faker->randomElement(['M', 'F']),
-                'telefono' => $faker->unique()->phoneNumber,
-                'email' => $faker->unique()->safeEmail,
+                'nombre_pers' => $faker->firstName,
+                'apellido_pers' => $faker->lastName,
+                'ci_pers' => $faker->unique()->numberBetween(1000000, 9999999),
+                'telefono_pers' => $faker->phoneNumber,
+                'email_pers' => $faker->unique()->safeEmail,
             ]);
 
-            $departamento = $departamentos[$i % count($departamentos)]; 
-            $area_nivel = $areasNiveles[$i % count($areasNiveles)];     
-            $grado = $grados[$i % count($grados)];                        
-
-            Competidor::create([
-                'departamento' => $departamento,
-                'contacto_tutor' => $faker->name,
-                'id_grado_escolaridad' => $grado,
-                'id_institucion' => $faker->randomElement($instituciones),
-                'id_area_nivel' => $area_nivel,
-                'id_archivo_csv' => $faker->randomElement($archivos) ?? null,
+            // B. Crear Competidor (Perfil)
+            $grado = $faker->randomElement($grados);
+            $competidor = Competidor::create([
                 'id_persona' => $persona->id_persona,
+                'id_institucion' => $faker->randomElement($instituciones),
+                'id_departamento' => $faker->randomElement($departamentos),
+                'id_grado_escolaridad' => $grado,
+                'id_archivo_csv' => $faker->randomElement($archivos),
+                'contacto_tutor_compe' => $faker->name,
+                'genero_competidor' => $faker->randomElement(['M', 'F']),
+            ]);
+
+            // C. Crear Inscripción (Asignarlo a un área/nivel)
+            // Lógica simple: lo inscribimos en un área aleatoria
+            $areaNivel = $faker->randomElement($areasNiveles);
+            
+            Inscripcion::create([
+                'id_competidor' => $competidor->id_competidor,
+                'id_area_nivel' => $areaNivel,
             ]);
         }
 
-        $this->command->info(' competidores ejecutado correctamente con distribución equilibrada.');
+        $this->command->info('Competidores e inscripciones creados correctamente.');
     }
 }

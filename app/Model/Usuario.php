@@ -5,7 +5,6 @@ namespace App\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\HasApiTokens;
 
 class Usuario extends Authenticatable
@@ -15,48 +14,93 @@ class Usuario extends Authenticatable
     protected $table = 'usuario';
     protected $primaryKey = 'id_usuario';
 
+    // Ajustado a la V8: Solo credenciales y FK
     protected $fillable = [
-        'nombre',
-        'apellido',
-        'ci',
-        'email',
-        'password',
-        'telefono',
+        'id_persona',
+        'email_usuario',    // Antes: email
+        'password_usuario', // Antes: password
     ];
 
     protected $hidden = [
-        'password', 
+        'password_usuario', // Ocultamos el hash nuevo
     ];
-    
-    public function roles()
+
+    /**
+     * IMPORTANTE: Sobrescribir métodos de Autenticación de Laravel
+     * Porque no usamos la columna estándar 'password'
+     */
+    public function getAuthPassword()
     {
-        return $this->belongsToMany(\App\Model\Rol::class, 'usuario_rol', 'id_usuario', 'id_rol', 'id_usuario', 'id_rol')
-                    ->withPivot('id_olimpiada')
-                    ->using(\App\Model\UsuarioRol::class)
-                    ->withTimestamps();
+        return $this->password_usuario;
     }
 
-    public function responsableArea()
+    /**
+     * RELACIONES DIRECTAS (Padres)
+     */
+
+    // El perfil con los datos personales (Nombre, CI, Teléfono)
+    public function persona()
+    {
+        return $this->belongsTo(Persona::class, 'id_persona', 'id_persona');
+    }
+
+    /**
+     * RELACIONES DIRECTAS (Muchos a Muchos)
+     */
+
+    // Roles asignados (con soporte para gestión/olimpiada)
+    public function roles()
+    {
+        return $this->belongsToMany(
+            Rol::class, 
+            'usuario_rol', 
+            'id_usuario', 
+            'id_rol'
+        )
+        ->withPivot('id_olimpiada') // Vital para diferenciar roles por gestión
+        ->withTimestamps();
+    }
+
+    /**
+     * RELACIONES DEPENDIENTES (Hijos)
+     */
+
+    // Si es responsable de área en alguna gestión
+    public function responsablesArea()
     {
         return $this->hasMany(ResponsableArea::class, 'id_usuario', 'id_usuario');
     }
 
-    public function evaluadorAn()
+    // Si es evaluador en alguna gestión
+    public function evaluadoresAn()
     {
-        return $this->hasMany(\App\Model\EvaluadorAn::class, 'id_usuario', 'id_usuario');
+        return $this->hasMany(EvaluadorAn::class, 'id_usuario', 'id_usuario');
     }
 
-    public function asignarRol(string $nombreRol, int $idOlimpiada)
-    {
-        $rol = Rol::where('nombre', $nombreRol)->firstOrFail();
-        $this->roles()->attach($rol->id_rol, ['id_olimpiada' => $idOlimpiada]);
-    }
+    /**
+     * MÉTODOS DE UTILIDAD (Helpers)
+     */
 
+    // Verifica si tiene un rol específico (opcionalmente en una gestión)
     public function tieneRol(string $nombreRol, int $idOlimpiada = null): bool
     {
-        return $this->roles()->where('nombre', $nombreRol)
+        return $this->roles()
+            ->where('nombre_rol', $nombreRol) // Ojo: nombre_rol en V8
             ->when($idOlimpiada, function ($query) use ($idOlimpiada) {
-                return $query->where('usuario_rol.id_olimpiada', $idOlimpiada);
-            })->exists();
+                // Filtramos por la columna pivote
+                return $query->wherePivot('id_olimpiada', $idOlimpiada);
+            })
+            ->exists();
+    }
+
+    // Asigna un rol para una gestión específica
+    public function asignarRol(string $nombreRol, int $idOlimpiada)
+    {
+        $rol = Rol::where('nombre_rol', $nombreRol)->firstOrFail();
+        
+        // syncWithoutDetaching evita duplicados, o puedes usar attach si validas antes
+        $this->roles()->syncWithoutDetaching([
+            $rol->id_rol => ['id_olimpiada' => $idOlimpiada]
+        ]);
     }
 }

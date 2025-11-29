@@ -12,34 +12,28 @@ class AreasSeeder extends Seeder
     public function run(): void
     {
         $areasData = [
-            ['nombre' => 'Matemáticas'],
-            ['nombre' => 'Física'],
-            ['nombre' => 'Química'],
-            ['nombre' => 'Biología'],
-            ['nombre' => 'Informática'],
-            // 5 áreas nuevas
-            ['nombre' => 'Historia'],
-            ['nombre' => 'Geografía'],
-            ['nombre' => 'Literatura'],
-            ['nombre' => 'Arte'],
-            ['nombre' => 'Educación Física'],
+            ['nombre_area' => 'Matemáticas'],
+            ['nombre_area' => 'Física'],
+            ['nombre_area' => 'Química'],
+            ['nombre_area' => 'Biología'],
+            ['nombre_area' => 'Informática'],
+            ['nombre_area' => 'Historia'],
+            ['nombre_area' => 'Geografía'],
+            ['nombre_area' => 'Literatura'],
+            ['nombre_area' => 'Arte'],
+            ['nombre_area' => 'Educación Física'],
         ];
 
-        // 1. Insertar todas las áreas en un solo query.
         Area::insert($areasData);
         $this->command->info('Áreas base creadas exitosamente.');
 
-        // Buscar la primera olimpiada existente.
         $olimpiada = Olimpiada::first();
 
         if (!$olimpiada) {
-            $this->command->warn('No se encontraron olimpiadas. Las relaciones en area_olimpiada no se crearán. Ejecuta el seeder de Olimpiadas primero.');
+            $this->command->warn('No se encontraron olimpiadas. Ejecuta el seeder de Olimpiadas primero.');
             return;
         }
 
-        $this->command->info("Asociando áreas con la olimpiada: '{$olimpiada->nombre}' (ID: {$olimpiada->id_olimpiada})");
-
-        // 2. Preparar los datos para la tabla pivote.
         $todasLasAreas = Area::all();
         $relaciones = [];
         foreach ($todasLasAreas as $area) {
@@ -51,9 +45,7 @@ class AreasSeeder extends Seeder
             ];
         }
 
-        // 3. Insertar todas las relaciones en un solo query.
         AreaOlimpiada::insert($relaciones);
-
         $this->command->info('Relaciones entre áreas y olimpiada creadas exitosamente.');
     }
 }

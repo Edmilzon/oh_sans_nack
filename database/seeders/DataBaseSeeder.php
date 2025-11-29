@@ -3,39 +3,48 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use App\Model\Usuario;
-use App\Model\Olimpiada;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $this->call([
+            // 1. Catálogos Base
             RolesSeeder::class,
-            OlimpiadaSeeder::class, 
-            AreasSeeder::class,
             NivelesSeeder::class,
-            UsusariosSeeder::class,
-            Olimpiada2023Seeder::class,
-            Olimpiadas2024Seeder::class,
-            DepartamentoSeeder::class,
-           // TestUserSeeder::class,
-           // EvaluadorTestSeeder::class,
             GradoEscolaridadSeeder::class,
-            AreasEvaluadoresSeeder::class,
-            CompetidorSeeder::class,
-            Olimpiada2021Seeder::class,
+            DepartamentoSeeder::class,
             FaseGlobalSeeder::class,
             AccionSistemaSeeder::class,
-            ConfiguracionAccionSeeder::class,
-            EvaluadorSeeder::class,
+            RolAccionSeeder::class, // <--- NUEVO (Define permisos base)
+
+            // 2. Estructura Académica Base (Gestión Actual)
+            OlimpiadaSeeder::class,
+            AreasSeeder::class,
+
+            // 3. Usuarios y Personal Base
+            UsuariosSeeder::class,
+
+            // 4. Configuración de Áreas (Crea area_nivel)
+            AreasEvaluadoresSeeder::class,
+            
+            // 5. Configuración Dependiente de area_nivel
+            NivelGradoSeeder::class,         // <--- NUEVO (Vincula grados a las áreas creadas)
             ParametroSeeder::class,
-            //FasesGestionActualSeeder::class,
+            ParametroMedalleroSeeder::class, // <--- NUEVO (Define medallas)
+            ConfiguracionAccionSeeder::class, // Define permisos por fase
+
+            // 6. Datos Históricos
+            Olimpiada2021Seeder::class,
+            Olimpiada2023Seeder::class,
+            Olimpiadas2024Seeder::class,
+
+            // 7. Gestión Actual (Operativa)
+            CompetidorSeeder::class,
+            EvaluadorSeeder::class,
+            
+            // 8. Inicialización del Sistema
+            FasesGestionActualSeeder::class,
         ]);
     }
 }
