@@ -1,0 +1,64 @@
+@hostname = http://localhost:8000
+@api_prefix = /api
+@token = 
+
+
+###Evaluador con sus areas y niveles actuales
+##9, 28, 46, 47, 48, 49, 50
+GET {{hostname}}{{api_prefix}}/evaluadores/9/areas-niveles
+Accept: application/json
+
+###lISTAR COMPETIDORES POR AREA Y NIVEL
+##/area/1/nivel/9
+##/area/1/nivel/10
+##/area/1/nivel/11
+##/area/2/nivel/9
+GET {{hostname}}{{api_prefix}}/competidores/area/1/nivel/1
+Accept: application/json
+
+### ================= FLUJO DE CALIFICACIÓN =================
+
+### PASO 1: CREAR EVALUACIÓN (Estado por defecto: Pendiente)
+# Se crea una evaluación para un competidor. Esta es la "tarea" de calificar.
+POST {{hostname}}{{api_prefix}}/competencias/1/evaluacion
+Content-Type: application/json
+Accept: application/json
+
+{
+    "id_competidor": 250,
+    "id_evaluadorAN": 37
+}
+
+### PASO 2: CALIFICAR EVALUACIÓN (Estado: Pendiente -> Calificado)
+# El evaluador envía la nota y las observaciones para finalizar la calificación.
+@id_evaluacion_creada = 15
+POST {{hostname}}{{api_prefix}}/evaluaciones/{{id_evaluacion_creada}}/finalizar
+Content-Type: application/json
+Accept: application/json
+
+{
+    "nota": 100,
+    "observaciones": "Bueno"
+}
+
+### ACTUALIZAR UNA EVALUACIÓN
+@id_evaluacion = 8
+PUT {{hostname}}{{api_prefix}}/evaluaciones/{{id_evaluacion}}
+Content-Type: application/json
+Accept: application/json
+
+{
+    "nota": 85.5,
+    "observaciones": "malo"
+}
+
+### OBTENER COMPETIDORES CALIFICADOS DE UNA COMPETENCIA
+### ================= CONSULTAS =================
+
+GET {{hostname}}{{api_prefix}}/competencias/1/calificados
+Accept: application/json
+
+### OBTENER LA CALIFICACIÓN DE UN COMPETIDOR ESPECÍFICO
+@id_competidor = 1
+GET {{hostname}}{{api_prefix}}/competidores/{{id_competidor}}/evaluacion
+Accept: application/json

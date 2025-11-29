@@ -1,0 +1,54 @@
+@hostname = http://localhost:8000
+@api_prefix = /api
+
+
+###  gestiones actual verdadero 
+GET {{hostname}}{{api_prefix}}/gestiones
+Accept: application/json
+
+### Listar fases globales
+GET {{hostname}}{{api_prefix}}/fases-globales
+Accept: application/json
+
+    ### Listar acciones del sistema
+GET {{hostname}}{{api_prefix}}/acciones-sistema
+Accept: application/json
+
+### Obtener matriz de configuración de acciones por fase en una gestión
+GET {{hostname}}{{api_prefix}}/gestiones/1/configuracion-acciones
+Accept: application/json
+
+### Guardar TODA la configuración de una gestión
+PUT {{hostname}}{{api_prefix}}/gestiones/1/configuracion-acciones
+Content-Type: application/json
+Accept: application/json
+
+{
+ "accionesPorFase": [
+    { "idAccion": 10, "idFase": 1, "habilitada": true },
+    { "idAccion": 10, "idFase": 2, "habilitada": true },
+    { "idAccion": 10, "idFase": 3, "habilitada": true },
+    { "idAccion": 20, "idFase": 1, "habilitada": true },
+    { "idAccion": 20, "idFase": 2, "habilitada": true },
+    { "idAccion": 20, "idFase": 3, "habilitada": true }
+ ]
+}
+
+### Actualizar una sola acción en una sola fase
+PATCH {{hostname}}{{api_prefix}}/gestiones/1/fases/1/acciones/10
+Content-Type: application/json
+Accept: application/json
+
+{
+    "habilitada": false
+}
+
+### Ver qué acciones están habilitadas para la gestión y fase actual
+GET {{hostname}}{{api_prefix}}/gestiones/1/fases/1/acciones-habilitadas
+Accept: application/json
+
+###Subfases 
+
+### Listar subfases
+ http://127.0.0.1:8000/api/sub-fases/area/{id_area}/nivel/{id_
+nivel}/olimpiada/{id_olimpiada}

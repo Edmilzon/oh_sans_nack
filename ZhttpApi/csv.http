@@ -1,0 +1,58 @@
+
+POST http://127.0.0.1:8000/api/importar/2025
+Content-Type: application/json
+Accept: application/json
+
+{
+    "nombre_archivo": "importacion_prueba_2025.csv",
+    "competidores": [
+        {
+            "persona": {
+                "nombre": "Juan",
+                "apellido": "Perez",
+                "ci": "12345678",
+                "genero": "M",
+                "telefono": "71234567",
+                "email": "juan.perez@email.com"
+            },
+            "competidor": {
+                "grado_escolar": "1ro de Secundaria",
+                "departamento": "La Paz",
+                "contacto_tutor": "76543210"
+            },
+            "institucion": {
+                "nombre": "Colegio San Calixto"
+            },
+            "area": {
+                "nombre": "Matemáticas"
+            },
+            "nivel": {
+                "nombre": "primero de Secundaria"
+            }
+        },
+        {
+            "persona": {
+                "nombre": "Maria",
+                "apellido": "Gonzalez",
+                "ci": "87654321",
+                "genero": "F",
+                "telefono": "68765432",
+                "email": "maria.gonzalez@email.com"
+            },
+            "competidor": {
+                "grado_escolar": "2do de Secundaria",
+                "departamento": "Cochabamba",
+                "contacto_tutor": "71234567"
+            },
+            "institucion": {
+                "nombre": "Colegio La Salle"
+            },
+            "area": {
+                "nombre": "Física"
+            },
+            "nivel": {
+                "nombre": "segundo de Secundaria"
+            }
+        }
+    ]
+}

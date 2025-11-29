@@ -1,0 +1,57 @@
+@hostname = http://localhost:8000
+@api_prefix = /api
+@token = 
+
+###login
+POST {{hostname}}{{api_prefix}}/auth/login
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "admin@ohsansi.com",
+    "password": "admin123"
+}
+
+
+####### RESPONSABLE DE AREA 
+### Resgistrar un nuevo resposanble 
+#@name registrarResponsableArea
+POST {{hostname}}{{api_prefix}}/responsables
+Content-Type: application/json
+Accept: application/json
+
+{
+    "nombre": "Ana",
+    "apellido": "García", 
+    "ci": "8765432",
+    "email": "ana.garcia@example.com",
+    "password": "unPasswordMuySeguro123",
+    "telefono": "65432100",
+    "id_olimpiada": 1,
+    "areas": [4]
+}
+
+###
+
+### Obtener áreas ocupadas por responsables en la gestión actual
+# @name getOcupadas
+GET {{hostname}}{{api_prefix}}/responsables/areas/ocupadas/gestion/actual
+Accept: application/json
+
+
+
+###
+####### EVALUACION
+### Registrar la calificación de un competidor
+# @name calificarCompetidor
+POST {{hostname}}{{api_prefix}}/competencias/1/evaluacion
+Content-Type: application/json
+Accept: application/json
+
+{
+    "nota": 85.50,
+    "observaciones": "El competidor demostró un excelente dominio del tema, pero tuvo errores menores en la sección práctica.",
+    "id_competidor": 1,
+    "id_evaluadorAN": 1,
+    "estado": false
+}
