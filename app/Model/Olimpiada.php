@@ -7,12 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Olimpiada extends Model {
     use HasFactory;
-    
+
     protected $table = 'olimpiada';
     protected $primaryKey = 'id_olimpiada';
     protected $fillable = [
         'nombre',
-        'gestion'
+        'gestion',
+        'estado' // Agregado
     ];
-    
+
+    protected $casts = [
+        'estado' => 'boolean',
+    ];
+
 }

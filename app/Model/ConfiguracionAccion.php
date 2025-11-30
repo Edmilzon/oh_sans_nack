@@ -5,41 +5,36 @@ namespace App\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Fase extends Model
+class ConfiguracionAccion extends Model
 {
     use HasFactory;
 
-    protected $table = 'fase';
-    protected $primaryKey = 'id_fase';
+    protected $table = 'configuracion_accion';
+    protected $primaryKey = 'id_configuracion_accion'; // Corregido de id_configuracion
 
     protected $fillable = [
-        'nombre',
-        'orden',
         'id_area_nivel',
+        'id_accion_sistema', // Corregido de id_accion
         'id_fase_global',
+        'habilitada',
     ];
 
-    /**
-     * Get the area_nivel that owns the fase.
-     */
+    protected $casts = [
+        'habilitada' => 'boolean',
+    ];
+
     public function areaNivel()
     {
         return $this->belongsTo(AreaNivel::class, 'id_area_nivel', 'id_area_nivel');
     }
 
-    /**
-     * Get the fase_global that owns the fase.
-     */
     public function faseGlobal()
     {
         return $this->belongsTo(FaseGlobal::class, 'id_fase_global', 'id_fase_global');
     }
 
-    /**
-     * Get the grupos for the fase.
-     */
-    public function grupos()
+    public function accionSistema()
     {
-        return $this->hasMany(Grupo::class, 'id_fase', 'id_fase');
+        return $this->belongsTo(AccionSistema::class, 'id_accion_sistema', 'id_accion_sistema');
     }
 }

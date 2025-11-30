@@ -13,18 +13,15 @@ class Parametro extends Model
     protected $primaryKey = 'id_parametro';
 
     protected $fillable = [
-        'nota_min_clasif',
-        'cantidad_max_apro',
         'id_area_nivel',
+        'nota_min_aprobacion', // Corregido de nota_min_clasif
+        'cantidad_maxima', // Corregido de cantidad_max_apro
     ];
 
     protected $casts = [
-        'nota_min_clasif' => 'double',
+        'nota_min_aprobacion' => 'decimal:2',
     ];
 
-    /**
-     * Get the area_nivel that owns the parametro.
-     */
     public function areaNivel()
     {
         return $this->belongsTo(AreaNivel::class, 'id_area_nivel', 'id_area_nivel');

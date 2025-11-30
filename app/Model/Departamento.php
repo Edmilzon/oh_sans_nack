@@ -9,8 +9,8 @@ class Departamento extends Model
 {
     use HasFactory;
 
-    protected $table = 'departamento'; // nombre correcto
+    protected $table = 'departamento';
     protected $primaryKey = 'id_departamento';
-    
+
     protected $fillable = ['nombre'];
 }

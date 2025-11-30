@@ -10,7 +10,7 @@ class ResponsableArea extends Model
     use HasFactory;
 
     protected $table = 'responsable_area';
-    protected $primaryKey = 'id_responsableArea';
+    protected $primaryKey = 'id_responsable_area'; // Corregido de id_responsableArea
 
     protected $fillable = [
         'id_usuario',
@@ -19,11 +19,11 @@ class ResponsableArea extends Model
 
     public function areaOlimpiada()
     {
-        return $this->belongsTo(\App\Model\AreaOlimpiada::class, 'id_area_olimpiada');
+        return $this->belongsTo(AreaOlimpiada::class, 'id_area_olimpiada', 'id_area_olimpiada');
     }
 
-    public function area()
+    public function usuario()
     {
-        return $this->hasOneThrough(\App\Model\Area::class, \App\Model\AreaOlimpiada::class, 'id_area_olimpiada', 'id_area', 'id_area_olimpiada', 'id_area');
+        return $this->belongsTo(Usuario::class, 'id_usuario', 'id_usuario');
     }
 }

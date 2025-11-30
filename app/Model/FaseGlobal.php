@@ -17,4 +17,9 @@ class FaseGlobal extends Model
         'nombre',
         'orden',
     ];
+
+    public function cronogramas()
+    {
+        return $this->hasMany(CronogramaFase::class, 'id_fase_global', 'id_fase_global');
+    }
 }

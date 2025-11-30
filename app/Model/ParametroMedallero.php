@@ -13,9 +13,6 @@ class ParametroMedallero extends Model
         'oro',
         'plata',
         'bronce',
-        'menciones'
+        'mencion' // Corregido de menciones
     ];
 }
-
-
-

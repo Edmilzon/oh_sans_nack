@@ -15,16 +15,10 @@ class ArchivoCsv extends Model
     protected $fillable = [
         'nombre',
         'fecha',
-        'id_olimpiada',
+        // 'id_olimpiada', // ELIMINADO: No existe en la migración final de archivo_csv
     ];
 
-    /**
-     * Get the olimpiada that owns the archivo_csv.
-     */
-    public function olimpiada()
-    {
-        return $this->belongsTo(Olimpiada::class, 'id_olimpiada', 'id_olimpiada');
-    }
+    // NOTA: La relación con Olimpiada se eliminó porque la tabla archivo_csv no tiene esa FK en la migración final.
 
     /**
      * Get the competidores for the archivo_csv.

@@ -14,16 +14,9 @@ class Grupo extends Model
 
     protected $fillable = [
         'nombre',
-        'id_fase',
+        // ELIMINADO: 'id_fase' ya que no existe en la migración final.
+        // Si necesitas asociar un grupo a algo, debe ser a través de una relación existente o una tabla pivot.
     ];
-
-    /**
-     * Get the fase that owns the grupo.
-     */
-    public function fase()
-    {
-        return $this->belongsTo(Fase::class, 'id_fase', 'id_fase');
-    }
 
     /**
      * The competidores that belong to the grupo.
