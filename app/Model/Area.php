@@ -13,15 +13,17 @@ class Area extends Model
     protected $primaryKey = 'id_area';
 
     protected $fillable = [
-        'nombre_area', // Antes: 'nombre'
+        'nombre_area',
     ];
 
-    /**
-     * Relación con las instancias de esta área en diferentes olimpiadas.
-     * Ej: "Matemáticas" -> [ "Matemáticas 2024", "Matemáticas 2025" ]
-     */
-    public function areaOlimpiadas()
+    public function olimpiadas()
     {
-        return $this->hasMany(AreaOlimpiada::class, 'id_area', 'id_area');
+        return $this->belongsToMany(Olimpiada::class, 'area_olimpiada', 'id_area', 'id_olimpiada')
+                    ->withTimestamps();
+    }
+
+    public function areasOlimpiada()
+    {
+        return $this->hasMany(\App\Model\AreaOlimpiada::class, 'id_area');
     }
 }

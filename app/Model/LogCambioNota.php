@@ -11,9 +11,6 @@ class LogCambioNota extends Model
 
     protected $table = 'log_cambio_nota';
     protected $primaryKey = 'id_log_cambio_nota';
-    
-    // Esta tabla se llena automáticamente por el Trigger de base de datos,
-    // pero si necesitaras leerla desde Laravel:
     public $timestamps = false;
 
     protected $fillable = [
@@ -21,12 +18,6 @@ class LogCambioNota extends Model
         'nota_anterior',
         'nota_nueva',
         'fecha_cambio',
-    ];
-
-    protected $casts = [
-        'nota_anterior' => 'decimal:2',
-        'nota_nueva' => 'decimal:2',
-        'fecha_cambio' => 'datetime',
     ];
 
     public function evaluacion()

@@ -10,6 +10,7 @@ use App\Mail\UserCredentialsMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Exception;
 
 class ResponsableService
 {
@@ -21,9 +22,9 @@ class ResponsableService
     }
 
     /**
-     * Crea un nuevo responsable de área.
+     * Crea un nuevo responsable de área (Persona + Usuario).
      *
-     * @param array $data
+     * @param array $data Contiene 'password' en texto plano.
      * @return array
      * @throws \Exception
      */
@@ -32,75 +33,70 @@ class ResponsableService
         return DB::transaction(function () use ($data) {
             $plainPassword = $data['password'];
 
+            // 1. Crear Usuario (Repositorio crea Persona + Usuario y hashea la password)
             $usuario = $this->responsableRepository->createUsuario($data);
 
+            // 2. Asignar rol
             $this->responsableRepository->assignResponsableRole($usuario, $data['id_olimpiada']);
 
+            // 3. Crear relaciones con las áreas
             $responsableAreas = $this->responsableRepository->createResponsableAreaRelations(
-                $usuario, 
+                $usuario,
                 $data['areas'],
                 $data['id_olimpiada']
             );
 
-            Mail::to($usuario->email)->send(new UserCredentialsMail(
-                $usuario->nombre,
-                $usuario->email,
-                $plainPassword,
+            // 4. Enviar correo (Usando las columnas de la BD V8)
+            Mail::to($usuario->email_usuario)->send(new UserCredentialsMail( // Columna corregida
+                $usuario->persona->nombre_pers, // Acceso corregido
+                $usuario->email_usuario,       // Columna corregida
+                $plainPassword,                // Contraseña en texto plano
                 'Responsable de Área'
             ));
 
-            return $this->getResponsableData($usuario, $responsableAreas);
+            // Retornar la data mapeada
+            return $this->getResponsableData($usuario->fresh(['persona', 'responsableArea.areaOlimpiada.area']));
         });
     }
 
     /**
      * Obtiene todos los responsables de área.
-     *
-     * @return array
      */
     public function getAllResponsables(): array
     {
+        // El Repositorio ya retorna la data mapeada
         return $this->responsableRepository->getAllResponsablesWithAreas();
     }
 
     /**
      * Obtiene un responsable específico por ID.
-     *
-     * @param int $id
-     * @return array|null
      */
     public function getResponsableById(int $id): ?array
     {
+        // El Repositorio ya retorna la data mapeada
         return $this->responsableRepository->getResponsableByIdWithAreas($id);
     }
 
     /**
      * Obtiene responsables por área específica.
-     *
-     * @param int $areaId
-     * @return array
      */
     public function getResponsablesByArea(int $areaId): array
     {
+        // El Repositorio ya retorna la data mapeada
         return $this->responsableRepository->getResponsablesByArea($areaId);
     }
 
     /**
      * Obtiene responsables por olimpiada específica.
-     *
-     * @param int $olimpiadaId
-     * @return array
      */
     public function getResponsablesByOlimpiada(int $olimpiadaId): array
     {
+        // El Repositorio ya retorna la data mapeada
         return $this->responsableRepository->getResponsablesByOlimpiada($olimpiadaId);
     }
 
     /**
      * Obtiene las gestiones (olimpiadas) en las que ha trabajado un responsable.
-     *
-     * @param string $ci
-     * @return array
      */
     public function getGestionesByCi(string $ci): array
     {
@@ -109,10 +105,6 @@ class ResponsableService
 
     /**
      * Obtiene las áreas asignadas a un responsable para una gestión específica.
-     *
-     * @param string $ci
-     * @param string $gestion
-     * @return array
      */
     public function getAreasByCiAndGestion(string $ci, string $gestion): array
     {
@@ -121,30 +113,24 @@ class ResponsableService
 
     /**
      * Actualiza un responsable existente.
-     *
-     * @param int $id
-     * @param array $data
-     * @return array
      */
     public function updateResponsable(int $id, array $data): array
     {
         return DB::transaction(function () use ($id, $data) {
+            // El Repositorio actualiza Persona y Usuario
             $usuario = $this->responsableRepository->updateUsuario($id, $data);
 
-            if (isset($data['areas'])) {
+            if (isset($data['areas']) && isset($data['id_olimpiada'])) {
                 $this->responsableRepository->updateResponsableAreaRelations($usuario, $data['areas'], $data['id_olimpiada']);
             }
 
-            return $this->getResponsableData($usuario);
+            // Retornar la data mapeada
+            return $this->getResponsableData($usuario->fresh(['persona', 'responsableArea.areaOlimpiada.area']));
         });
     }
 
     /**
      * Actualiza un responsable existente por su CI.
-     *
-     * @param string $ci
-     * @param array $data
-     * @return array|null
      */
     public function updateResponsableByCi(string $ci, array $data): ?array
     {
@@ -167,10 +153,6 @@ class ResponsableService
 
     /**
      * Añade nuevas áreas a un responsable existente por su CI.
-     *
-     * @param string $ci
-     * @param array $data
-     * @return array|null
      */
     public function addAreasToResponsableByCi(string $ci, array $data): ?array
     {
@@ -186,15 +168,12 @@ class ResponsableService
                 $data['areas'],
                 $data['id_olimpiada']
             );
-            return $this->getResponsableData($usuario->fresh());
+            return $this->getResponsableData($usuario->fresh(['persona', 'responsableArea.areaOlimpiada.area']));
         });
     }
 
     /**
      * Elimina un responsable.
-     *
-     * @param int $id
-     * @return bool
      */
     public function deleteResponsable(int $id): bool
     {
@@ -205,12 +184,10 @@ class ResponsableService
 
     /**
      * Obtiene las áreas ocupadas por responsables en la gestión actual.
-     *
-     * @return \Illuminate\Support\Collection
      */
     public function getAreasOcupadasEnGestionActual()
     {
-        $gestionActual = date('Y'); // Obtiene el año actual, ej: "2025"
+        $gestionActual = date('Y');
         return $this->responsableRepository->getAreasOcupadasPorGestion($gestionActual);
     }
 
@@ -229,32 +206,42 @@ class ResponsableService
 
     /**
      * Obtiene los datos formateados del responsable.
+     * Mapea los campos de Persona y las relaciones anidadas a la estructura simple de salida.
      *
      * @param Usuario $usuario
-     * @param array|null $responsableAreas
+     * @param array|null $responsableAreas (No utilizado si se carga la relación 'responsableArea')
      * @return array
      */
     private function getResponsableData(Usuario $usuario, ?array $responsableAreas = null): array
     {
-        $usuario->loadMissing('responsableArea.area');
-        if ($responsableAreas === null) {
-            $responsableAreas = $usuario->responsableArea->toArray();
-        }
+        // 1. Asegurar la carga de relaciones (ya cargadas en los repositorios, pero como fallback)
+        $usuario->loadMissing('persona', 'responsableArea.areaOlimpiada.area');
 
+        // 2. Mapear áreas asignadas
+        $areasAsignadas = $usuario->responsableArea->map(function ($ra) {
+            $area = $ra->areaOlimpiada->area ?? null;
+
+            if (!$area) return null;
+
+            return [
+                'id_area' => $area->id_area,
+                'nombre_area' => $area->nombre_area // Columna corregida
+            ];
+        })->filter()->values()->toArray();
+
+        // 3. Devolver el JSON con claves de la V7
         return [
             'id_usuario' => $usuario->id_usuario,
-            'nombre' => $usuario->nombre,
-            'apellido' => $usuario->apellido,
-            'ci' => $usuario->ci,
-            'email' => $usuario->email,
-            'telefono' => $usuario->telefono,
+            // Mapeo Persona/Usuario -> Frontend keys
+            'nombre' => $usuario->persona->nombre_pers,
+            'apellido' => $usuario->persona->apellido_pers,
+            'ci' => $usuario->persona->ci_pers,
+            'email' => $usuario->email_usuario, // Columna corregida
+            'telefono' => $usuario->persona->telefono_pers ?? null, // Columna corregida
+
             'rol' => 'Responsable Area',
-            'areas_asignadas' => array_map(function ($ra) {
-                return [
-                    'id_area' => $ra['area']['id_area'],
-                    'nombre_area' => $ra['area']['nombre']
-                ];
-            }, $responsableAreas),
+            'areas_asignadas' => $areasAsignadas,
+
             'created_at' => $usuario->created_at,
             'updated_at' => $usuario->updated_at
         ];

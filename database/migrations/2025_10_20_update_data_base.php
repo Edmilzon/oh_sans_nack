@@ -12,16 +12,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // 1. Desactivar FK checks para limpieza total
+        // 1. Desactivar FK checks para poder borrar y crear libremente
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-        // 2. Lista de tablas a limpiar (Orden inverso de dependencia)
+        // 2. Limpieza de tablas (Orden inverso de dependencia para evitar errores si FKs estuvieran activas)
         $tablas = [
-            'log_cambio_nota', 'medallero', 'param_medallero', 'evaluacion', 
-            'grupo_competidor', 'grupo', 'inscripcion', 'competidor', 'competencia', 
-            'cronograma_fase', 'fase_global', 'configuracion_accion', 'rol_accion', 
-            'accion_sistema', 'usuario_rol', 'rol', 'responsable_area', 'evaluador_an', 
-            'parametro', 'nivel_grado', 'area_nivel', 'area_olimpiada', 'area', 'grado_escolaridad', 'nivel', 
+            'log_cambio_nota', 'medallero', 'param_medallero', 'evaluacion',
+            'grupo_competidor', 'grupo', 'inscripcion', 'competidor', 'competencia',
+            'cronograma_fase', 'fase_global', 'configuracion_accion', 'rol_accion',
+            'accion_sistema', 'usuario_rol', 'rol', 'responsable_area', 'evaluador_an',
+            'parametro', 'area_nivel', 'area_olimpiada', 'area', 'nivel',
             'olimpiada', 'usuario', 'persona', 'institucion', 'departamento', 'archivo_csv'
         ];
 
@@ -29,9 +29,7 @@ return new class extends Migration
             Schema::dropIfExists($tabla);
         }
 
-        // ==========================================
-        // 3. INFRAESTRUCTURA Y USUARIOS
-        // ==========================================
+        // 3. Creación de Tablas (Infraestructura y Sistema)
 
         Schema::create('departamento', function (Blueprint $table) {
             $table->id('id_departamento');
@@ -74,7 +72,7 @@ return new class extends Migration
         Schema::create('olimpiada', function (Blueprint $table) {
             $table->id('id_olimpiada');
             $table->string('nombre_olimp', 100)->nullable();
-            $table->string('gestion_olimp', 10);
+            $table->string('gestion_olimp', 10); // Ej: "2025"
             $table->boolean('estado_olimp')->default(true);
             $table->timestamps();
         });
@@ -83,7 +81,8 @@ return new class extends Migration
             $table->id('id_usuario_rol');
             $table->unsignedBigInteger('id_usuario');
             $table->unsignedBigInteger('id_rol');
-            $table->unsignedBigInteger('id_olimpiada')->nullable(); 
+            // Nota: Agrego id_olimpiada porque es vital para el multi-rol por gestión que discutimos
+            $table->unsignedBigInteger('id_olimpiada')->nullable();
             $table->timestamps();
 
             $table->foreign('id_usuario')->references('id_usuario')->on('usuario')->onDelete('cascade');
@@ -91,9 +90,7 @@ return new class extends Migration
             $table->foreign('id_olimpiada')->references('id_olimpiada')->on('olimpiada')->onDelete('cascade');
         });
 
-        // ==========================================
-        // 4. ESTRUCTURA ACADÉMICA
-        // ==========================================
+        // 4. Estructura Académica
 
         Schema::create('area', function (Blueprint $table) {
             $table->id('id_area');
@@ -104,12 +101,6 @@ return new class extends Migration
         Schema::create('nivel', function (Blueprint $table) {
             $table->id('id_nivel');
             $table->string('nombre_nivel', 100);
-            $table->timestamps();
-        });
-
-        Schema::create('grado_escolaridad', function (Blueprint $table) {
-            $table->id('id_grado_escolaridad');
-            $table->string('nombre_grado', 100);
             $table->timestamps();
         });
 
@@ -134,21 +125,7 @@ return new class extends Migration
             $table->foreign('id_nivel')->references('id_nivel')->on('nivel')->onDelete('cascade');
         });
 
-        // --- CORRECCIÓN APLICADA AQUÍ: NIVEL_GRADO ---
-        // Ahora vincula id_area_nivel con id_grado_escolaridad
-        Schema::create('nivel_grado', function (Blueprint $table) {
-            $table->id('id_nivel_grado');
-            $table->unsignedBigInteger('id_area_nivel'); // <--- CORREGIDO (Antes id_nivel)
-            $table->unsignedBigInteger('id_grado_escolaridad');
-            $table->timestamps();
-
-            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')->onDelete('cascade');
-            $table->foreign('id_grado_escolaridad')->references('id_grado_escolaridad')->on('grado_escolaridad')->onDelete('cascade');
-        });
-
-        // ==========================================
-        // 5. GESTIÓN DE PARTICIPANTES
-        // ==========================================
+        // 5. Gestión de Participantes (NUEVO MODELO DE INSCRIPCIÓN)
 
         Schema::create('archivo_csv', function (Blueprint $table) {
             $table->id('id_archivo_csv');
@@ -157,27 +134,39 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // COMPETIDOR: Perfil único del estudiante
         Schema::create('competidor', function (Blueprint $table) {
             $table->id('id_competidor');
             $table->unsignedBigInteger('id_persona');
             $table->unsignedBigInteger('id_institucion');
             $table->unsignedBigInteger('id_departamento');
-            $table->unsignedBigInteger('id_grado_escolaridad'); // Grado actual del alumno
             $table->unsignedBigInteger('id_archivo_csv')->nullable();
-            $table->string('contacto_tutor_compe', 100)->nullable();
+            $table->string('contacto_tutor_compe', 20)->nullable();
             $table->string('genero_competidor', 2)->nullable();
             $table->timestamps();
 
             $table->foreign('id_persona')->references('id_persona')->on('persona')->onDelete('cascade');
             $table->foreign('id_institucion')->references('id_institucion')->on('institucion')->onDelete('cascade');
             $table->foreign('id_departamento')->references('id_departamento')->on('departamento')->onDelete('cascade');
-            $table->foreign('id_grado_escolaridad')->references('id_grado_escolaridad')->on('grado_escolaridad')->onDelete('cascade');
             $table->foreign('id_archivo_csv')->references('id_archivo_csv')->on('archivo_csv')->onDelete('set null');
         });
 
+        // INSCRIPCIÓN: Vinculación del estudiante a un área/nivel específico
         Schema::create('inscripcion', function (Blueprint $table) {
             $table->id('id_inscripcion');
             $table->unsignedBigInteger('id_competidor');
+            $table->unsignedBigInteger('id_area_nivel');
+            $table->string('codigo_inscripcion', 50)->nullable();
+            $table->timestamps();
+
+            $table->foreign('id_competidor')->references('id_competidor')->on('competidor')->onDelete('cascade');
+            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')->onDelete('cascade');
+            $table->unique(['id_competidor', 'id_area_nivel'], 'unique_inscripcion');
+        });
+
+        Schema::create('grupo', function (Blueprint $table) {
+            $table->id('id_grupo');
+            $table->string('nombre_grupo', 250);
             $table->unsignedBigInteger('id_area_nivel');
             $table->timestamps();
 
@@ -186,26 +175,17 @@ return new class extends Migration
             $table->unique(['id_competidor', 'id_area_nivel'], 'unique_inscripcion');
         });
 
-        // GRUPO: Simplificado (Sin id_area_nivel, como pediste)
-        Schema::create('grupo', function (Blueprint $table) {
-            $table->id('id_grupo');
-            $table->string('nombre_grupo', 250);
-            $table->timestamps();
-        });
-
         Schema::create('grupo_competidor', function (Blueprint $table) {
             $table->id('id_grupo_competidor');
             $table->unsignedBigInteger('id_grupo');
-            $table->unsignedBigInteger('id_inscripcion');
+            $table->unsignedBigInteger('id_inscripcion'); // Ahora apunta a inscripción
             $table->timestamps();
 
             $table->foreign('id_grupo')->references('id_grupo')->on('grupo')->onDelete('cascade');
             $table->foreign('id_inscripcion')->references('id_inscripcion')->on('inscripcion')->onDelete('cascade');
         });
 
-        // ==========================================
-        // 6. EVALUACIÓN Y COMPETENCIA
-        // ==========================================
+        // 6. Evaluación y Competencia (Core)
 
         Schema::create('fase_global', function (Blueprint $table) {
             $table->id('id_fase_global');
@@ -245,7 +225,7 @@ return new class extends Migration
 
         Schema::create('evaluacion', function (Blueprint $table) {
             $table->id('id_evaluacion');
-            $table->unsignedBigInteger('id_inscripcion');
+            $table->unsignedBigInteger('id_inscripcion'); // Evalúa la inscripción
             $table->unsignedBigInteger('id_competencia');
             $table->unsignedBigInteger('id_evaluador_an');
             $table->decimal('nota_evalu', 10, 2);
@@ -260,9 +240,7 @@ return new class extends Migration
             $table->foreign('id_evaluador_an')->references('id_evaluador_an')->on('evaluador_an')->onDelete('cascade');
         });
 
-        // ==========================================
-        // 7. AUDITORÍA Y RESULTADOS
-        // ==========================================
+        // 7. Auditoría y Resultados
 
         Schema::create('log_cambio_nota', function (Blueprint $table) {
             $table->id('id_log_cambio_nota');
@@ -286,9 +264,7 @@ return new class extends Migration
             $table->foreign('id_competencia')->references('id_competencia')->on('competencia')->onDelete('cascade');
         });
 
-        // ==========================================
-        // 8. PARAMETRIZACIÓN Y SEGURIDAD
-        // ==========================================
+        // 8. Parametrización y Tablas de Seguridad (Restauradas)
 
         Schema::create('parametro', function (Blueprint $table) {
             $table->id('id_parametro');
@@ -330,6 +306,8 @@ return new class extends Migration
             $table->foreign('id_area_olimpiada')->references('id_area_olimpiada')->on('area_olimpiada')->onDelete('cascade');
         });
 
+        // --- TABLAS NECESARIAS PARA LA LÓGICA DE PERMISOS (Que no estaban en el SQL pero son vitales) ---
+
         Schema::create('rol_accion', function (Blueprint $table) {
             $table->id('id_rol_accion');
             $table->unsignedBigInteger('id_rol');
@@ -349,7 +327,7 @@ return new class extends Migration
             $table->unsignedBigInteger('id_accion');
             $table->boolean('habilitada')->default(false);
             $table->timestamps();
-            
+
             $table->foreign('id_olimpiada')->references('id_olimpiada')->on('olimpiada')->onDelete('cascade');
             $table->foreign('id_fase_global')->references('id_fase_global')->on('fase_global')->onDelete('cascade');
             $table->foreign('id_accion')->references('id_accion')->on('accion_sistema')->onDelete('cascade');
@@ -370,7 +348,7 @@ return new class extends Migration
             $table->unique(['id_olimpiada', 'id_fase_global'], 'unique_crono_gestion');
         });
 
-        // 9. Trigger de Auditoría
+        // 9. Creación del Trigger (Requiere permisos de SuperUser en BD)
         DB::unprepared('
             DROP TRIGGER IF EXISTS trg_auditoria_notas;
             CREATE TRIGGER trg_auditoria_notas
@@ -399,14 +377,14 @@ return new class extends Migration
     public function down(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        
+
         DB::unprepared('DROP TRIGGER IF EXISTS trg_auditoria_notas');
 
         $tablas = [
-            'cronograma_fase', 'rol_accion', 'configuracion_accion', 'log_cambio_nota', 'medallero', 
-            'param_medallero', 'evaluacion', 'grupo_competidor', 'grupo', 'inscripcion', 'competidor', 
-            'competencia', 'fase_global', 'accion_sistema', 'usuario_rol', 'rol', 'responsable_area', 
-            'evaluador_an', 'parametro', 'nivel_grado', 'area_nivel', 'area_olimpiada', 'area', 'grado_escolaridad', 'nivel', 
+            'cronograma_fase', 'rol_accion', 'configuracion_accion', 'log_cambio_nota', 'medallero',
+            'param_medallero', 'evaluacion', 'grupo_competidor', 'grupo', 'inscripcion', 'competidor',
+            'competencia', 'fase_global', 'accion_sistema', 'usuario_rol', 'rol', 'responsable_area',
+            'evaluador_an', 'parametro', 'area_nivel', 'area_olimpiada', 'area', 'nivel',
             'olimpiada', 'usuario', 'persona', 'institucion', 'departamento', 'archivo_csv'
         ];
 

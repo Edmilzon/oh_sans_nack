@@ -14,20 +14,19 @@ class Evaluacion extends Model
 
     // Campos permitidos para asignación masiva
     protected $fillable = [
-        'id_inscripcion',       // <--- Relación clave con el estudiante inscrito
-        'id_competencia',       // <--- Examen que se está calificando
-        'id_evaluador_an',      // <--- Profesor que califica
-        'nota_evalu',           // <--- La calificación numérica
-        'estado_competidor_eva',// <--- Ej: 'CLASIFICADO', 'REPROBADO'
-        'observacion_evalu',    // <--- Comentarios opcionales
+        'id_inscripcion',
+        'id_competencia',
+        'id_evaluador_an',
+        'nota_evalu',
+        'estado_competidor_eva',
+        'observacion_evalu',
         'fecha_evalu',
-        'estado_evalu'          // <--- Activo/Inactivo (soft delete lógico)
+        'estado_evalu',
     ];
 
     protected $casts = [
         'fecha_evalu' => 'datetime',
         'nota_evalu' => 'decimal:2',
-        'estado_evalu' => 'boolean',
     ];
 
     /**
@@ -46,18 +45,18 @@ class Evaluacion extends Model
         return $this->belongsTo(Competencia::class, 'id_competencia', 'id_competencia');
     }
 
-    // El evaluador responsable de esta nota
-    public function evaluador()
+    /**
+     * RELACIONES DEPENDIENTES (Hijos)
+     */
+    public function evaluadorAn()
     {
         return $this->belongsTo(EvaluadorAn::class, 'id_evaluador_an', 'id_evaluador_an');
     }
 
     /**
-     * RELACIONES DEPENDIENTES (Hijos)
+     * Get the log de cambios de nota for the evaluacion.
      */
-
-    // Historial de cambios de nota (Auditoría)
-    public function logsCambios()
+    public function logCambiosNota()
     {
         return $this->hasMany(LogCambioNota::class, 'id_evaluacion', 'id_evaluacion');
     }

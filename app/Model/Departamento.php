@@ -12,15 +12,8 @@ class Departamento extends Model
     protected $table = 'departamento';
     protected $primaryKey = 'id_departamento';
 
-    protected $fillable = [
-        'nombre_dep', // Antes: 'nombre'
-    ];
+    protected $fillable = ['nombre_dep'];
 
-    /**
-     * RELACIONES DEPENDIENTES (Hijos)
-     */
-
-    // Los competidores (estudiantes) que pertenecen a este departamento
     public function competidores()
     {
         return $this->hasMany(Competidor::class, 'id_departamento', 'id_departamento');

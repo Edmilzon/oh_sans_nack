@@ -21,32 +21,17 @@ class Competencia extends Model
         'ponderacion',
         'maxima_nota',
         'es_avalado',
-        'estado_comp'
+        'estado_comp',
     ];
 
-    protected $casts = [
-        'fecha_inicio' => 'datetime',
-        'fecha_fin' => 'datetime',
-        'es_avalado' => 'boolean',
-        'estado_comp' => 'boolean',
-        'ponderacion' => 'decimal:2',
-        'maxima_nota' => 'decimal:2',
-    ];
-
-    /**
-     * RELACIONES DIRECTAS (Padres)
-     */
-
-    // Pertenece a una Fase Global (ej: "Etapa Distrital")
     public function faseGlobal()
     {
-        return $this->belongsTo(FaseGlobal::class, 'id_fase_global', 'id_fase_global');
+        return $this->belongsTo(FaseGlobal::class, 'id_fase_global');
     }
 
-    // Pertenece a una configuración Área-Nivel específica
     public function areaNivel()
     {
-        return $this->belongsTo(AreaNivel::class, 'id_area_nivel', 'id_area_nivel');
+        return $this->belongsTo(AreaNivel::class, 'id_area_nivel');
     }
 
     /**
