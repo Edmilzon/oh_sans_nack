@@ -4,7 +4,6 @@ namespace App\Repositories;
 
 use App\Model\GradoEscolaridad;
 use App\Model\Departamento;
-use App\Model\Olimpiada; // Asegurar que está importado para evitar errores
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -16,16 +15,15 @@ class ListaResponsableAreaRepository
 
         return DB::table('area_nivel')
             ->join('nivel', 'area_nivel.id_nivel', '=', 'nivel.id_nivel')
-            ->join('area_olimpiada', 'area_nivel.id_area_olimpiada', '=', 'area_olimpiada.id_area_olimpiada')
-            ->join('olimpiada', 'area_olimpiada.id_olimpiada', '=', 'olimpiada.id_olimpiada')
+            ->join('olimpiada', 'area_nivel.id_olimpiada', '=', 'olimpiada.id_olimpiada')
             ->select(
                 'nivel.id_nivel',
-                'nivel.nombre_nivel as nombre_nivel', // Columna corregida
+                'nivel.nombre as nombre_nivel',
             )
-            ->where('area_olimpiada.id_area', $idArea) // Se accede a area_olimpiada para el id_area
-            ->where('olimpiada.gestion_olimp', $gestionActual) // Columna corregida
-            ->where('area_nivel.es_activo_area_nivel', true) // Columna corregida
-            ->orderBy('nivel.nombre_nivel') // Columna corregida
+            ->where('area_nivel.id_area', $idArea)
+            ->where('olimpiada.gestion', $gestionActual)
+            ->where('area_nivel.activo', true)
+            ->orderBy('nivel.nombre')
             ->distinct()
             ->get();
     }
@@ -38,28 +36,26 @@ class ListaResponsableAreaRepository
             ->join('area_olimpiada', 'responsable_area.id_area_olimpiada', '=', 'area_olimpiada.id_area_olimpiada')
             ->join('area', 'area_olimpiada.id_area', '=', 'area.id_area')
             ->join('olimpiada', 'area_olimpiada.id_olimpiada', '=', 'olimpiada.id_olimpiada')
-            // Se utiliza alias 'nombre' para compatibilidad con el frontend
-            ->select('area.id_area', 'area.nombre_area as nombre') // Columna corregida
+            ->select('area.id_area', 'area.nombre')
             ->where('responsable_area.id_usuario', $idResponsable)
-            ->where('olimpiada.gestion_olimp', $gestionActual) // Columna corregida
+            ->where('olimpiada.gestion', $gestionActual)
             ->distinct()
-            ->orderBy('area.nombre_area') // Columna corregida
+            ->orderBy('area.nombre')
             ->get();
     }
 
     /**
-     * Lista los competidores filtrando por área/nivel/grado
+     * Lista los competidores filtrando por área/nivel/grado 
      */
    public function listarPorAreaYNivel(
-    int $idResponsable,
-    ?int $idArea,
-    ?int $idNivel,
-    ?int $idGrado,
+    int $idResponsable, 
+    ?int $idArea, 
+    ?int $idNivel, 
+    ?int $idGrado, 
     ?string $genero = null,
     ?string $departamento = null
 ): Collection
 {
-    // Lógica para obtener las áreas de las que el responsable es responsable
     $areasDelResponsable = DB::table('responsable_area')
         ->join('area_olimpiada', 'responsable_area.id_area_olimpiada', '=', 'area_olimpiada.id_area_olimpiada')
         ->where('responsable_area.id_usuario', $idResponsable)
@@ -71,7 +67,6 @@ class ListaResponsableAreaRepository
         return collect();
     }
 
-    // Mapeo de género (Manteniendo la lógica original)
     if ($genero && !in_array(strtolower($genero), ['m', 'f', 'masculino', 'femenino'])) {
         $departamento = $genero;
         $genero = null;
@@ -79,22 +74,17 @@ class ListaResponsableAreaRepository
 
     $query = DB::table('competidor')
         ->join('persona', 'competidor.id_persona', '=', 'persona.id_persona')
-        // Se une a area_nivel a través de competidor
-        ->join('inscripcion', 'competidor.id_competidor', '=', 'inscripcion.id_competidor')
-        ->join('area_nivel', 'inscripcion.id_area_nivel', '=', 'area_nivel.id_area_nivel')
-        // El resto de joins para obtener datos de la inscripción
-        ->join('area_olimpiada', 'area_nivel.id_area_olimpiada', '=', 'area_olimpiada.id_area_olimpiada')
-        ->join('area', 'area_olimpiada.id_area', '=', 'area.id_area')
+        ->join('area_nivel', 'competidor.id_area_nivel', '=', 'area_nivel.id_area_nivel')
+        ->join('area', 'area_nivel.id_area', '=', 'area.id_area')
         ->join('nivel', 'area_nivel.id_nivel', '=', 'nivel.id_nivel')
         ->join('grado_escolaridad', 'competidor.id_grado_escolaridad', '=', 'grado_escolaridad.id_grado_escolaridad')
         ->join('institucion', 'competidor.id_institucion', '=', 'institucion.id_institucion')
-        ->join('olimpiada', 'area_olimpiada.id_olimpiada', '=', 'olimpiada.id_olimpiada')
-        // Filtrar por áreas del responsable
         ->whereIn('area.id_area', $areasDelResponsable);
 
-    // 🧩 Filtro por olimpiada del año actual (Columna corregida)
+    // 🧩 Filtro por olimpiada del año actual
     $anioActual = date('Y');
-    $query->where('olimpiada.gestion_olimp', $anioActual);
+    $query->join('olimpiada', 'area_nivel.id_olimpiada', '=', 'olimpiada.id_olimpiada')
+          ->where('olimpiada.gestion', $anioActual);
 
     // Filtros opcionales
     if ($idArea && $idArea !== 0) {
@@ -110,37 +100,36 @@ class ListaResponsableAreaRepository
     }
 
     if ($genero) {
-        $genero = strtoupper(substr($genero, 0, 1));
-        $query->where('competidor.genero_competidor', $genero); // Columna corregida
+        $genero = strtolower($genero);
+        if (in_array($genero, ['m', 'masculino'])) {
+            $query->where('persona.genero', 'M');
+        } elseif (in_array($genero, ['f', 'femenino'])) {
+            $query->where('persona.genero', 'F');
+        }
     }
 
     if ($departamento) {
-        // En competidor, la columna es 'id_departamento' (FK) o 'departamento' (texto).
-        // Asumo que tu base de datos anterior guardaba el texto del departamento en la columna 'departamento' del competidor.
-        // Si no existe, usar la tabla 'departamento' y un join.
-        // Mantenemos la lógica original sobre competidor.departamento si existía.
         $query->whereRaw('LOWER(competidor.departamento) = ?', [strtolower($departamento)]);
     }
 
-    // SELECCIÓN DE COLUMNAS (Corregido a V8 y con Alias para Frontend)
     return $query->select(
-            'persona.apellido_pers as apellido', // Columna corregida
-            'persona.nombre_pers as nombre',    // Columna corregida
-            DB::raw("CASE
-                        WHEN competidor.genero_competidor = 'M' THEN 'Masculino'
-                        WHEN competidor.genero_competidor = 'F' THEN 'Femenino'
-                        ELSE competidor.genero_competidor
+            'persona.apellido',
+            'persona.nombre',
+            DB::raw("CASE 
+                        WHEN persona.genero = 'M' THEN 'Masculino'
+                        WHEN persona.genero = 'F' THEN 'Femenino'
+                        ELSE persona.genero
                     END AS genero"),
-            'persona.ci_pers as ci', // Columna corregida
-            'competidor.id_departamento', // Si se usa la FK
-            'institucion.nombre_inst as colegio', // Columna corregida
-            'area.nombre_area as area', // Columna corregida
-            'nivel.nombre_nivel as nivel', // Columna corregida
-            'grado_escolaridad.nombre_grado as grado', // Columna corregida
-            'olimpiada.gestion_olimp as gestion' // Columna corregida
+            'persona.ci',
+            'competidor.departamento',
+            'institucion.nombre as colegio',
+            'area.nombre as area',
+            'nivel.nombre as nivel',
+            'grado_escolaridad.nombre as grado',
+            'olimpiada.gestion as gestion'
         )
-        ->orderBy('persona.apellido_pers')
-        ->orderBy('persona.nombre_pers')
+        ->orderBy('persona.apellido')
+        ->orderBy('persona.nombre')
         ->get();
 }
 
@@ -148,95 +137,71 @@ class ListaResponsableAreaRepository
     public function getCompetidoresPorAreaYNivel(int $idArea, int $idNivel): Collection
     {
         $gestionActual = date('Y');
-
-        // La unión a area_nivel ya no es directa desde competidor, sino a través de inscripcion.
-        // Además, area_nivel ya no tiene id_area o id_olimpiada directo.
-
+        // Primero obtenemos los competidores
         $competidores = DB::table('competidor')
             ->join('persona', 'competidor.id_persona', '=', 'persona.id_persona')
-            ->join('inscripcion', 'competidor.id_competidor', '=', 'inscripcion.id_competidor') // Nuevo Join
-            ->join('area_nivel', 'inscripcion.id_area_nivel', '=', 'area_nivel.id_area_nivel')
-            // Navegar la nueva estructura
-            ->join('area_olimpiada', 'area_nivel.id_area_olimpiada', '=', 'area_olimpiada.id_area_olimpiada')
-            ->join('area', 'area_olimpiada.id_area', '=', 'area.id_area')
+            ->join('area_nivel', 'competidor.id_area_nivel', '=', 'area_nivel.id_area_nivel')
+            ->join('area', 'area_nivel.id_area', '=', 'area.id_area')
             ->join('nivel', 'area_nivel.id_nivel', '=', 'nivel.id_nivel')
-            // Resto de joins
             ->join('grado_escolaridad', 'competidor.id_grado_escolaridad', '=', 'grado_escolaridad.id_grado_escolaridad')
             ->join('institucion', 'competidor.id_institucion', '=', 'institucion.id_institucion')
-            ->join('olimpiada', 'area_olimpiada.id_olimpiada', '=', 'olimpiada.id_olimpiada')
-
-            // Filtros
+            ->join('olimpiada', 'area_nivel.id_olimpiada', '=', 'olimpiada.id_olimpiada')
             ->where('area.id_area', $idArea)
             ->where('nivel.id_nivel', $idNivel)
-            ->where('olimpiada.gestion_olimp', $gestionActual) // Columna corregida
-
-            // Selección (Corregido a V8 y con Alias)
+            ->where('olimpiada.gestion', $gestionActual)
             ->select(
                 'competidor.id_competidor',
                 'competidor.id_persona',
-                'inscripcion.id_area_nivel', // Usamos el id_area_nivel de la inscripción
+                'competidor.id_area_nivel',
                 'competidor.id_grado_escolaridad',
                 'competidor.id_institucion',
-                'competidor.id_departamento', // Asumo que se usa la FK
-                'competidor.contacto_tutor_compe as contacto_tutor', // Columna corregida
-
-                'persona.apellido_pers as apellido',
-                'persona.nombre_pers as nombre',
-                'persona.ci_pers as ci',
-                'persona.telefono_pers as telefono',
-                'persona.email_pers as email',
-
-                DB::raw("CASE
-                            WHEN competidor.genero_competidor = 'M' THEN 'Masculino'
-                            WHEN competidor.genero_competidor = 'F' THEN 'Femenino'
-                            ELSE competidor.genero_competidor
+                'competidor.departamento',
+                'competidor.contacto_tutor',
+                'persona.apellido',
+                'persona.nombre',
+                DB::raw("CASE 
+                            WHEN persona.genero = 'M' THEN 'Masculino'
+                            WHEN persona.genero = 'F' THEN 'Femenino'
+                            ELSE persona.genero
                         END AS genero"),
-
-                'institucion.nombre_inst as colegio',
-                'area.nombre_area as area',
-                'nivel.nombre_nivel as nivel',
-                'grado_escolaridad.nombre_grado as grado',
-
-                'area.id_area',
-                'nivel.id_nivel',
-                'olimpiada.id_olimpiada' // Para cargar evaluaciones
+                'persona.ci',
+                'persona.telefono',
+                'persona.email',
+                'institucion.nombre as colegio',
+                'area.nombre as area',
+                'nivel.nombre as nivel',
+                'grado_escolaridad.nombre as grado',
+                'area_nivel.id_area',
+                'area_nivel.id_nivel',
+                'area_nivel.id_olimpiada'
             )
-            ->orderBy('persona.apellido_pers')
-            ->orderBy('persona.nombre_pers')
+            ->orderBy('persona.apellido')
+            ->orderBy('persona.nombre')
             ->get();
 
-        // Obtenemos los IDs de los competidores (para el segundo paso)
+        // Obtenemos los IDs de los competidores
         $competidorIds = $competidores->pluck('id_competidor');
-        $inscripcionIds = DB::table('inscripcion')->whereIn('id_competidor', $competidorIds)->pluck('id_inscripcion');
 
-
-        // Obtenemos las evaluaciones para estos competidores (buscando por id_inscripcion)
+        // Obtenemos las evaluaciones para estos competidores
         $evaluaciones = DB::table('evaluacion')
-            ->whereIn('id_inscripcion', $inscripcionIds) // CRÍTICO: Buscar por id_inscripcion
+            ->whereIn('id_competidor', $competidorIds)
             ->select(
                 'id_evaluacion',
-                'nota_evalu as nota', // Columna corregida + Alias
-                'observacion_evalu as observaciones', // Columna corregida + Alias
-                'fecha_evalu as fecha_evaluacion', // Columna corregida + Alias
-                'estado_competidor_eva as estado', // Columna corregida + Alias
-                'id_inscripcion', // Usaremos este campo para mapear al competidor
+                'nota',
+                'observaciones',
+                'fecha_evaluacion',
+                'estado',
+                'id_competidor',
                 'id_competencia',
-                'id_evaluador_an as id_evaluadorAN' // Columna corregida + Alias
+                'id_evaluadorAN',
+                'id_parametro'
             )
             ->get()
-            // Agrupar por el ID del competidor, no por id_inscripcion (requiere join adicional en PHP)
-            ->map(function($item) {
-                // Agregar id_competidor al item para poder agrupar al final
-                $competidorId = DB::table('inscripcion')->where('id_inscripcion', $item->id_inscripcion)->value('id_competidor');
-                $item->id_competidor = $competidorId;
-                return $item;
-            })
             ->groupBy('id_competidor');
 
         // Combinamos los datos
         return $competidores->map(function ($competidor) use ($evaluaciones) {
             $competidorArray = (array) $competidor;
-            // El grupo se hace por id_competidor, que ahora está en $item->id_competidor
             $competidorArray['evaluaciones'] = $evaluaciones->get($competidor->id_competidor, []);
             return (object) $competidorArray;
         });
@@ -247,40 +212,40 @@ class ListaResponsableAreaRepository
             return collect();
         }
 
-        // Se usa la tabla intermedia nivel_grado para obtener los grados permitidos en este nivel
-        $gradosIds = DB::table('nivel_grado')
-            ->join('area_nivel', 'nivel_grado.id_area_nivel', '=', 'area_nivel.id_area_nivel')
-            ->join('area_olimpiada', 'area_nivel.id_area_olimpiada', '=', 'area_olimpiada.id_area_olimpiada')
-            ->join('olimpiada', 'area_olimpiada.id_olimpiada', '=', 'olimpiada.id_olimpiada')
+        $gestionActual = (int) date('Y');
+
+        // Tomamos los id_grado_escolaridad desde area_nivel (uniendo con olimpiada vía id_olimpiada)
+        $gradoIds = DB::table('area_nivel')
+            ->join('olimpiada', 'area_nivel.id_olimpiada', '=', 'olimpiada.id_olimpiada')
             ->where('area_nivel.id_nivel', $idNivel)
-            ->where('area_nivel.es_activo_area_nivel', true) // Columna corregida
-            ->where('olimpiada.gestion_olimp', date('Y')) // Columna corregida
+            ->where('area_nivel.activo', true)
+            ->whereNotNull('area_nivel.id_grado_escolaridad')
+            ->where('olimpiada.gestion', $gestionActual)
             ->distinct()
-            ->pluck('nivel_grado.id_grado_escolaridad')
+            ->pluck('area_nivel.id_grado_escolaridad')
+            ->filter()
             ->values();
 
-        if ($gradosIds->isEmpty()) {
+        if ($gradoIds->isEmpty()) {
             return collect();
         }
 
-        return GradoEscolaridad::whereIn('id_grado_escolaridad', $gradosIds)
-            // Columna corregida: nombre_grado
-            ->orderBy('nombre_grado')
+        return GradoEscolaridad::whereIn('id_grado_escolaridad', $gradoIds)
+            ->orderBy('nombre')
             ->get();
     }
+     public function getListaDepartamento()
+{
+    return Departamento::all();
+}
+public function getListaGeneros(): array
+{
+    // Retorna un array de géneros
+    return [
+        ['id' => 'M', 'nombre' => 'Masculino'],
+        ['id' => 'F', 'nombre' => 'Femenino']
+    ];
+}
 
-    public function getListaDepartamento()
-    {
-        // Columna corregida: nombre_dep
-        return Departamento::select('id_departamento', 'nombre_dep')->get();
-    }
 
-    public function getListaGeneros(): array
-    {
-        // Retorna un array de géneros
-        return [
-            ['id' => 'M', 'nombre' => 'Masculino'],
-            ['id' => 'F', 'nombre' => 'Femenino']
-        ];
-    }
 }

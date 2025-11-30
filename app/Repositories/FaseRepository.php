@@ -5,127 +5,97 @@ namespace App\Repositories;
 use App\Model\AreaNivel;
 use App\Model\AreaOlimpiada;
 use App\Model\Competencia;
+use App\Model\Fase;
 use App\Model\FaseGlobal;
 use App\Model\AccionSistema;
 use App\Model\ConfiguracionAccion;
 use App\Model\Olimpiada;
-use App\Model\ResponsableArea; // Necesario para buscar
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Eloquent\Builder;
-use Exception;
 
 class FaseRepository
 {
     public function obtenerFasesGlobales(): Collection
     {
-        // Columna corregida: orden_fas_glo
-        return FaseGlobal::orderBy('orden_fas_glo')->get();
+        return FaseGlobal::orderBy('orden')->get();
     }
 
-    /**
-     * NOTA: El modelo Fase ya no existe.
-     * Este método debería listar Competencias asociadas al AreaNivel.
-     * Mantenemos la estructura para compatibilidad, listando Competencia.
-     */
     public function obtenerPorAreaNivel(int $id_area_nivel): Collection
     {
-        return Competencia::where('id_area_nivel', $id_area_nivel)
-            ->orderBy('id_fase_global') // Ordenar por fase global para consistencia
-            ->get();
+        return Fase::where('id_area_nivel', $id_area_nivel)->orderBy('orden')->get();
     }
 
-    /**
-     * NOTA: Este método original creaba una Fase y una Competencia.
-     * Ahora solo crea la Competencia.
-     * Se mantiene el nombre del método por compatibilidad con el Service/Controller.
-     */
-    public function crearConCompetencia(array $data): Competencia
+    public function crearConCompetencia(array $data): Fase
     {
         return DB::transaction(function () use ($data) {
+            $fase = Fase::create([
+                'nombre' => $data['nombre'],
+                'orden' => $data['orden'] ?? 1,
+                'id_area_nivel' => $data['id_area_nivel'],
+            ]);
 
-            $areaNivel = AreaNivel::with('areaOlimpiada')->findOrFail($data['id_area_nivel']);
-            $areaOlimpiada = $areaNivel->areaOlimpiada;
+            $areaNivel = AreaNivel::findOrFail($data['id_area_nivel']);
+            $areaOlimpiada = AreaOlimpiada::where('id_area', $areaNivel->id_area)
+                ->where('id_olimpiada', $areaNivel->id_olimpiada)
+                ->firstOrFail();
 
-            if (!$areaOlimpiada) {
-                throw new Exception("La relación Area-Olimpiada no existe para el id_area_nivel proporcionado.");
-            }
-
-            // Buscar el responsable asociado a esa AreaOlimpiada (para determinar la Fase Global, si aplica)
-            $responsableArea = ResponsableArea::where('id_area_olimpiada', $areaOlimpiada->id_area_olimpiada)
+            $responsableArea = DB::table('responsable_area')
+                ->where('id_area_olimpiada', $areaOlimpiada->id_area_olimpiada)
                 ->first();
 
             if (!$responsableArea) {
-                // Esto podría ser un error, o simplemente una advertencia si la lógica de negocio lo permite.
-                // Mantengo el throw para reflejar el error original.
-                throw new Exception("No se encontró un responsable para el área de esta fase.");
+                throw new \Exception("No se encontró un responsable para el área de esta fase.");
             }
 
-            // Asumo que $data['id_fase_global'] se pasa en el request, ya que Fase ya no existe.
-            // Si $data['id_fase_global'] no está disponible, esta lógica fallará.
-            $idFaseGlobal = $data['id_fase_global'] ?? FaseGlobal::firstOrFail()->id_fase_global;
-
-            // Crear directamente la Competencia
-            $competencia = Competencia::create([
-                'id_fase_global' => $idFaseGlobal,
-                'id_area_nivel' => $areaNivel->id_area_nivel,
-                'nombre_examen' => $data['nombre'],
+            Competencia::create([
                 'fecha_inicio' => $data['fecha_inicio'],
                 'fecha_fin' => $data['fecha_fin'],
-                // Usamos estado_comp (boolean)
-                'estado_comp' => true, // Por defecto activa/iniciada
+                'estado' => $data['estado'],
+                'id_fase' => $fase->id_fase,
+                'id_responsableArea' => $responsableArea->id_responsableArea,
             ]);
 
-            // Anteriormente se retornaba $fase, ahora retornamos $competencia
-            return $competencia;
+            return $fase->load('competencias');
         });
     }
 
-    /**
-     * Reemplazar Fase::find($id_fase) con Competencia::find($id_competencia)
-     */
-    public function obtenerPorId(int $id_competencia): ?Competencia
+    public function obtenerPorId(int $id_fase): ?Fase
     {
-        return Competencia::find($id_competencia);
+        return Fase::find($id_fase);
     }
 
-    /**
-     * Reemplazar Fase::find($id_fase) con Competencia::find($id_competencia)
-     */
-    public function actualizar(int $id_competencia, array $data): bool
+    public function actualizar(int $id_fase, array $data): bool
     {
-        $competencia = Competencia::find($id_competencia);
-        if ($competencia) {
-            return $competencia->update($data);
+        $fase = Fase::find($id_fase);
+        if ($fase) {
+            return $fase->update($data);
         }
         return false;
     }
 
-    /**
-     * Reemplazar Fase::find($id_fase) con Competencia::find($id_competencia)
-     */
-    public function eliminar(int $id_competencia): bool
+    public function eliminar(int $id_fase): bool
     {
-        $competencia = Competencia::find($id_competencia);
-        if ($competencia) {
-            return $competencia->delete();
+        $fase = Fase::find($id_fase);
+        if ($fase) {
+            return $fase->delete();
         }
         return false;
     }
 
     public function listarAccionesSistema(): Collection
     {
-        // Columnas corregidas: codigo_acc_sis, nombre_acc_sis
-        return AccionSistema::select('id_accion as id', 'codigo_acc_sis as codigo', 'nombre_acc_sis as nombre')->get();
+        return AccionSistema::select('id_accion as id', 'codigo', 'nombre')->get();
     }
 
     public function getConfiguracionAccionesPorGestion(int $idGestion): array
     {
         $olimpiada = Olimpiada::findOrFail($idGestion);
-        // Columna corregida: orden_fas_glo
-        $fasesGlobales = FaseGlobal::orderBy('orden_fas_glo')->get();
+        $fasesGlobales = FaseGlobal::orderBy('orden')->get();
         $accionesSistema = AccionSistema::get();
         $configuraciones = ConfiguracionAccion::where('id_olimpiada', $idGestion)->get();
+
+        $fasesIds = $fasesGlobales->pluck('id_fase_global');
+        $accionesIds = $accionesSistema->pluck('id_accion');
 
         $configuracionMatrix = [];
         foreach ($configuraciones as $config) {
@@ -145,8 +115,8 @@ class FaseRepository
 
             $accionesResponse[] = [
                 'id' => $accion->id_accion,
-                'codigo' => $accion->codigo_acc_sis, // Columna corregida
-                'nombre' => $accion->nombre_acc_sis, // Columna corregida
+                'codigo' => $accion->codigo,
+                'nombre' => $accion->nombre,
                 'porFase' => $porFase,
             ];
         }
@@ -154,13 +124,13 @@ class FaseRepository
         return [
             'gestion' => [
                 'id' => $olimpiada->id_olimpiada,
-                'gestion' => $olimpiada->gestion_olimp, // Columna corregida
+                'gestion' => $olimpiada->gestion,
             ],
             'fases' => $fasesGlobales->map(function ($fase) {
                 return [
                     'id' => $fase->id_fase_global,
-                    'codigo' => $fase->codigo_fas_glo, // Columna corregida
-                    'nombre' => $fase->nombre_fas_glo, // Columna corregida
+                    'codigo' => $fase->codigo,
+                    'nombre' => $fase->nombre,
                 ];
             }),
             'acciones' => $accionesResponse,
@@ -198,47 +168,32 @@ class FaseRepository
             ]
         );
     }
-
     public function getAccionesHabilitadas(int $idGestion, int $idFase)
     {
         return ConfiguracionAccion::where('id_olimpiada', $idGestion)
             ->where('id_fase_global', $idFase)
             ->where('habilitada', true)
             ->join('accion_sistema', 'configuracion_accion.id_accion', '=', 'accion_sistema.id_accion')
-            // Columna corregida: codigo_acc_sis
-            ->pluck('accion_sistema.codigo_acc_sis');
+            ->pluck('accion_sistema.codigo');
     }
 
-    public function getFaseDetails(int $id_competencia): ?array
+    public function getFaseDetails(int $id_fase): ?array
     {
-        // Rutas de relación corregidas: Competencia -> AreaNivel -> AreaOlimpiada -> Olimpiada
-        $competencia = Competencia::with('areaNivel.areaOlimpiada.olimpiada')->find($id_competencia);
+        $fase = Fase::with('areaNivel.olimpiada')->find($id_fase);
 
-        // Columna corregida: gestion_olimp
-        if (!$competencia || $competencia->areaNivel->areaOlimpiada->olimpiada->gestion_olimp !== date('Y')) {
+        if (!$fase || $fase->areaNivel->olimpiada->gestion !== '2025') {
             return null;
         }
 
-        $id_area_nivel = $competencia->id_area_nivel;
-        $id_fase_global = $competencia->id_fase_global; // Usamos la FK de la competencia
+        $id_area_nivel = $fase->id_area_nivel;
 
         $cantidad_evaluadores = DB::table('evaluador_an')->where('id_area_nivel', $id_area_nivel)->count();
 
-        // **CORRECCIÓN CRÍTICA:** Contamos competidores A TRAVÉS de la tabla inscripcion.
-        $cantidad_competidores = DB::table('inscripcion')
-            ->where('id_area_nivel', $id_area_nivel)
-            ->distinct()
-            ->count('id_competidor');
+        $cantidad_competidores = DB::table('competidor')->where('id_area_nivel', $id_area_nivel)->count();
 
-        // Solo necesitamos el ID de la competencia actual
-        $competenciaIds = [$id_competencia];
-
-        // **CORRECCIÓN CRÍTICA:** Contamos progreso a través de inscripcion.
-        $progreso = DB::table('evaluacion')
-            ->join('inscripcion', 'evaluacion.id_inscripcion', '=', 'inscripcion.id_inscripcion')
-            ->whereIn('evaluacion.id_competencia', $competenciaIds)
-            ->distinct()
-            ->count('inscripcion.id_competidor');
+        $competenciaIds = DB::table('competencia')->where('id_fase', $id_fase)->pluck('id_competencia');
+        
+        $progreso = DB::table('evaluacion')->whereIn('id_competencia', $competenciaIds)->distinct()->count('id_competidor');
 
         return [
             'cantidad_evaluadores' => $cantidad_evaluadores,
@@ -249,12 +204,9 @@ class FaseRepository
 
     public function getSubFasesDetails(int $id_area, int $id_nivel, int $id_olimpiada)
     {
-        // 1. Obtener AreaNivel (Búsqueda corregida)
-        $areaNivel = AreaNivel::whereHas('areaOlimpiada', function(Builder $q) use ($id_area, $id_olimpiada) {
-                $q->where('id_area', $id_area)
-                  ->where('id_olimpiada', $id_olimpiada);
-            })
+        $areaNivel = AreaNivel::where('id_area', $id_area)
             ->where('id_nivel', $id_nivel)
+            ->where('id_olimpiada', $id_olimpiada)
             ->first();
 
         if (!$areaNivel) {
@@ -263,63 +215,62 @@ class FaseRepository
 
         $id_area_nivel = $areaNivel->id_area_nivel;
 
-        // "Fases" ahora son las Competencias asociadas al AreaNivel
-        $competencias = Competencia::where('id_area_nivel', $id_area_nivel)
-            ->orderBy('id_fase_global') // Agrupar por fase global
-            ->get();
-
-        // Si no hay Competencias (exámenes)
-        if ($competencias->isEmpty()) {
+        $fases = Fase::where('id_area_nivel', $id_area_nivel)->orderBy('orden')->get();
+        if ($fases->isEmpty()) {
             return collect();
         }
 
-        // **CORRECCIÓN CRÍTICA:** Contamos a través de Inscripcion
         $cant_evaluadores = DB::table('evaluador_an')->where('id_area_nivel', $id_area_nivel)->count();
-        $cant_estudiantes = DB::table('inscripcion')->where('id_area_nivel', $id_area_nivel)->distinct()->count('id_competidor');
+        $cant_estudiantes = DB::table('competidor')->where('id_area_nivel', $id_area_nivel)->count();
 
+        $faseIds = $fases->pluck('id_fase');
+        $competencias = DB::table('competencia')->whereIn('id_fase', $faseIds)->get();
         $competenciaIds = $competencias->pluck('id_competencia');
 
-        // Contar el progreso (Evaluacion -> Inscripcion -> Competidor)
         $evaluatedCounts = DB::table('evaluacion')
-            ->join('inscripcion', 'evaluacion.id_inscripcion', '=', 'inscripcion.id_inscripcion')
-            ->whereIn('evaluacion.id_competencia', $competenciaIds)
-            ->select('evaluacion.id_competencia', DB::raw('COUNT(DISTINCT inscripcion.id_competidor) as count'))
-            ->groupBy('evaluacion.id_competencia')
+            ->whereIn('id_competencia', $competenciaIds)
+            ->select('id_competencia', DB::raw('COUNT(DISTINCT id_competidor) as count'))
+            ->groupBy('id_competencia')
             ->get()
             ->keyBy('id_competencia');
 
-        // Agrupar las "subfases" (Competencias) por su Fase Global (nombre)
-        $competenciasGroupedByFase = $competencias->groupBy('id_fase_global');
+        $competenciasGroupedByFase = $competencias->groupBy('id_fase');
 
-        return $competenciasGroupedByFase->map(function ($competencias, $idFaseGlobal) use ($cant_estudiantes, $cant_evaluadores, $evaluatedCounts) {
-            $faseGlobal = FaseGlobal::find($idFaseGlobal);
+        return $fases->map(function ($fase) use ($cant_estudiantes, $cant_evaluadores, $competenciasGroupedByFase, $evaluatedCounts) {
+            $competenciasDeLaFase = $competenciasGroupedByFase->get($fase->id_fase, collect());
+            $competidoresEvaluados = 0;
+            $estadoCompetencia = 'Pendiente'; 
 
-            // Mapeo de estados basado en la lógica del código original
-            $isFinalizado = $competencias->every(fn($c) => !$c->estado_comp); // Si estado_comp es false (inactivo/finalizado)
-            $isEnCurso = $competencias->contains(fn($c) => $c->estado_comp); // Si estado_comp es true (activo)
-
-            $estado = 'NO_INICIADA';
-            if ($isEnCurso) {
-                $estado = 'EN_EVALUACION';
-            } elseif ($isFinalizado) {
-                $estado = 'FINALIZADA';
+            if ($competenciasDeLaFase->isNotEmpty()) {
+                if ($competenciasDeLaFase->contains('estado', 'En Curso')) {
+                    $estadoCompetencia = 'En Curso';
+                } elseif ($competenciasDeLaFase->every('estado', 'Finalizado')) {
+                    $estadoCompetencia = 'Finalizado';
+                }
+            }
+            
+            foreach ($competenciasDeLaFase as $competencia) {
+                $competidoresEvaluados += $evaluatedCounts->get($competencia->id_competencia)->count ?? 0;
             }
 
-            // Sumar el progreso total de las competencias de esta fase global
-            $competidoresEvaluados = $competencias->sum(fn($c) => $evaluatedCounts->get($c->id_competencia)->count ?? 0);
-
             $progreso = ($cant_estudiantes > 0) ? ($competidoresEvaluados / $cant_estudiantes) * 100 : 0;
+            
+            $estadoMapping = [
+                'Pendiente' => 'NO_INICIADA',
+                'En Curso' => 'EN_EVALUACION',
+                'Finalizado' => 'FINALIZADA',
+            ];
+            $estado = $estadoMapping[$estadoCompetencia] ?? 'NO_INICIADA';
 
             return [
-                // Adaptamos a las claves de salida esperadas
-                'id_subfase' => $faseGlobal->id_fase_global, // Usamos el ID de FaseGlobal para identificar la "subfase"
-                'nombre' => $faseGlobal->nombre_fas_glo, // Columna corregida
-                'orden' => $faseGlobal->orden_fas_glo, // Columna corregida
+                'id_subfase' => $fase->id_fase,
+                'nombre' => $fase->nombre,
+                'orden' => $fase->orden,
                 'estado' => $estado,
                 'cant_estudiantes' => $cant_estudiantes,
                 'cant_evaluadores' => $cant_evaluadores,
                 'progreso' => round($progreso),
             ];
-        })->values();
+        });
     }
 }
