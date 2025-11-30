@@ -12,17 +12,17 @@ class AreasSeeder extends Seeder
     public function run(): void
     {
         $areasData = [
-            ['nombre' => 'Matemáticas'],
-            ['nombre' => 'Física'],
-            ['nombre' => 'Química'],
-            ['nombre' => 'Biología'],
-            ['nombre' => 'Informática'],
+            ['nombre_area' => 'Matemáticas'],
+            ['nombre_area' => 'Física'],
+            ['nombre_area' => 'Química'],
+            ['nombre_area' => 'Biología'],
+            ['nombre_area' => 'Informática'],
             // 5 áreas nuevas
-            ['nombre' => 'Historia'],
-            ['nombre' => 'Geografía'],
-            ['nombre' => 'Literatura'],
-            ['nombre' => 'Arte'],
-            ['nombre' => 'Educación Física'],
+            ['nombre_area' => 'Historia'],
+            ['nombre_area' => 'Geografía'],
+            ['nombre_area' => 'Literatura'],
+            ['nombre_area' => 'Arte'],
+            ['nombre_area' => 'Educación Física'],
         ];
 
         // 1. Insertar todas las áreas en un solo query.

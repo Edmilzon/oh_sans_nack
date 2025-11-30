@@ -13,8 +13,13 @@ class Persona extends Model
     protected $primaryKey = 'id_persona';
 
     protected $fillable = [
-        'nombre', 'apellido', 'ci', 'genero', 'telefono', 'email'
+        'nombre_pers', 'apellido_pers', 'ci_pers', 'telefono_pers', 'email_pers'
     ];
+
+    public function usuario()
+    {
+        return $this->hasOne(Usuario::class, 'id_persona', 'id_persona');
+    }
 
     public function competidor()
     {

@@ -13,18 +13,9 @@ class ArchivoCsv extends Model
     protected $primaryKey = 'id_archivo_csv';
 
     protected $fillable = [
-        'nombre',
-        'fecha',
-        'id_olimpiada',
+        'nombre_arc_csv',
+        'fecha_arc_csv',
     ];
-
-    /**
-     * Get the olimpiada that owns the archivo_csv.
-     */
-    public function olimpiada()
-    {
-        return $this->belongsTo(Olimpiada::class, 'id_olimpiada', 'id_olimpiada');
-    }
 
     /**
      * Get the competidores for the archivo_csv.

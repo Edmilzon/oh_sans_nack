@@ -11,8 +11,9 @@ class Olimpiada extends Model {
     protected $table = 'olimpiada';
     protected $primaryKey = 'id_olimpiada';
     protected $fillable = [
-        'nombre',
-        'gestion'
+        'nombre_olimp',
+        'gestion_olimp',
+        'estado_olimp'
     ];
     
 }

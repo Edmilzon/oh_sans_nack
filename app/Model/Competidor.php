@@ -13,17 +13,13 @@ class Competidor extends Model
     protected $primaryKey = 'id_competidor';
 
     protected $fillable = [
-        'grado_escolar',
-        'departamento',
-        'contacto_tutor',
-        'id_institucion',
-        'id_area_nivel',
-        'id_archivo_csv',
         'id_persona',
-    ];
-
-    protected $casts = [
-        'datos' => 'array',
+        'id_institucion',
+        'id_departamento',
+        'id_archivo_csv',
+        'contacto_tutor_compe',
+        'genero_competidor',
+        'estado_evaluacion',
     ];
 
     /**
@@ -32,14 +28,6 @@ class Competidor extends Model
     public function institucion()
     {
         return $this->belongsTo(Institucion::class, 'id_institucion', 'id_institucion');
-    }
-
-    /**
-     * Get the area_nivel that owns the competidor.
-     */
-    public function areaNivel()
-    {
-        return $this->belongsTo(AreaNivel::class, 'id_area_nivel', 'id_area_nivel');
     }
 
     /**
@@ -55,14 +43,13 @@ class Competidor extends Model
         return $this->belongsTo(Persona::class, 'id_persona', 'id_persona');
     }
 
-    /**
-     * The grupos that belong to the competidor.
-     */
-    public function grupos()
+    public function departamento()
     {
-        return $this->belongsToMany(Grupo::class, 'grupo_competidor', 'id_competidor', 'id_grupo')
-                    ->withTimestamps();
+        return $this->belongsTo(Departamento::class, 'id_departamento', 'id_departamento');
     }
 
-    
+    public function inscripciones()
+    {
+        return $this->hasMany(Inscripcion::class, 'id_competidor');
+    }
 }

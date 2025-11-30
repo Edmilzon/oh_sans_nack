@@ -10,11 +10,12 @@ class EvaluadorAn extends Model
     use HasFactory;
 
     protected $table = 'evaluador_an';
-    protected $primaryKey = 'id_evaluadorAN';
+    protected $primaryKey = 'id_evaluador_an';
 
     protected $fillable = [
         'id_usuario',
         'id_area_nivel',
+        'estado_eva_an',
     ];
 
     public function areaNivel()
@@ -25,5 +26,10 @@ class EvaluadorAn extends Model
     public function usuario()
     {
         return $this->belongsTo(Usuario::class, 'id_usuario', 'id_usuario');
+    }
+
+    public function evaluaciones()
+    {
+        return $this->hasMany(Evaluacion::class, 'id_evaluador_an', 'id_evaluador_an');
     }
 }

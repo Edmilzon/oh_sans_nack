@@ -28,7 +28,7 @@ class EvaluacionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_competidor' => 'required|exists:competidor,id_competidor',
-            'id_evaluadorAN' => 'required|exists:evaluador_an,id_evaluadorAN',
+            'id_evaluadorAN' => 'required|exists:evaluador_an,id_evaluador_an',
         ]);
 
         if ($validator->fails()) {
@@ -36,14 +36,14 @@ class EvaluacionController extends Controller
         }
 
         try {
-            $datosEvaluacion = $request->only(['id_competidor', 'id_evaluadorAN']);
-            $datosEvaluacion['fecha_evaluacion'] = now(); // Cambiar a now() sin toDateString()
-
-            $evaluacion = $this->evaluacionService->crearEvaluacion($datosEvaluacion, $id_competencia);
-            $evaluacion->load('competidor.persona', 'competencia', 'evaluadorAn.usuario', 'parametro');
+            $evaluacion = $this->evaluacionService->crearEvaluacion($request->all(), $id_competencia);
+            $evaluacion->load('inscripcion.competidor.persona', 'competencia', 'evaluadorAn.usuario');
 
             return response()->json($evaluacion->toArray(), 201);
         } catch (\Exception $e) {
+            if ($e->getMessage() === 'Este competidor ya está siendo evaluado por otra persona.') {
+                return response()->json(['message' => $e->getMessage()], 409);
+            }
             return response()->json(['message' => 'Error al registrar la calificación.', 'error' => $e->getMessage()], 500);
         }
     }
@@ -58,9 +58,9 @@ class EvaluacionController extends Controller
     public function update(Request $request, int $id_evaluacion): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'nota' => 'sometimes|required|numeric|min:0|max:100',
-            'observaciones' => 'nullable|string',
-            'estado' => 'sometimes|required|string|in:Pendiente,En Proceso,Calificado,Descalificado',
+            'nota_evalu' => 'sometimes|required|numeric|min:0|max:100',
+            'observacion_evalu' => 'nullable|string',
+            'estado_competidor_eva' => 'sometimes|required|string|in:PENDIENTE,EN PROCESO,CALIFICADO,DESCALIFICADO',
         ]);
 
         if ($validator->fails()) {
@@ -68,11 +68,11 @@ class EvaluacionController extends Controller
         }
 
         try {
-            $datosEvaluacion = $request->only(['nota', 'observaciones', 'estado']);
-            $datosEvaluacion['fecha_evaluacion'] = now(); // Cambiar a now() sin toDateString()
+            $datosEvaluacion = $request->only(['nota_evalu', 'observacion_evalu', 'estado_competidor_eva']);
+            $datosEvaluacion['fecha_evalu'] = now();
 
             $evaluacion = $this->evaluacionService->actualizarEvaluacion($id_evaluacion, $datosEvaluacion);
-            $evaluacion->load('competidor.persona', 'competencia', 'evaluadorAn.usuario', 'parametro');
+            $evaluacion->load('inscripcion.competidor.persona', 'competencia', 'evaluadorAn.usuario');
 
             return response()->json($evaluacion->toArray());
         } catch (\Exception $e) {
@@ -90,7 +90,7 @@ class EvaluacionController extends Controller
     public function finalizarCalificacion(Request $request, int $id_evaluacion): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'nota' => 'required|numeric|min:0|max:100',
+            'nota' => 'required|numeric|min:0', // La nota máxima se valida en otro lado si es necesario
             'observaciones' => 'nullable|string',
         ]);
 
@@ -101,7 +101,7 @@ class EvaluacionController extends Controller
         try {
             $datosFinales = $request->only(['nota', 'observaciones']);
             $evaluacion = $this->evaluacionService->finalizarCalificacion($id_evaluacion, $datosFinales);
-            $evaluacion->load('competidor.persona', 'competencia', 'evaluadorAn.usuario', 'parametro');
+            $evaluacion->load('inscripcion.competidor.persona', 'competencia', 'evaluadorAn.usuario');
 
             return response()->json($evaluacion->toArray());
         } catch (\Exception $e) {
@@ -109,7 +109,6 @@ class EvaluacionController extends Controller
         }
     }
 
-    // Los otros métodos permanecen igual...
     /**
      * Obtiene todas las evaluaciones calificadas para una competencia.
      *
@@ -135,10 +134,10 @@ class EvaluacionController extends Controller
      * @param int $id_competidor
      * @return JsonResponse
      */
-    public function getEvaluacionPorCompetidor(int $id_competidor): JsonResponse
+    public function getUltimaPorCompetidor(int $id_competidor): JsonResponse
     {
         try {
-            $evaluacion = $this->evaluacionService->getEvaluacionPorCompetidor($id_competidor);
+            $evaluacion = $this->evaluacionService->getUltimaPorCompetidor($id_competidor);
 
             if (!$evaluacion) {
                 return response()->json(['message' => 'No se encontró una calificación para este competidor.'], 404);

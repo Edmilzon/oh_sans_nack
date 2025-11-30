@@ -14,8 +14,8 @@ class OlimpiadaSeeder extends Seeder
     public function run(): void
     {
         Olimpiada::create([
-            'nombre' => 'Olimpiada Científica Estudiantil',
-            'gestion' => date('Y'),
+            'nombre_olimp' => 'Olimpiada Científica Estudiantil',
+            'gestion_olimp' => date('Y'),
         ]);
 
         $this->command->info('Olimpiada de prueba creada exitosamente.');

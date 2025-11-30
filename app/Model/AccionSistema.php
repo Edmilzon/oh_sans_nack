@@ -13,13 +13,18 @@ class AccionSistema extends Model
     protected $primaryKey = 'id_accion';
 
     protected $fillable = [
-        'codigo',
-        'nombre',
-        'descripcion',
+        'codigo_acc_sis',
+        'nombre_acc_sis',
+        'descripcion_acc_sis',
     ];
 
     public function configuraciones()
     {
         return $this->hasMany(ConfiguracionAccion::class, 'id_accion', 'id_accion');
+    }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Rol::class, 'rol_accion', 'id_accion', 'id_rol');
     }
 }

@@ -176,7 +176,7 @@ Route::get('/sub-fases/area/{id_area}/nivel/{id_nivel}/olimpiada/{id_olimpiada}'
 Route::apiResource('area-niveles.fases', FaseController::class)->shallow();
 Route::post('/competencias/{id_competencia}/evaluacion', [EvaluacionController::class, 'store']);
 Route::get('/competencias/{id_competencia}/calificados', [EvaluacionController::class, 'getCalificados']);
-Route::get('/competidores/{id_competidor}/evaluacion', [EvaluacionController::class, 'getEvaluacionPorCompetidor']);
+Route::get('/competidores/{id_competidor}/evaluacion', [EvaluacionController::class, 'getUltimaPorCompetidor']);
 Route::put('/evaluaciones/{id_evaluacion}', [EvaluacionController::class, 'update']);
 Route::post('/evaluaciones/{id_evaluacion}/finalizar', [EvaluacionController::class, 'finalizarCalificacion']);
 

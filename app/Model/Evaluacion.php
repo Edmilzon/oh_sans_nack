@@ -13,14 +13,14 @@ class Evaluacion extends Model
     protected $primaryKey = 'id_evaluacion';
 
     protected $fillable = [
-        'nota',
-        'observaciones',
-        'fecha_evaluacion',
-        'estado',
-        'id_competidor',
+        'id_inscripcion',
         'id_competencia',
-        'id_evaluadorAN',
-        'id_parametro',
+        'id_evaluador_an',
+        'nota_evalu',
+        'estado_competidor_eva',
+        'observacion_evalu',
+        'fecha_evalu',
+        'estado_evalu',
     ];
 
     /**
@@ -29,8 +29,8 @@ class Evaluacion extends Model
      * @var array
      */
     protected $casts = [
-        'fecha_evaluacion' => 'datetime',
-        'nota' => 'decimal:2',
+        'fecha_evalu' => 'datetime',
+        'nota_evalu' => 'decimal:2',
     ];
 
     /**
@@ -42,11 +42,11 @@ class Evaluacion extends Model
     }
 
     /**
-     * Get the competidor that owns the evaluacion.
+     * Get the inscripcion that owns the evaluacion.
      */
-    public function competidor()
+    public function inscripcion()
     {
-        return $this->belongsTo(Competidor::class, 'id_competidor', 'id_competidor');
+        return $this->belongsTo(Inscripcion::class, 'id_inscripcion', 'id_inscripcion');
     }
 
     /**
@@ -54,14 +54,14 @@ class Evaluacion extends Model
      */
     public function evaluadorAn()
     {
-        return $this->belongsTo(EvaluadorAn::class, 'id_evaluadorAN', 'id_evaluadorAN');
+        return $this->belongsTo(EvaluadorAn::class, 'id_evaluador_an', 'id_evaluador_an');
     }
 
     /**
-     * Get the parametro associated with the evaluacion.
+     * Get the log de cambios de nota for the evaluacion.
      */
-    public function parametro()
+    public function logCambiosNota()
     {
-        return $this->belongsTo(Parametro::class, 'id_parametro', 'id_parametro');
+        return $this->hasMany(LogCambioNota::class, 'id_evaluacion', 'id_evaluacion');
     }
 }

@@ -13,15 +13,8 @@ class Area extends Model
     protected $primaryKey = 'id_area';
     
     protected $fillable = [
-        'nombre',
+        'nombre_area',
     ];
-
-    public function niveles()
-    {
-        return $this->belongsToMany(Nivel::class, 'area_nivel', 'id_area', 'id_nivel')
-                    ->withPivot('id_olimpiada', 'activo')
-                    ->withTimestamps();
-    }
 
     public function olimpiadas()
     {
@@ -29,12 +22,7 @@ class Area extends Model
                     ->withTimestamps();
     }
 
-    public function areaNiveles()
-    {
-        return $this->hasMany(AreaNivel::class, 'id_area', 'id_area');
-    }
-
-    public function areaOlimpiada()
+    public function areasOlimpiada()
     {
         return $this->hasMany(\App\Model\AreaOlimpiada::class, 'id_area');
     }

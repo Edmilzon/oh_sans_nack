@@ -17,10 +17,8 @@ class EvaluacionRepository
      */
     public function crearOActualizar(array $data, ?int $id_evaluacion = null): Model
     {
-        return Evaluacion::updateOrCreate(
-            ['id_evaluacion' => $id_evaluacion],
-            $data
-        );
+        $attributes = $id_evaluacion ? ['id_evaluacion' => $id_evaluacion] : ['id_inscripcion' => $data['id_inscripcion'], 'id_competencia' => $data['id_competencia']];
+        return Evaluacion::updateOrCreate($attributes, $data);
     }
 
     /**
@@ -32,8 +30,8 @@ class EvaluacionRepository
     public function getCalificadosPorCompetencia(int $id_competencia): Collection
     {
         return Evaluacion::where('id_competencia', $id_competencia)
-            ->where('estado', 'Calificado')
-            ->with(['competidor.persona', 'competidor.institucion'])
+            ->where('estado_competidor_eva', 'CALIFICADO')
+            ->with(['inscripcion.competidor.persona', 'inscripcion.competidor.institucion'])
             ->get();
     }
 
@@ -43,10 +41,18 @@ class EvaluacionRepository
      * @param int $id_competidor
      * @return Evaluacion|null
      */
-    public function getPorCompetidor(int $id_competidor): ?Evaluacion
+    public function getUltimaPorCompetidor(int $id_competidor): ?Evaluacion
     {
-        return Evaluacion::where('id_competidor', $id_competidor)
-            ->latest('fecha_evaluacion')
+        return Evaluacion::join('inscripcion', 'evaluacion.id_inscripcion', '=', 'inscripcion.id_inscripcion')
+            ->where('inscripcion.id_competidor', $id_competidor)
+            ->latest('evaluacion.fecha_evalu')
+            ->first();
+    }
+
+    public function buscarPorInscripcionYCompetencia(int $id_inscripcion, int $id_competencia): ?Evaluacion
+    {
+        return Evaluacion::where('id_inscripcion', $id_inscripcion)
+            ->where('id_competencia', $id_competencia)
             ->first();
     }
 }

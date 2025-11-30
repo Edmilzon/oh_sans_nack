@@ -16,17 +16,19 @@ class Usuario extends Authenticatable
     protected $primaryKey = 'id_usuario';
 
     protected $fillable = [
-        'nombre',
-        'apellido',
-        'ci',
-        'email',
-        'password',
-        'telefono',
+        'id_persona',
+        'email_usuario',
+        'password_usuario',
     ];
 
     protected $hidden = [
-        'password', 
+        'password_usuario',
     ];
+
+    public function persona()
+    {
+        return $this->belongsTo(\App\Model\Persona::class, 'id_persona', 'id_persona');
+    }
     
     public function roles()
     {
@@ -48,13 +50,13 @@ class Usuario extends Authenticatable
 
     public function asignarRol(string $nombreRol, int $idOlimpiada)
     {
-        $rol = Rol::where('nombre', $nombreRol)->firstOrFail();
+        $rol = Rol::where('nombre_rol', $nombreRol)->firstOrFail();
         $this->roles()->attach($rol->id_rol, ['id_olimpiada' => $idOlimpiada]);
     }
 
     public function tieneRol(string $nombreRol, int $idOlimpiada = null): bool
     {
-        return $this->roles()->where('nombre', $nombreRol)
+        return $this->roles()->where('nombre_rol', $nombreRol)
             ->when($idOlimpiada, function ($query) use ($idOlimpiada) {
                 return $query->where('usuario_rol.id_olimpiada', $idOlimpiada);
             })->exists();

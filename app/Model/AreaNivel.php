@@ -13,35 +13,48 @@ class AreaNivel extends Model
     protected $primaryKey = 'id_area_nivel';
 
     protected $fillable = [
-        'id_area',
+        'id_area_olimpiada',
         'id_nivel',
-        'id_grado_escolaridad',
-        'id_olimpiada',
-        'activo',
+        'es_activo_area_nivel',
     ];
 
-    public function area()
+    public function areaOlimpiada()
     {
-        return $this->belongsTo(\App\Model\Area::class, 'id_area');
+        return $this->belongsTo(AreaOlimpiada::class, 'id_area_olimpiada');
     }
 
     public function nivel()
     {
-        return $this->belongsTo(\App\Model\Nivel::class, 'id_nivel');
-    }
-
-    public function gradoEscolaridad()
-    {
-        return $this->belongsTo(\App\Model\GradoEscolaridad::class, 'id_grado_escolaridad');
-    }
-
-    public function olimpiada()
-    {
-        return $this->belongsTo(\App\Model\Olimpiada::class, 'id_olimpiada');
+        return $this->belongsTo(Nivel::class, 'id_nivel');
     }
 
     public function parametro()
     {
-        return $this->hasOne(\App\Model\Parametro::class, 'id_area_nivel');
+        return $this->hasOne(Parametro::class, 'id_area_nivel');
+    }
+
+    public function inscripciones()
+    {
+        return $this->hasMany(Inscripcion::class, 'id_area_nivel');
+    }
+
+    public function grupos()
+    {
+        return $this->hasMany(Grupo::class, 'id_area_nivel');
+    }
+
+    public function competencias()
+    {
+        return $this->hasMany(Competencia::class, 'id_area_nivel');
+    }
+
+    public function evaluadoresAn()
+    {
+        return $this->hasMany(EvaluadorAn::class, 'id_area_nivel');
+    }
+
+    public function parametroMedallero()
+    {
+        return $this->hasOne(ParametroMedallero::class, 'id_area_nivel');
     }
 }

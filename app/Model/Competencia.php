@@ -13,21 +13,25 @@ class Competencia extends Model
     protected $primaryKey = 'id_competencia';
 
     protected $fillable = [
+        'id_fase_global',
+        'id_area_nivel',
+        'nombre_examen',
         'fecha_inicio',
         'fecha_fin',
-        'estado',
-        'id_responsableArea',
-        'id_fase',
+        'ponderacion',
+        'maxima_nota',
+        'es_avalado',
+        'estado_comp',
     ];
 
-    public function responsableArea()
+    public function faseGlobal()
     {
-        return $this->belongsTo(ResponsableArea::class, 'id_responsableArea', 'id_responsableArea');
+        return $this->belongsTo(FaseGlobal::class, 'id_fase_global');
     }
 
-    public function fase()
+    public function areaNivel()
     {
-        return $this->belongsTo(Fase::class, 'id_fase', 'id_fase');
+        return $this->belongsTo(AreaNivel::class, 'id_area_nivel');
     }
 
     public function evaluaciones()

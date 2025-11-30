@@ -15,15 +15,15 @@ class NivelesSeeder extends Seeder
     public function run(): void
     {
         DB::table('nivel')->insert([
-            ['nombre' => '1ro de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '2do de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '3ro de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '4to de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '5to de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '6to de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Guacamayo', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Tapir', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Cóndor', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre_nivel' => '1ro de Secundaria', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre_nivel' => '2do de Secundaria', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre_nivel' => '3ro de Secundaria', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre_nivel' => '4to de Secundaria', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre_nivel' => '5to de Secundaria', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre_nivel' => '6to de Secundaria', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre_nivel' => 'Guacamayo', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre_nivel' => 'Tapir', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre_nivel' => 'Cóndor', 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         $this->command->info('Niveles base creados exitosamente.');
