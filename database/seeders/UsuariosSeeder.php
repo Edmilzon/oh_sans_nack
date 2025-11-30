@@ -8,20 +8,16 @@ use App\Model\Persona;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
-class UsuariosSeeder extends Seeder // <--- Nombre corregido
+class UsuariosSeeder extends Seeder
 {
     public function run(): void
     {
-        // Corrección V8: 'gestion_olimp' en lugar de 'gestion'
+        // V8: Buscamos por 'gestion_olimp'
         $olimpiada = Olimpiada::where('gestion_olimp', date('Y'))->first();
 
         if (!$olimpiada) {
-            // Fallback: intenta crearla si no existe, o busca la primera
             $olimpiada = Olimpiada::first();
-            if(!$olimpiada) {
-                $this->command->error('❌ No hay olimpiadas. Ejecuta OlimpiadaSeeder primero.');
-                return;
-            }
+            if(!$olimpiada) { return; }
         }
 
         $usuarios = [
@@ -31,6 +27,7 @@ class UsuariosSeeder extends Seeder // <--- Nombre corregido
                     'nombre_pers' => 'Admin', 'apellido_pers' => 'Sistema',
                     'ci_pers' => '12345678', 'telefono_pers' => '12345678', 'email_pers' => 'admin@ohsansi.com'
                 ],
+                // V8: Usamos las columnas nuevas
                 'auth' => ['email_usuario' => 'admin@ohsansi.com', 'password_usuario' => Hash::make('admin123')]
             ],
             [
@@ -52,19 +49,19 @@ class UsuariosSeeder extends Seeder // <--- Nombre corregido
         ];
 
         foreach ($usuarios as $data) {
-            // 1. Crear Persona (V8)
-            $persona = Persona::create($data['persona']);
+            // 1. Crear Persona
+            $persona = Persona::firstOrCreate(['ci_pers' => $data['persona']['ci_pers']], $data['persona']);
 
             // 2. Crear Usuario vinculado
-            $usuario = Usuario::create([
-                'id_persona' => $persona->id_persona,
-                ...$data['auth']
-            ]);
+            $usuario = Usuario::firstOrCreate(
+                ['email_usuario' => $data['auth']['email_usuario']],
+                array_merge(['id_persona' => $persona->id_persona], $data['auth'])
+            );
 
-            // 3. Asignar Rol en la gestión actual
+            // 3. Asignar Rol
             $usuario->asignarRol($data['role'], $olimpiada->id_olimpiada);
         }
 
-        $this->command->info('✅ Usuarios V8 creados (Admin, Responsable, Evaluador).');
+        $this->command->info('✅ Usuarios V8 creados correctamente.');
     }
 }
