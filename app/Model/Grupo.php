@@ -13,24 +13,29 @@ class Grupo extends Model
     protected $primaryKey = 'id_grupo';
 
     protected $fillable = [
-        'nombre',
-        'id_fase',
+        'nombre_grupo', // Ej: "Grupo A - Laboratorio 1"
     ];
 
     /**
-     * Get the fase that owns the grupo.
+     * RELACIONES DEPENDIENTES (Hijos)
      */
-    public function fase()
+
+    // Relación directa con la tabla intermedia (útil para operaciones de pivote)
+    public function grupoCompetidores()
     {
-        return $this->belongsTo(Fase::class, 'id_fase', 'id_fase');
+        return $this->hasMany(GrupoCompetidor::class, 'id_grupo', 'id_grupo');
     }
 
-    /**
-     * The competidores that belong to the grupo.
-     */
-    public function competidores()
+    // Relación Muchos a Muchos con Inscripciones
+    // Permite acceder directamente a los estudiantes del grupo: $grupo->inscripciones
+    public function inscripciones()
     {
-        return $this->belongsToMany(Competidor::class, 'grupo_competidor', 'id_grupo', 'id_competidor')
-                    ->withTimestamps();
+        return $this->belongsToMany(
+            Inscripcion::class, 
+            'grupo_competidor', // Tabla pivote
+            'id_grupo',         // FK de este modelo en la pivote
+            'id_inscripcion'    // FK del otro modelo en la pivote
+        )
+        ->withTimestamps();
     }
 }

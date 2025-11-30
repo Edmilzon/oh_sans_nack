@@ -9,36 +9,64 @@ class AccionSistemaSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
-    public function run()
+    public function run(): void
     {
-        DB::table('accion_sistema')->insert([
+        $acciones = [
+            // Gestión de Usuarios y Roles
             [
-                'id_accion' => 10,
-                'codigo' => 'REG_ESTUD',
-                'nombre' => 'Registrar estudiantes',
-                'descripcion' => 'Permite a los responsables registrar a sus estudiantes en la olimpiada.',
-                'created_at' => now(),
-                'updated_at' => now()
+                'codigo_acc_sis' => 'MOD_CREAR_USUARIO',
+                'nombre_acc_sis' => 'Crear Usuario',
+                'descripcion_acc_sis' => 'Permite registrar nuevos usuarios en el sistema.'
             ],
             [
-                'id_accion' => 20,
-                'codigo' => 'CARGAR_NOTAS',
-                'nombre' => 'Cargar notas',
-                'descripcion' => 'Permite a los evaluadores cargar las notas de las evaluaciones de los estudiantes.',
-                'created_at' => now(),
-                'updated_at' => now()
+                'codigo_acc_sis' => 'MOD_ASIGNAR_ROL',
+                'nombre_acc_sis' => 'Asignar Rol',
+                'descripcion_acc_sis' => 'Permite asignar roles a un usuario existente.'
+            ],
+            
+            // Gestión de Inscripciones (Clave para Responsables de Sede)
+            [
+                'codigo_acc_sis' => 'MOD_INSCRIP_EST',
+                'nombre_acc_sis' => 'Inscribir Estudiante',
+                'descripcion_acc_sis' => 'Permite registrar un competidor en un área/nivel.'
             ],
             [
-                'id_accion' => 30,
-                'codigo' => 'PUB_CLASIF',
-                'nombre' => 'Publicar clasificados',
-                'descripcion' => 'Permite publicar la lista de estudiantes que clasificaron a la siguiente fase.',
-                'created_at' => now(),
-                'updated_at' => now()
+                'codigo_acc_sis' => 'MOD_IMP_CSV_EST',
+                'nombre_acc_sis' => 'Importar Estudiantes CSV',
+                'descripcion_acc_sis' => 'Carga masiva de estudiantes desde archivo.'
             ],
-        ]);
+
+            // Gestión de Competencias y Exámenes
+            [
+                'codigo_acc_sis' => 'MOD_CREAR_COMP',
+                'nombre_acc_sis' => 'Crear Competencia',
+                'descripcion_acc_sis' => 'Permite programar un nuevo examen.'
+            ],
+            
+            // Evaluación (Clave para Evaluadores)
+            [
+                'codigo_acc_sis' => 'MOD_REG_NOTA',
+                'nombre_acc_sis' => 'Registrar Nota',
+                'descripcion_acc_sis' => 'Permite al evaluador ingresar la calificación de un estudiante.'
+            ],
+            [
+                'codigo_acc_sis' => 'MOD_VER_REP_NOTAS',
+                'nombre_acc_sis' => 'Ver Reporte Notas',
+                'descripcion_acc_sis' => 'Permite visualizar el listado de calificaciones.'
+            ],
+            
+            // Gestión del Sistema
+            [
+                'codigo_acc_sis' => 'MOD_CONF_CRONOGRAMA',
+                'nombre_acc_sis' => 'Configurar Cronograma',
+                'descripcion_acc_sis' => 'Permite definir fechas de inicio y fin de fases.'
+            ],
+        ];
+
+        // Usamos insertOrIgnore para evitar errores si se corre el seeder dos veces
+        DB::table('accion_sistema')->insertOrIgnore($acciones);
+        
+        $this->command->info('Acciones del sistema insertadas correctamente.');
     }
 }

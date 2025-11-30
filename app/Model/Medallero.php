@@ -13,23 +13,23 @@ class Medallero extends Model
     protected $primaryKey = 'id_medallero';
 
     protected $fillable = [
-        'puesto',
-        'medalla',
-        'id_competidor',
-        'id_competencia',
+        'id_inscripcion', // <--- Relación con la inscripción del estudiante
+        'id_competencia', // <--- Relación con el examen/competencia
+        'puesto_medall',  // Ej: 1, 2, 3
+        'medalla_medall', // Ej: 'ORO', 'PLATA', 'BRONCE', 'MENCION'
     ];
 
     /**
-     * Get the competidor that won the medal.
+     * RELACIONES DIRECTAS (Padres)
      */
-    public function competidor()
+
+    // La inscripción del estudiante que ganó la medalla
+    public function inscripcion()
     {
-        return $this->belongsTo(Competidor::class, 'id_competidor', 'id_competidor');
+        return $this->belongsTo(Inscripcion::class, 'id_inscripcion', 'id_inscripcion');
     }
 
-    /**
-     * Get the competencia for the medal.
-     */
+    // La competencia en la que se obtuvo esta medalla
     public function competencia()
     {
         return $this->belongsTo(Competencia::class, 'id_competencia', 'id_competencia');

@@ -5,7 +5,6 @@ namespace App\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\HasApiTokens;
 
 class Usuario extends Authenticatable
@@ -15,6 +14,7 @@ class Usuario extends Authenticatable
     protected $table = 'usuario';
     protected $primaryKey = 'id_usuario';
 
+    // V8: Solo credenciales y llave foránea
     protected $fillable = [
         'id_persona',
         'email_usuario',
@@ -25,40 +25,58 @@ class Usuario extends Authenticatable
         'password_usuario',
     ];
 
+<<<<<<< HEAD
     public function persona()
     {
         return $this->belongsTo(\App\Model\Persona::class, 'id_persona', 'id_persona');
     }
     
+=======
+    // Importante para que Laravel sepa cuál es la contraseña
+    public function getAuthPassword()
+    {
+        return $this->password_usuario;
+    }
+
+    /** RELACIONES */
+
+    public function persona()
+    {
+        return $this->belongsTo(Persona::class, 'id_persona', 'id_persona');
+    }
+
+>>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     public function roles()
     {
-        return $this->belongsToMany(\App\Model\Rol::class, 'usuario_rol', 'id_usuario', 'id_rol', 'id_usuario', 'id_rol')
-                    ->withPivot('id_olimpiada')
-                    ->using(\App\Model\UsuarioRol::class)
-                    ->withTimestamps();
+        return $this->belongsToMany(Rol::class, 'usuario_rol', 'id_usuario', 'id_rol')
+            ->withPivot('id_olimpiada')
+            ->withTimestamps();
     }
 
-    public function responsableArea()
-    {
-        return $this->hasMany(ResponsableArea::class, 'id_usuario', 'id_usuario');
-    }
-
-    public function evaluadorAn()
-    {
-        return $this->hasMany(\App\Model\EvaluadorAn::class, 'id_usuario', 'id_usuario');
-    }
-
+    // Helper para asignar roles fácilmente
     public function asignarRol(string $nombreRol, int $idOlimpiada)
     {
         $rol = Rol::where('nombre_rol', $nombreRol)->firstOrFail();
+<<<<<<< HEAD
         $this->roles()->attach($rol->id_rol, ['id_olimpiada' => $idOlimpiada]);
+=======
+        $this->roles()->syncWithoutDetaching([
+            $rol->id_rol => ['id_olimpiada' => $idOlimpiada]
+        ]);
+>>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     }
 
-    public function tieneRol(string $nombreRol, int $idOlimpiada = null): bool
+    public function tieneRol(string $nombreRol, ?int $idOlimpiada = null): bool
     {
+<<<<<<< HEAD
         return $this->roles()->where('nombre_rol', $nombreRol)
+=======
+        return $this->roles()
+            ->where('nombre_rol', $nombreRol)
+>>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
             ->when($idOlimpiada, function ($query) use ($idOlimpiada) {
-                return $query->where('usuario_rol.id_olimpiada', $idOlimpiada);
-            })->exists();
+                return $query->wherePivot('id_olimpiada', $idOlimpiada);
+            })
+            ->exists();
     }
 }

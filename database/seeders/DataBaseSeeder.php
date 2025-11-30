@@ -3,39 +3,48 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use App\Model\Usuario;
-use App\Model\Olimpiada;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $this->call([
+            // 1. CATÁLOGOS (Lo primero siempre)
             RolesSeeder::class,
-            OlimpiadaSeeder::class, 
-            AreasSeeder::class,
             NivelesSeeder::class,
-            UsusariosSeeder::class,
-            Olimpiada2023Seeder::class,
-            Olimpiadas2024Seeder::class,
-            DepartamentoSeeder::class,
-           // TestUserSeeder::class,
-           // EvaluadorTestSeeder::class,
             GradoEscolaridadSeeder::class,
-            AreasEvaluadoresSeeder::class,
-            CompetidorSeeder::class,
-            Olimpiada2021Seeder::class,
+            DepartamentoSeeder::class,
             FaseGlobalSeeder::class,
             AccionSistemaSeeder::class,
-            ConfiguracionAccionSeeder::class,
-            EvaluadorSeeder::class,
+            RolAccionSeeder::class,
+
+            // 2. ESTRUCTURA BASE
+            OlimpiadaSeeder::class,
+            AreasSeeder::class,
+            AreaOlimpiadaSeeder::class,
+            AreaNivelSeeder::class,
+            UsuariosSeeder::class,
+            AreasEvaluadoresSeeder::class,
+
+            // 3. CONFIGURACIÓN
+            NivelGradoSeeder::class,
             ParametroSeeder::class,
-            //FasesGestionActualSeeder::class,
+            ParametroMedalleroSeeder::class,
+            ConfiguracionAccionSeeder::class,
+
+            // 4. DATOS HISTÓRICOS (Ahora sí funcionarán porque ya existen los grados)
+            Olimpiada2021Seeder::class,
+            Olimpiada2022Seeder::class,    // Si creaste este archivo
+            Olimpiada2023Seeder::class,
+            Olimpiadas2024Seeder::class,
+
+            // 5. OPERATIVIDAD ACTUAL
+            CompetidorSeeder::class,
+            EvaluadorSeeder::class,
+            // EvaluadorTestSeeder::class,
+
+            // 6. ARRANQUE FINAL
+            FasesGestionActualSeeder::class,
         ]);
     }
 }

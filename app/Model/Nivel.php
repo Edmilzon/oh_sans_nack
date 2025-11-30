@@ -8,21 +8,19 @@ use Illuminate\Database\Eloquent\Model;
 class Nivel extends Model
 {
     use HasFactory;
-    
+
     protected $table = 'nivel';
     protected $primaryKey = 'id_nivel';
-    
+
     protected $fillable = [
-        'nombre',
+        'nombre_nivel', // Antes: 'nombre'
     ];
 
-    public function areas()
-    {
-        return $this->belongsToMany(Area::class, 'area_nivel', 'id_nivel', 'id_area')
-                    ->withPivot('id_olimpiada', 'activo')
-                    ->withTimestamps();
-    }
+    /**
+     * RELACIONES DEPENDIENTES (Hijos)
+     */
 
+    // Las configuraciones Área-Nivel que usan este nivel
     public function areaNiveles()
     {
         return $this->hasMany(AreaNivel::class, 'id_nivel', 'id_nivel');

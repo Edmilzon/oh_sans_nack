@@ -12,7 +12,9 @@ class Evaluacion extends Model
     protected $table = 'evaluacion';
     protected $primaryKey = 'id_evaluacion';
 
+    // Campos permitidos para asignación masiva
     protected $fillable = [
+<<<<<<< HEAD
         'id_inscripcion',
         'id_competencia',
         'id_evaluador_an',
@@ -21,37 +23,62 @@ class Evaluacion extends Model
         'observacion_evalu',
         'fecha_evalu',
         'estado_evalu',
+=======
+        'id_inscripcion',       // <--- Relación clave con el estudiante inscrito
+        'id_competencia',       // <--- Examen que se está calificando
+        'id_evaluador_an',      // <--- Profesor que califica
+        'nota_evalu',           // <--- La calificación numérica
+        'estado_competidor_eva',// <--- Ej: 'CLASIFICADO', 'REPROBADO'
+        'observacion_evalu',    // <--- Comentarios opcionales
+        'fecha_evalu',
+        'estado_evalu'          // <--- Activo/Inactivo (soft delete lógico)
+>>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array
-     */
     protected $casts = [
         'fecha_evalu' => 'datetime',
         'nota_evalu' => 'decimal:2',
+<<<<<<< HEAD
+=======
+        'estado_evalu' => 'boolean',
+>>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     ];
 
     /**
-     * Get the competencia associated with the evaluacion.
+     * RELACIONES DIRECTAS (Padres)
      */
+
+    // La inscripción específica que está siendo evaluada
+    public function inscripcion()
+    {
+        return $this->belongsTo(Inscripcion::class, 'id_inscripcion', 'id_inscripcion');
+    }
+
+    // El examen o competencia al que corresponde esta nota
     public function competencia()
     {
         return $this->belongsTo(Competencia::class, 'id_competencia', 'id_competencia');
     }
 
+<<<<<<< HEAD
     /**
      * Get the inscripcion that owns the evaluacion.
      */
     public function inscripcion()
     {
         return $this->belongsTo(Inscripcion::class, 'id_inscripcion', 'id_inscripcion');
+=======
+    // El evaluador responsable de esta nota
+    public function evaluador()
+    {
+        return $this->belongsTo(EvaluadorAn::class, 'id_evaluador_an', 'id_evaluador_an');
+>>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     }
 
     /**
-     * Get the evaluadorAn that owns the evaluacion.
+     * RELACIONES DEPENDIENTES (Hijos)
      */
+<<<<<<< HEAD
     public function evaluadorAn()
     {
         return $this->belongsTo(EvaluadorAn::class, 'id_evaluador_an', 'id_evaluador_an');
@@ -61,6 +88,11 @@ class Evaluacion extends Model
      * Get the log de cambios de nota for the evaluacion.
      */
     public function logCambiosNota()
+=======
+
+    // Historial de cambios de nota (Auditoría)
+    public function logsCambios()
+>>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     {
         return $this->hasMany(LogCambioNota::class, 'id_evaluacion', 'id_evaluacion');
     }

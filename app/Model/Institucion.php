@@ -13,12 +13,14 @@ class Institucion extends Model
     protected $primaryKey = 'id_institucion';
 
     protected $fillable = [
-        'nombre',
+        'nombre_inst', // Antes: 'nombre'
     ];
 
     /**
-     * Get the competidores for the institucion.
+     * RELACIONES DEPENDIENTES (Hijos)
      */
+
+    // Los competidores (estudiantes) que pertenecen a esta institución educativa
     public function competidores()
     {
         return $this->hasMany(Competidor::class, 'id_institucion', 'id_institucion');

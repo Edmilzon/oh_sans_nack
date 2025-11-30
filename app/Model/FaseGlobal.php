@@ -18,6 +18,7 @@ class FaseGlobal extends Model
         'orden_fas_glo',
     ];
 
+<<<<<<< HEAD
     public function competencias()
     {
         return $this->hasMany(Competencia::class, 'id_fase_global');
@@ -33,3 +34,27 @@ class FaseGlobal extends Model
         return $this->hasMany(CronogramaFase::class, 'id_fase_global');
     }
 }
+=======
+    /**
+     * RELACIONES DEPENDIENTES (Hijos)
+     */
+
+    // Las competencias (exámenes) que se crean bajo esta fase global
+    public function competencias()
+    {
+        return $this->hasMany(Competencia::class, 'id_fase_global', 'id_fase_global');
+    }
+
+    // Los cronogramas que definen cuándo ocurre esta fase en cada olimpiada
+    public function cronogramas()
+    {
+        return $this->hasMany(CronogramaFase::class, 'id_fase_global', 'id_fase_global');
+    }
+
+    // Configuración de qué acciones están permitidas durante esta fase
+    public function configuracionesAccion()
+    {
+        return $this->hasMany(ConfiguracionAccion::class, 'id_fase_global', 'id_fase_global');
+    }
+}
+>>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1

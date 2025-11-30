@@ -10,20 +10,35 @@ class ResponsableArea extends Model
     use HasFactory;
 
     protected $table = 'responsable_area';
-    protected $primaryKey = 'id_responsableArea';
+    protected $primaryKey = 'id_responsable_area';
 
     protected $fillable = [
         'id_usuario',
         'id_area_olimpiada',
     ];
 
-    public function areaOlimpiada()
+    /**
+     * RELACIONES DIRECTAS (Padres)
+     */
+
+    // El usuario (persona) que ha sido designado como responsable
+    public function usuario()
     {
-        return $this->belongsTo(\App\Model\AreaOlimpiada::class, 'id_area_olimpiada');
+        return $this->belongsTo(Usuario::class, 'id_usuario', 'id_usuario');
     }
 
-    public function area()
+    // La configuración de Área+Gestión de la que es responsable
+    public function areaOlimpiada()
     {
-        return $this->hasOneThrough(\App\Model\Area::class, \App\Model\AreaOlimpiada::class, 'id_area_olimpiada', 'id_area', 'id_area_olimpiada', 'id_area');
+        return $this->belongsTo(AreaOlimpiada::class, 'id_area_olimpiada', 'id_area_olimpiada');
+    }
+
+    /**
+     * ACCESORES ÚTILES
+     * Para acceder directamente al Área sin pasar manualmente por AreaOlimpiada
+     */
+    public function getAreaAttribute()
+    {
+        return $this->areaOlimpiada ? $this->areaOlimpiada->area : null;
     }
 }

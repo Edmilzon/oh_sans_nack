@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Model\Olimpiada;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Model\Olimpiada;
 
 class OlimpiadaSeeder extends Seeder
 {
@@ -13,11 +12,24 @@ class OlimpiadaSeeder extends Seeder
      */
     public function run(): void
     {
+<<<<<<< HEAD
         Olimpiada::create([
             'nombre_olimp' => 'Olimpiada Científica Estudiantil',
             'gestion_olimp' => date('Y'),
         ]);
+=======
+        $gestion = date('Y'); // Año actual (ej: 2025)
+>>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
 
-        $this->command->info('Olimpiada de prueba creada exitosamente.');
+        // Usamos firstOrCreate para evitar duplicados si corres el seeder varias veces
+        $olimpiada = Olimpiada::firstOrCreate(
+            ['gestion_olimp' => $gestion], // Condición de búsqueda
+            [
+                'nombre_olimp' => "Olimpiada Científica $gestion",
+                'estado_olimp' => true,
+            ]
+        );
+
+        $this->command->info("✅ Olimpiada para la gestión {$olimpiada->gestion_olimp} verificada/creada correctamente.");
     }
 }

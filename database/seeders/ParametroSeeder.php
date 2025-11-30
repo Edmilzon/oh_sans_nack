@@ -10,23 +10,34 @@ class ParametroSeeder extends Seeder
 {
     public function run(): void
     {
-        $idAreaNivel = 11;
+        // ID que intentamos buscar inicialmente
+        $idTarget = 11;
 
-        $areaNivel = AreaNivel::find($idAreaNivel);
+        // Buscamos el AreaNivel cargando las relaciones necesarias para mostrar info
+        // Nota: En V8 la relación es AreaNivel -> AreaOlimpiada -> Area
+        $areaNivel = AreaNivel::with(['areaOlimpiada.area', 'nivel'])->find($idTarget);
+
+        // Si no existe el ID 11, usamos el primero que encontremos para asegurar que se cree algo
+        if (!$areaNivel) {
+            $areaNivel = AreaNivel::with(['areaOlimpiada.area', 'nivel'])->first();
+        }
 
         if ($areaNivel) {
             Parametro::firstOrCreate(
                 ['id_area_nivel' => $areaNivel->id_area_nivel],
                 [
-                    'nota_min_clasif' => 51.0,
-                    'cantidad_max_apro' => 100,
+                    // Nombres de columnas corregidos según migración V8
+                    'nota_min_aprox_param' => 51.00,
+                    'cantidad_maxi_param' => 100,
                 ]
             );
             
-            $areaNivel->load('area', 'nivel');
-            $this->command->info("Parámetro de calificación creado o verificado para {$areaNivel->area->nombre} - {$areaNivel->nivel->nombre}.");
+            $nombreArea = $areaNivel->areaOlimpiada->area->nombre_area;
+            $nombreNivel = $areaNivel->nivel->nombre_nivel;
+
+            $this->command->info("✅ Parámetro de calificación configurado para: {$nombreArea} - {$nombreNivel} (ID: {$areaNivel->id_area_nivel})");
         } else {
-            $this->command->warn("No se encontró el AreaNivel con ID {$idAreaNivel}. No se creó el parámetro.");
+            $this->command->warn("⚠️ No hay registros en 'area_nivel'. Ejecuta AreasEvaluadoresSeeder primero.");
         }
     }
 }

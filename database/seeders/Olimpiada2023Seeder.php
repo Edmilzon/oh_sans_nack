@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use App\Model\Olimpiada;
 use App\Model\Area;
 use App\Model\Nivel;
@@ -14,381 +15,208 @@ use App\Model\Rol;
 use App\Model\Institucion;
 use App\Model\AreaOlimpiada;
 use App\Model\AreaNivel;
-use App\Model\Fase;
-use App\Model\Parametro;
+use App\Model\FaseGlobal;
 use App\Model\ResponsableArea;
 use App\Model\EvaluadorAn;
 use App\Model\Competidor;
+use App\Model\Inscripcion;
 use App\Model\Evaluacion;
-use App\Model\Grupo;
 use App\Model\Competencia;
 use App\Model\Medallero;
-use App\Model\Desclasificacion;
-use App\Model\Aval;
+use App\Model\Departamento;
+use Carbon\Carbon;
 
 class Olimpiada2023Seeder extends Seeder
 {
     public function run(): void
     {
         DB::transaction(function () {
-            $this->command->info('Iniciando seeder para la Olimpiada 2023...');
+            $this->command->info('🚀 Iniciando seeder para la Olimpiada 2023 (V8)...');
 
-            // 1. Crear Grados de Escolaridad primero
-            $gradosEscolaridad = [
-                ['nombre' => '1ro de Secundaria'],
-                ['nombre' => '2do de Secundaria'],
-                ['nombre' => '3ro de Secundaria'],
-                ['nombre' => '4to de Secundaria'],
-                ['nombre' => '5to de Secundaria'],
-                ['nombre' => '6to de Secundaria'],
-            ];
+            // 1. Crear la Olimpiada 2023
+            $olimpiada = Olimpiada::firstOrCreate(
+                ['gestion_olimp' => '2023'],
+                ['nombre_olimp' => 'Olimpiada Científica Estudiantil 2023', 'estado_olimp' => false]
+            );
 
-            foreach ($gradosEscolaridad as $grado) {
-                GradoEscolaridad::firstOrCreate(['nombre' => $grado['nombre']]);
-            }
+            // 2. Configurar Áreas y Niveles
+            $areasNombres = ['Matemáticas', 'Física', 'Informática'];
+            $areas = Area::whereIn('nombre_area', $areasNombres)->get();
 
-            $grado1ro = GradoEscolaridad::where('nombre', '1ro de Secundaria')->first();
-            $grado2do = GradoEscolaridad::where('nombre', '2do de Secundaria')->first();
+            $nivelSecundaria = Nivel::firstOrCreate(['nombre_nivel' => 'Secundaria']);
 
-            // 2. Crear la Olimpiada
-            $olimpiada = Olimpiada::create([
-                'nombre' => 'Olimpiada Científica Estudiantil 2023',
-                'gestion' => '2023',
-            ]);
-            $this->command->info("Olimpiada '{$olimpiada->nombre}' creada.");
+            $grado1ro = GradoEscolaridad::firstOrCreate(['nombre_grado' => '1ro de Secundaria']);
 
-            // 3. Obtener Areas y Niveles
-            $areas = Area::whereIn('nombre', ['Matemáticas', 'Física', 'Informática'])->get();
-            if ($areas->isEmpty()) {
-                $this->command->error('No se encontraron áreas base. Ejecuta AreasSeeder primero.');
-                return;
-            }
-            $niveles = Nivel::all();
-            if ($niveles->isEmpty()) {
-                $this->command->error('No se encontraron niveles. Crea algunos niveles primero.');
-                return;
-            }
-
-            // 4. Vincular Áreas con la Olimpiada 2023
-            $areaOlimpiadaIds = [];
+            // 3. Vincular Áreas
+            $areaOlimpiadas = [];
             foreach ($areas as $area) {
-                $areaOlimpiada = AreaOlimpiada::create([
+                $areaOlimpiadas[$area->nombre_area] = AreaOlimpiada::firstOrCreate([
                     'id_area' => $area->id_area,
-                    'id_olimpiada' => $olimpiada->id_olimpiada,
+                    'id_olimpiada' => $olimpiada->id_olimpiada
                 ]);
-                $areaOlimpiadaIds[$area->nombre] = $areaOlimpiada->id_area_olimpiada;
             }
-            $this->command->info('Áreas vinculadas a la olimpiada.');
 
-            // 5. Crear Personas primero
-            $personasData = [
-                ['nombre' => 'Carlos', 'apellido' => 'Perez', 'ci' => '9988776', 'email' => 'carlos.perez@test.com', 'genero' => 'M', 'telefono' => '77788899'],
-                ['nombre' => 'Lucia', 'apellido' => 'Mendez', 'ci' => '6655443', 'email' => 'lucia.mendez@test.com', 'genero' => 'F', 'telefono' => '77788800'],
+            // 4. Area Nivel
+            $areaNiveles = [];
+            if (isset($areaOlimpiadas['Matemáticas'])) {
+                $ao = $areaOlimpiadas['Matemáticas'];
+                $areaNiveles['Matemáticas_1ro'] = AreaNivel::firstOrCreate([
+                    'id_area_olimpiada' => $ao->id_area_olimpiada,
+                    'id_nivel' => $nivelSecundaria->id_nivel
+                ], ['es_activo_area_nivel' => true]);
+            }
+
+            // 5. Usuarios Responsables y Evaluadores
+            $rolResponsable = Rol::where('nombre_rol', 'Responsable Area')->first();
+            $rolEvaluador = Rol::where('nombre_rol', 'Evaluador')->first();
+
+            // Responsable Matemáticas (CI CORREGIDO: 9988773 en lugar de 9988776)
+            $persResp = Persona::firstOrCreate(
+                ['ci_pers' => '9988773'],
+                [
+                    'nombre_pers' => 'Carlos', 'apellido_pers' => 'Perez',
+                    'email_pers' => 'carlos.perez@test.com',
+                    'telefono_pers' => '77788899'
+                ]
+            );
+
+            $userResp = Usuario::firstOrCreate(
+                ['email_usuario' => 'carlos.perez@test.com'],
+                [
+                    'id_persona' => $persResp->id_persona,
+                    'password_usuario' => Hash::make('mundolibre')
+                ]
+            );
+            $userResp->roles()->syncWithoutDetaching([$rolResponsable->id_rol => ['id_olimpiada' => $olimpiada->id_olimpiada]]);
+
+            if (isset($areaOlimpiadas['Matemáticas'])) {
+                ResponsableArea::firstOrCreate([
+                    'id_usuario' => $userResp->id_usuario,
+                    'id_area_olimpiada' => $areaOlimpiadas['Matemáticas']->id_area_olimpiada
+                ]);
+            }
+
+            // Evaluador Matemáticas (CI CORREGIDO: 6655445 para evitar choques)
+            $persEval = Persona::firstOrCreate(
+                ['ci_pers' => '6655445'],
+                [
+                    'nombre_pers' => 'Lucia', 'apellido_pers' => 'Mendez',
+                    'email_pers' => 'lucia.mendez@test.com',
+                    'telefono_pers' => '77788800'
+                ]
+            );
+
+            $userEval = Usuario::firstOrCreate(
+                ['email_usuario' => 'lucia.mendez@test.com'],
+                [
+                    'id_persona' => $persEval->id_persona,
+                    'password_usuario' => Hash::make('password12')
+                ]
+            );
+            $userEval->roles()->syncWithoutDetaching([$rolEvaluador->id_rol => ['id_olimpiada' => $olimpiada->id_olimpiada]]);
+
+            $evaluadorAnMat = null;
+            if (isset($areaNiveles['Matemáticas_1ro'])) {
+                $evaluadorAnMat = EvaluadorAn::firstOrCreate([
+                    'id_usuario' => $userEval->id_usuario,
+                    'id_area_nivel' => $areaNiveles['Matemáticas_1ro']->id_area_nivel
+                ], ['estado_eva_an' => true]);
+            }
+
+            $this->command->info('Usuarios 2023 creados/verificados.');
+
+            // 6. Competidores
+            $institucion = Institucion::firstOrCreate(['nombre_inst' => 'Colegio Don Bosco']);
+            $depto = Departamento::firstOrCreate(['nombre_dep' => 'La Paz']);
+
+            $competidoresData = [
+                ['nombre' => 'Ana', 'apellido' => 'Vaca', 'ci' => '1234567', 'nota' => 95.5],
+                ['nombre' => 'Juan', 'apellido' => 'Angel', 'ci' => '2345678', 'nota' => 88.0],
+                ['nombre' => 'Sofia', 'apellido' => 'Rios', 'ci' => '3456789', 'nota' => 76.5],
+                ['nombre' => 'Mateo', 'apellido' => 'Choque', 'ci' => '4567890', 'nota' => 45.0],
             ];
 
-            $personas = [];
-            foreach ($personasData as $data) {
-                $personas[] = Persona::create($data);
-            }
+            $inscripcionesCreadas = [];
 
-            // 6. Crear Usuarios
-            $responsableUser = Usuario::create([
-                'nombre' => 'Carlos',
-                'apellido' => 'Perez', 
-                'ci' => '9988776', 
-                'email' => 'carlos.perez@test.com', 
-                'password' => bcrypt('mundolibre'),
-                'telefono' => '77788899'
-            ]);
+            if (isset($areaNiveles['Matemáticas_1ro'])) {
+                foreach ($competidoresData as $data) {
+                    // Persona (Usamos firstOrCreate por si acaso)
+                    $p = Persona::firstOrCreate(
+                        ['ci_pers' => $data['ci']],
+                        [
+                            'nombre_pers' => $data['nombre'],
+                            'apellido_pers' => $data['apellido'],
+                            'email_pers' => strtolower($data['nombre']).'@test2023.com',
+                            'telefono_pers' => '0000000'
+                        ]
+                    );
 
-            $evaluadorUser = Usuario::create([
-                'nombre' => 'Lucia',
-                'apellido' => 'Mendez', 
-                'ci' => '6655443', 
-                'email' => 'lucia.mendez@test.com', 
-                'password' => bcrypt('password12'),
-                'telefono' => '77788800'
-            ]);
+                    // Competidor
+                    $comp = Competidor::firstOrCreate(
+                        ['id_persona' => $p->id_persona],
+                        [
+                            'id_institucion' => $institucion->id_institucion,
+                            'id_departamento' => $depto->id_departamento,
+                            'id_grado_escolaridad' => $grado1ro->id_grado_escolaridad,
+                            'genero_competidor' => 'M',
+                            'contacto_tutor_compe' => 'Tutor 2023'
+                        ]
+                    );
 
-            // Asignar roles
-            $rolResponsable = Rol::where('nombre', 'Responsable Area')->first();
-            $rolEvaluador = Rol::where('nombre', 'Evaluador')->first();
+                    // Inscripción
+                    $insc = Inscripcion::firstOrCreate([
+                        'id_competidor' => $comp->id_competidor,
+                        'id_area_nivel' => $areaNiveles['Matemáticas_1ro']->id_area_nivel
+                    ]);
 
-            if ($rolResponsable && $rolEvaluador) {
-                DB::table('usuario_rol')->insert([
-                    ['id_usuario' => $responsableUser->id_usuario, 'id_rol' => $rolResponsable->id_rol, 'id_olimpiada' => $olimpiada->id_olimpiada],
-                    ['id_usuario' => $evaluadorUser->id_usuario, 'id_rol' => $rolEvaluador->id_rol, 'id_olimpiada' => $olimpiada->id_olimpiada],
+                    $inscripcionesCreadas[] = ['inscripcion' => $insc, 'nota' => $data['nota']];
+                }
+
+                // 7. Competencia
+                $faseFinal = FaseGlobal::where('codigo_fas_glo', 'F3_NAC')->first();
+
+                $competencia = Competencia::firstOrCreate([
+                    'id_fase_global' => $faseFinal->id_fase_global,
+                    'id_area_nivel' => $areaNiveles['Matemáticas_1ro']->id_area_nivel,
+                    'nombre_examen' => 'Examen Final Matemáticas 2023'
+                ], [
+                    'fecha_inicio' => Carbon::create(2023, 10, 15, 9, 0, 0),
+                    'fecha_fin' => Carbon::create(2023, 10, 15, 12, 0, 0),
+                    'estado_comp' => false
                 ]);
-            }
-            $this->command->info('Usuarios creados.');
 
-            // 7. Vincular usuarios a sus áreas
-            $responsableArea = ResponsableArea::create([
-                'id_usuario' => $responsableUser->id_usuario,
-                'id_area_olimpiada' => $areaOlimpiadaIds['Matemáticas'],
-            ]);
-            
-            $responsableAreaFis = ResponsableArea::create([
-                'id_usuario' => $responsableUser->id_usuario,
-                'id_area_olimpiada' => $areaOlimpiadaIds['Física'],
-            ]);
-            
-            // 8. Crear Personas para competidores
-            $personasCompetidoresData = [
-                ['nombre' => 'Ana', 'apellido' => 'Vaca', 'ci' => '1234567', 'email' => 'ana.vaca@test.com', 'genero' => 'F', 'telefono' => '77711111'],
-                ['nombre' => 'Juan', 'apellido' => 'Angel', 'ci' => '2345678', 'email' => 'juan.angel@test.com', 'genero' => 'M', 'telefono' => '77711112'],
-                ['nombre' => 'Sofia', 'apellido' => 'Rios', 'ci' => '3456789', 'email' => 'sofia.rios@test.com', 'genero' => 'F', 'telefono' => '77711113'],
-                ['nombre' => 'Mateo', 'apellido' => 'Choque', 'ci' => '4567890', 'email' => 'mateo.choque@test.com', 'genero' => 'M', 'telefono' => '77711114'],
-                ['nombre' => 'Lucas', 'apellido' => 'Vaca', 'ci' => '124557', 'email' => 'lucas.vaca@test.com', 'genero' => 'M', 'telefono' => '77711115'],
-                ['nombre' => 'Fiorilo', 'apellido' => 'Angel', 'ci' => '2344566', 'email' => 'fiorilo.angel@test.com', 'genero' => 'M', 'telefono' => '77711116'],
-                ['nombre' => 'Pedro', 'apellido' => 'Lopez', 'ci' => '5678901', 'email' => 'pedro.lopez@test.com', 'genero' => 'M', 'telefono' => '77711117'],
-                ['nombre' => 'Pedro', 'apellido' => 'Infante', 'ci' => '1232345', 'email' => 'pedro.infante@test.com', 'genero' => 'M', 'telefono' => '77711118'],
-            ];
+                // 8. Evaluaciones
+                if ($evaluadorAnMat) {
+                    foreach ($inscripcionesCreadas as $item) {
+                        Evaluacion::firstOrCreate([
+                            'id_inscripcion' => $item['inscripcion']->id_inscripcion,
+                            'id_competencia' => $competencia->id_competencia
+                        ], [
+                            'id_evaluador_an' => $evaluadorAnMat->id_evaluador_an,
+                            'nota_evalu' => $item['nota'],
+                            'estado_competidor_eva' => $item['nota'] > 51 ? 'APROBADO' : 'REPROBADO',
+                            'fecha_evalu' => Carbon::create(2023, 10, 20),
+                            'estado_evalu' => true
+                        ]);
+                    }
+                }
 
-            $personasCompetidores = [];
-            foreach ($personasCompetidoresData as $data) {
-                $personasCompetidores[] = Persona::create($data);
-            }
-
-            // 9. Crear Instituciones
-            $institucion1 = Institucion::create(['nombre' => 'Colegio Don Bosco']);
-            $institucion2 = Institucion::create(['nombre' => 'Colegio La Salle']);
-
-            // 10. Crear AreaNivel para Matemáticas y Física
-            $areaMatematicas = $areas->firstWhere('nombre', 'Matemáticas');
-            $areaNivelesMatematicas = [];
-
-            foreach ($niveles->take(3) as $nivel) {
-                // Para cada nivel, crear area_nivel para 1ro y 2do de secundaria
-                $areaNivelesMatematicas[$nivel->id_nivel.'_1ro'] = AreaNivel::create([
-                    'id_area' => $areaMatematicas->id_area,
-                    'id_nivel' => $nivel->id_nivel,
-                    'id_grado_escolaridad' => $grado1ro->id_grado_escolaridad,
-                    'id_olimpiada' => $olimpiada->id_olimpiada,
-                    'activo' => true,
-                ]);
-                
-                $areaNivelesMatematicas[$nivel->id_nivel.'_2do'] = AreaNivel::create([
-                    'id_area' => $areaMatematicas->id_area,
-                    'id_nivel' => $nivel->id_nivel,
-                    'id_grado_escolaridad' => $grado2do->id_grado_escolaridad,
-                    'id_olimpiada' => $olimpiada->id_olimpiada,
-                    'activo' => true,
-                ]);
+                // 9. Medallero
+                $medallas = ['ORO', 'PLATA', 'BRONCE'];
+                for ($i = 0; $i < 3; $i++) {
+                    if (isset($inscripcionesCreadas[$i])) {
+                        Medallero::firstOrCreate([
+                            'id_inscripcion' => $inscripcionesCreadas[$i]['inscripcion']->id_inscripcion,
+                            'id_competencia' => $competencia->id_competencia
+                        ], [
+                            'puesto_medall' => $i + 1,
+                            'medalla_medall' => $medallas[$i]
+                        ]);
+                    }
+                }
             }
 
-            $areaFisica = $areas->firstWhere('nombre', 'Física');
-            $areaNivelesFisica = [];
-            foreach ($niveles->take(2) as $nivel) {
-                $areaNivelesFisica[$nivel->id_nivel.'_1ro'] = AreaNivel::create([
-                    'id_area' => $areaFisica->id_area,
-                    'id_nivel' => $nivel->id_nivel,
-                    'id_grado_escolaridad' => $grado1ro->id_grado_escolaridad,
-                    'id_olimpiada' => $olimpiada->id_olimpiada,
-                    'activo' => true,
-                ]);
-            }
-
-            // 10.1 Asignar el evaluador a Matemáticas ahora que AreaNivel existe
-            $evaluadorAn = EvaluadorAn::create([
-                'id_usuario' => $evaluadorUser->id_usuario,
-                'id_area_nivel' => $areaNivelesMatematicas[$niveles->first()->id_nivel.'_1ro']->id_area_nivel,
-            ]);
-
-            $this->command->info('Usuarios asignados como responsables de área y evaluadores.');
-
-            // 11. Crear Fases y Parámetros para Matemáticas (primer nivel, 1ro de secundaria)
-            $faseClasificatoria = Fase::create([
-                'nombre' => 'Clasificatoria',
-                'orden' => 1,
-                'id_area_nivel' => $areaNivelesMatematicas[$niveles->first()->id_nivel.'_1ro']->id_area_nivel
-            ]);
-            
-            $faseFinal = Fase::create([
-                'nombre' => 'Final',
-                'orden' => 2,
-                'id_area_nivel' => $areaNivelesMatematicas[$niveles->first()->id_nivel.'_1ro']->id_area_nivel
-            ]);
-
-            $parametro = Parametro::create([
-                'nota_min_clasif' => 51,
-                'cantidad_max_apro' => 10,
-                'id_area_nivel' => $areaNivelesMatematicas[$niveles->first()->id_nivel.'_1ro']->id_area_nivel
-            ]);
-
-            $this->command->info('Fases y parámetros creados.');
-
-            // 12. Crear Competidores para Matemáticas (6 estudiantes)
-            $competidoresDataMat = [
-                [
-                    'departamento' => 'La Paz', 
-                    'contacto_tutor' => '77722222', 
-                    'id_institucion' => $institucion1->id_institucion, 
-                    'id_persona' => $personasCompetidores[0]->id_persona,
-                    'id_grado_escolaridad' => $grado1ro->id_grado_escolaridad,
-                    'id_area_nivel' => $areaNivelesMatematicas[$niveles->first()->id_nivel.'_1ro']->id_area_nivel
-                ],
-                [
-                    'departamento' => 'La Paz', 
-                    'contacto_tutor' => '77722223', 
-                    'id_institucion' => $institucion1->id_institucion, 
-                    'id_persona' => $personasCompetidores[1]->id_persona,
-                    'id_grado_escolaridad' => $grado1ro->id_grado_escolaridad,
-                    'id_area_nivel' => $areaNivelesMatematicas[$niveles->first()->id_nivel.'_1ro']->id_area_nivel
-                ],
-                [
-                    'departamento' => 'Cochabamba', 
-                    'contacto_tutor' => '77722224', 
-                    'id_institucion' => $institucion2->id_institucion, 
-                    'id_persona' => $personasCompetidores[2]->id_persona,
-                    'id_grado_escolaridad' => $grado1ro->id_grado_escolaridad,
-                    'id_area_nivel' => $areaNivelesMatematicas[$niveles->first()->id_nivel.'_1ro']->id_area_nivel
-                ],
-                [
-                    'departamento' => 'Cochabamba', 
-                    'contacto_tutor' => '77722225', 
-                    'id_institucion' => $institucion2->id_institucion, 
-                    'id_persona' => $personasCompetidores[3]->id_persona,
-                    'id_grado_escolaridad' => $grado1ro->id_grado_escolaridad,
-                    'id_area_nivel' => $areaNivelesMatematicas[$niveles->first()->id_nivel.'_1ro']->id_area_nivel
-                ],
-                [
-                    'departamento' => 'La Paz', 
-                    'contacto_tutor' => '77722226', 
-                    'id_institucion' => $institucion1->id_institucion, 
-                    'id_persona' => $personasCompetidores[4]->id_persona,
-                    'id_grado_escolaridad' => $grado2do->id_grado_escolaridad,
-                    'id_area_nivel' => $areaNivelesMatematicas[$niveles->first()->id_nivel.'_2do']->id_area_nivel
-                ],
-                [
-                    'departamento' => 'La Paz', 
-                    'contacto_tutor' => '77722227', 
-                    'id_institucion' => $institucion1->id_institucion, 
-                    'id_persona' => $personasCompetidores[5]->id_persona,
-                    'id_grado_escolaridad' => $grado2do->id_grado_escolaridad,
-                    'id_area_nivel' => $areaNivelesMatematicas[$niveles->first()->id_nivel.'_2do']->id_area_nivel
-                ],
-            ];
-
-            $competidores = [];
-            foreach ($competidoresDataMat as $data) {
-                $competidores[] = Competidor::create($data);
-            }
-
-            $this->command->info('Competidores de Matemáticas creados.');
-
-            // 13. Crear 1 competidor para Física (primer nivel, 1ro de secundaria)
-            $competidorFisica = Competidor::create([
-                'departamento' => 'La Paz',
-                'contacto_tutor' => '77722228',
-                'id_institucion' => $institucion1->id_institucion,
-                'id_area_nivel' => $areaNivelesFisica[$niveles->first()->id_nivel.'_1ro']->id_area_nivel,
-                'id_persona' => $personasCompetidores[6]->id_persona,
-                'id_grado_escolaridad' => $grado1ro->id_grado_escolaridad
-            ]);
-
-            $this->command->info('Competidor de Física creado.');
-
-            // 15. Crear una Competencia (evento final)
-            $competencia = Competencia::create([
-                'fecha_inicio' => '2023-11-01',
-                'fecha_fin' => '2023-11-02',
-                'estado' => 'Finalizado',
-                'id_fase' => $faseFinal->id_fase,
-                'id_responsableArea' => $responsableArea->id_responsableArea,
-            ]);
-            $this->command->info('Registro de Competencia creado.');
-
-            // 14. Crear Evaluaciones y asociarlas a la competencia
-            $evaluacionesData = [
-                ['nota' => 95.50, 'estado' => true, 'id_competidor' => $competidores[0]->id_competidor],
-                ['nota' => 88.00, 'estado' => true, 'id_competidor' => $competidores[1]->id_competidor],
-                ['nota' => 75.00, 'estado' => false, 'id_competidor' => $competidores[2]->id_competidor],
-                ['nota' => 45.00, 'estado' => true, 'id_competidor' => $competidores[3]->id_competidor],
-            ];
-
-            $evaluaciones = [];
-            foreach ($evaluacionesData as $data) {
-                $evaluaciones[] = Evaluacion::create([
-                    'nota' => $data['nota'],
-                    'fecha_evaluacion' => '2023-10-15',
-                    'estado' => $data['estado'],
-                    'id_competidor' => $data['id_competidor'],
-                    'id_competencia' => $competencia->id_competencia,
-                ]);
-            }
-            $this->command->info('Evaluaciones creadas y asociadas a la competencia.');
-
-            // 16. Crear Grupos y asignar competidores clasificados
-            $grupoFinal = Grupo::create([
-                'nombre' => 'Grupo Finalistas', 
-            ]);
-            
-            // Asignar competidores al grupo usando la tabla pivote
-            $grupoFinal->competidores()->attach([
-                $competidores[0]->id_competidor,
-                $competidores[1]->id_competidor,
-                $competidores[2]->id_competidor
-            ]);
-            $this->command->info('Grupos y asignación de competidores finalistas creados.');
-
-            // 17. Crear Medallero
-            Medallero::create([
-                'puesto' => 1, 
-                'medalla' => 'Oro', 
-                'id_competidor' => $competidores[0]->id_competidor, 
-                'id_competencia' => $competencia->id_competencia
-            ]);
-            Medallero::create([
-                'puesto' => 2, 
-                'medalla' => 'Plata', 
-                'id_competidor' => $competidores[1]->id_competidor, 
-                'id_competencia' => $competencia->id_competencia
-            ]);
-            Medallero::create([
-                'puesto' => 3, 
-                'medalla' => 'Bronce', 
-                'id_competidor' => $competidores[2]->id_competidor, 
-                'id_competencia' => $competencia->id_competencia
-            ]);
-            $this->command->info('Medallero generado.');
-
-            // 18. Simular una desclasificación
-            $competidorDescalificado = Competidor::create([
-                'departamento' => 'La Paz',
-                'contacto_tutor' => '77722229',
-                'id_institucion' => $institucion1->id_institucion,
-                'id_area_nivel' => $areaNivelesMatematicas[$niveles->first()->id_nivel.'_1ro']->id_area_nivel,
-                'id_persona' => $personasCompetidores[7]->id_persona,
-                'id_grado_escolaridad' => $grado1ro->id_grado_escolaridad
-            ]);
-
-            $evaluacionDescalificada = Evaluacion::create([
-                'nota' => 0, 
-                'fecha_evaluacion' => '2023-10-15', 
-                'estado' => false,
-                'id_competidor' => $competidorDescalificado->id_competidor
-            ]);
-            
-            Desclasificacion::create([
-                'fecha' => '2023-10-16',
-                'motivo' => 'Se detectó plagio durante la prueba.',
-                'id_competidor' => $competidorDescalificado->id_competidor,
-                'id_evaluacion' => $evaluacionDescalificada->id_evaluacion,
-            ]);
-            $this->command->info('Ejemplo de desclasificación creado.');
-
-            // 19. Crear un Aval
-            Aval::create([
-                'fecha_aval' => '2023-11-05',
-                'estado' => 'Aprobado',
-                'id_competencia' => $competencia->id_competencia,
-                'id_fase' => $faseFinal->id_fase,
-                'id_responsableArea' => $responsableArea->id_responsableArea,
-            ]);
-            $this->command->info('Aval de resultados creado.');
-
-            $this->command->info('¡Seeder de Olimpiada 2023 completado exitosamente!');
+            $this->command->info('✅ Seeder de Olimpiada 2023 completado.');
         });
     }
 }

@@ -19,16 +19,27 @@ class ConfiguracionAccion extends Model
         'habilitada',
     ];
 
+    protected $casts = [
+        'habilitada' => 'boolean',
+    ];
+
+    /**
+     * RELACIONES DIRECTAS (Padres)
+     */
+
+    // Pertenece a una Olimpiada (Gestión) específica
     public function olimpiada()
     {
         return $this->belongsTo(Olimpiada::class, 'id_olimpiada', 'id_olimpiada');
     }
 
+    // Pertenece a una Fase Global (ej: "Etapa Clasificatoria")
     public function faseGlobal()
     {
         return $this->belongsTo(FaseGlobal::class, 'id_fase_global', 'id_fase_global');
     }
 
+    // Se refiere a una Acción del Sistema específica (ej: "INSCRIPCION_ESTUDIANTE")
     public function accionSistema()
     {
         return $this->belongsTo(AccionSistema::class, 'id_accion', 'id_accion');

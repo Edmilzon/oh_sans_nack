@@ -18,16 +18,34 @@ class EvaluadorAn extends Model
         'estado_eva_an',
     ];
 
-    public function areaNivel()
-    {
-        return $this->belongsTo(\App\Model\AreaNivel::class, 'id_area_nivel');
-    }
+    protected $casts = [
+        'estado_eva_an' => 'boolean',
+    ];
 
+    /**
+     * RELACIONES DIRECTAS (Padres)
+     */
+
+    // El usuario (profesor) que cumple el rol de evaluador
     public function usuario()
     {
         return $this->belongsTo(Usuario::class, 'id_usuario', 'id_usuario');
     }
 
+<<<<<<< HEAD
+=======
+    // El área y nivel específico donde está autorizado a evaluar
+    public function areaNivel()
+    {
+        return $this->belongsTo(AreaNivel::class, 'id_area_nivel', 'id_area_nivel');
+    }
+
+    /**
+     * RELACIONES DEPENDIENTES (Hijos)
+     */
+
+    // Las evaluaciones (notas) que ha registrado este evaluador
+>>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     public function evaluaciones()
     {
         return $this->hasMany(Evaluacion::class, 'id_evaluador_an', 'id_evaluador_an');
