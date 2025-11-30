@@ -6,6 +6,7 @@ use App\Model\Area;
 use App\Model\Olimpiada;
 use App\Repositories\AreaRepository;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\Collection;
 
 class AreaService {
     protected $areaRepository;
@@ -14,16 +15,34 @@ class AreaService {
         $this->areaRepository = $areaRepository;
     }
 
-    public function getAreaList(){
+    /**
+     * Obtiene todas las áreas registradas.
+     * @return Collection
+     */
+    public function getAreaList(): Collection
+    {
         return $this->areaRepository->getAllAreas();
     }
 
-    public function createNewArea(array $data){
+    /**
+     * Crea una nueva área.
+     * @param array $data Contiene el nombre del área.
+     * @return Area
+     */
+    public function createNewArea(array $data): Area
+    {
+        // El Repositorio ya maneja el mapeo de 'nombre' a 'nombre_area'
         return $this->areaRepository->createArea($data);
     }
 
-    public function getAreasActuales()
+    /**
+     * Obtiene las áreas que están asignadas a la olimpiada de la gestión actual (año en curso).
+     * @return Collection
+     */
+    public function getAreasActuales(): Collection
     {
-        return $this->areaRepository->getAreasByGestion('2025');
+        $gestionActual = date('Y');
+        // El Repositorio filtra por gestion_olimp y retorna el alias 'nombre'
+        return $this->areaRepository->getAreasByGestion($gestionActual);
     }
 }

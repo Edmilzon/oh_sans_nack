@@ -32,8 +32,10 @@ class EvaluacionRepository
     public function getCalificadosPorCompetencia(int $id_competencia): Collection
     {
         return Evaluacion::where('id_competencia', $id_competencia)
-            ->where('estado', 'Calificado')
-            ->with(['competidor.persona', 'competidor.institucion'])
+            // Columna corregida: estado_competidor_eva
+            ->where('estado_competidor_eva', 'Calificado')
+            // Relación profunda: Evaluacion -> Inscripcion -> Competidor -> ...
+            ->with(['inscripcion.competidor.persona', 'inscripcion.competidor.institucion'])
             ->get();
     }
 
@@ -45,8 +47,11 @@ class EvaluacionRepository
      */
     public function getPorCompetidor(int $id_competidor): ?Evaluacion
     {
-        return Evaluacion::where('id_competidor', $id_competidor)
-            ->latest('fecha_evaluacion')
+        // Filtramos por la relación inscripcion ya que evaluacion no tiene id_competidor directo
+        return Evaluacion::whereHas('inscripcion', function ($query) use ($id_competidor) {
+                $query->where('id_competidor', $id_competidor);
+            })
+            ->latest('fecha_evalu') // Columna corregida: fecha_evalu
             ->first();
     }
 }
