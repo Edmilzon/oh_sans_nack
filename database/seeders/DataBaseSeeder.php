@@ -9,41 +9,41 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            // 1. Catálogos Base
+            // 1. CATÁLOGOS (Lo primero siempre)
             RolesSeeder::class,
             NivelesSeeder::class,
             GradoEscolaridadSeeder::class,
             DepartamentoSeeder::class,
             FaseGlobalSeeder::class,
             AccionSistemaSeeder::class,
-            RolAccionSeeder::class, // <--- NUEVO (Define permisos base)
+            RolAccionSeeder::class,
 
-            // 2. Estructura Académica Base (Gestión Actual)
+            // 2. ESTRUCTURA BASE
             OlimpiadaSeeder::class,
             AreasSeeder::class,
-
-            // 3. Usuarios y Personal Base
+            AreaOlimpiadaSeeder::class,
+            AreaNivelSeeder::class,
             UsuariosSeeder::class,
-
-            // 4. Configuración de Áreas (Crea area_nivel)
             AreasEvaluadoresSeeder::class,
-            
-            // 5. Configuración Dependiente de area_nivel
-            NivelGradoSeeder::class,         // <--- NUEVO (Vincula grados a las áreas creadas)
-            ParametroSeeder::class,
-            ParametroMedalleroSeeder::class, // <--- NUEVO (Define medallas)
-            ConfiguracionAccionSeeder::class, // Define permisos por fase
 
-            // 6. Datos Históricos
+            // 3. CONFIGURACIÓN
+            NivelGradoSeeder::class,
+            ParametroSeeder::class,
+            ParametroMedalleroSeeder::class,
+            ConfiguracionAccionSeeder::class,
+
+            // 4. DATOS HISTÓRICOS (Ahora sí funcionarán porque ya existen los grados)
             Olimpiada2021Seeder::class,
+            Olimpiada2022Seeder::class,    // Si creaste este archivo
             Olimpiada2023Seeder::class,
             Olimpiadas2024Seeder::class,
 
-            // 7. Gestión Actual (Operativa)
+            // 5. OPERATIVIDAD ACTUAL
             CompetidorSeeder::class,
             EvaluadorSeeder::class,
-            
-            // 8. Inicialización del Sistema
+            // EvaluadorTestSeeder::class,
+
+            // 6. ARRANQUE FINAL
             FasesGestionActualSeeder::class,
         ]);
     }
