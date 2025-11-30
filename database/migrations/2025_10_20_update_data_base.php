@@ -283,7 +283,6 @@ return new class extends Migration
             $table->unsignedinteger('id_departamento')->nullable()->comment('');
             $table->unsignedinteger('id_area_nivel')->nullable()->comment(''); // fk a area_nivel en ddl
             $table->unsignedinteger('id_persona')->nullable()->comment(''); // fk a persona en ddl
-            $table->unsignedinteger('id_grado_escolaridad')->nullable()->comment('');
             $table->char('contacto_tutor_compe', 15)->nullable()->comment('');
             $table->char('genero_competidor', 2)->nullable()->comment('');
             $table->timestamp('created_at')->nullable()->comment('');
@@ -299,7 +298,6 @@ return new class extends Migration
                   ->restrictOnDelete()->restrictOnUpdate();
             $table->foreign('id_persona')->references('id_persona')->on('persona')
                   ->restrictOnDelete()->restrictOnUpdate();
-            $table->foreign('id_grado_escolaridad')->references('id_grado_escolaridad')->on('grado_escolaridad');
         });
 
         schema::create('evaluador_an', function (blueprint $table) {

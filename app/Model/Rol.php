@@ -24,9 +24,9 @@ class Rol extends Model
     public function usuarios()
     {
         return $this->belongsToMany(
-            Usuario::class, 
-            'usuario_rol', 
-            'id_rol', 
+            Usuario::class,
+            'usuario_rol',
+            'id_rol',
             'id_usuario'
         )
         ->withPivot('id_olimpiada') // Vital: Acceder a qué gestión pertenece la asignación
@@ -37,9 +37,9 @@ class Rol extends Model
     public function acciones()
     {
         return $this->belongsToMany(
-            AccionSistema::class, 
-            'rol_accion', 
-            'id_rol', 
+            AccionSistema::class,
+            'rol_accion',
+            'id_rol',
             'id_accion'
         )
         ->withPivot('activo') // Vital: Saber si el permiso está activo o revocado temporalmente

@@ -15,11 +15,22 @@ class GradoEscolaridadService
         $this->gradoEscolaridadRepository = $gradoEscolaridadRepository;
     }
 
+    /**
+     * Obtiene todos los grados de escolaridad disponibles.
+     *
+     * @return Collection
+     */
     public function getAll(): Collection
     {
         return $this->gradoEscolaridadRepository->getAll();
     }
 
+    /**
+     * Busca un grado de escolaridad por su ID.
+     *
+     * @param int $id
+     * @return GradoEscolaridad|null
+     */
     public function findById(int $id): ?GradoEscolaridad
     {
         return $this->gradoEscolaridadRepository->findById($id);

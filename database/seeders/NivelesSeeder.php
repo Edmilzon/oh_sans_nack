@@ -28,8 +28,8 @@ class NivelesSeeder extends Seeder
             ['nombre_nivel' => '2do de Secundaria', 'created_at' => $now, 'updated_at' => $now],
             ['nombre_nivel' => '3ro de Secundaria', 'created_at' => $now, 'updated_at' => $now],
             ['nombre_nivel' => '4to de Secundaria', 'created_at' => $now, 'updated_at' => $now],
-            ['nombre_nivel' => '5to de Secundaria', 'created_at' => $now, 'updated_at' => $now],   
-            ['nombre_nivel' => '6to de Secundaria', 'created_at' => $now, 'updated_at' => $now], 
+            ['nombre_nivel' => '5to de Secundaria', 'created_at' => $now, 'updated_at' => $now],
+            ['nombre_nivel' => '6to de Secundaria', 'created_at' => $now, 'updated_at' => $now],
             ['nombre_nivel' => 'Bufeo', 'created_at' => $now, 'updated_at' => $now],
             ['nombre_nivel' => 'Guacamayo', 'created_at' => $now, 'updated_at' => $now],
         ];

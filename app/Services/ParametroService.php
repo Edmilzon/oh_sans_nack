@@ -6,6 +6,7 @@ use App\Repositories\ParametroRepository;
 use App\Repositories\AreaNivelRepository;
 use App\Services\OlimpiadaService;
 use Illuminate\Database\Eloquent\Collection;
+use App\Model\Parametro; // Asegurar que el modelo esté disponible
 
 class ParametroService
 {
@@ -62,21 +63,22 @@ class ParametroService
 
         foreach ($data['area_niveles'] as $areaNivelData) {
             try {
+                // El Repositorio ya carga las relaciones necesarias en getById
                 $areaNivel = $this->areaNivelRepository->getById($areaNivelData['id_area_nivel']);
-                
+
                 if (!$areaNivel) {
                     $errors[] = "El área-nivel con ID {$areaNivelData['id_area_nivel']} no existe";
                     continue;
                 }
 
-                $cantidadMaxApro = isset($areaNivelData['cantidad_max_apro']) 
-                    ? $areaNivelData['cantidad_max_apro'] 
-                    : null;
+                // El Repositorio se encarga de mapear 'cantidad_max_apro' a 'cantidad_maxi_param'
+                $cantidadMaxApro = $areaNivelData['cantidad_max_apro'] ?? null;
+                $notaMinClasif = $areaNivelData['nota_min_clasif'];
 
                 $parametro = $this->parametroRepository->updateOrCreateByAreaNivel(
                     $areaNivelData['id_area_nivel'],
                     [
-                        'nota_min_clasif' => $areaNivelData['nota_min_clasif'],
+                        'nota_min_clasif' => $notaMinClasif,
                         'cantidad_max_apro' => $cantidadMaxApro
                     ]
                 );
@@ -104,16 +106,15 @@ class ParametroService
 
     public function createOrUpdateParametro(array $data): array
     {
+        // El Repositorio ya carga las relaciones necesarias en getById
         $areaNivel = $this->areaNivelRepository->getById($data['id_area_nivel']);
-        
+
         if (!$areaNivel) {
             throw new \Exception("El área-nivel con ID {$data['id_area_nivel']} no existe");
         }
 
-        $cantidadMaxApro = isset($data['cantidad_max_apro']) 
-            ? $data['cantidad_max_apro'] 
-            : null;
-        
+        $cantidadMaxApro = $data['cantidad_max_apro'] ?? null;
+
         $parametro = $this->parametroRepository->updateOrCreateByAreaNivel(
             $data['id_area_nivel'],
             [
@@ -133,13 +134,15 @@ class ParametroService
         $parametros = $this->parametroRepository->getAllParametrosByGestiones();
 
         $olimpiadaActual = $this->olimpiadaService->obtenerOlimpiadaActual();
-        $gestionActual = $olimpiadaActual->gestion;
+        // Columna corregida: gestion -> gestion_olimp
+        $gestionActual = $olimpiadaActual->gestion_olimp;
 
         $parametrosPorGestion = $parametros->groupBy('id_olimpiada');
 
         $resultado = [];
 
         foreach ($parametrosPorGestion as $idOlimpiada => $parametrosGestion) {
+            // El Repositorio ya proporciona 'gestion' como alias de 'gestion_olimp'
             $gestion = $parametrosGestion->first()->gestion;
 
             if ($gestion == $gestionActual) {
@@ -149,6 +152,7 @@ class ParametroService
             $parametrosFormateados = $parametrosGestion->map(function($parametro) {
                 $cantMaxClasificados = $parametro->cant_max_clasificados ?? self::MAXIMO_CLASIFICADOS;
 
+                // Las claves internas del array ya vienen mapeadas con alias desde el Repositorio
                 return [
                     'id_area_nivel' => $parametro->id_area_nivel,
                     'nombre_area' => $parametro->nombre_area,
@@ -167,7 +171,7 @@ class ParametroService
         }
 
         usort($resultado, function($a, $b) {
-            return $b['gestion'] - $a['gestion'];
+            return $b['gestion'] <=> $a['gestion']; // Operador de comparación nave espacial para sort
         });
 
         return [
@@ -179,26 +183,39 @@ class ParametroService
 
     private function formatParametro($parametro): array
     {
-        $cantidadMaxApro = $parametro->cantidad_max_apro ?? self::MAXIMO_CLASIFICADOS;
+        // El Repositorio ya usa los nombres de columna V8, ahora mapeamos a la salida esperada:
+        $cantidadMaxApro = $parametro->cantidad_maxi_param ?? self::MAXIMO_CLASIFICADOS; // Columna corregida
+
+        // Aseguramos que las relaciones anidadas estén cargadas
+        $parametro->loadMissing([
+            'areaNivel.areaOlimpiada.area',
+            'areaNivel.nivel',
+            'areaNivel.areaOlimpiada.olimpiada'
+        ]);
+
+        $areaNivel = $parametro->areaNivel;
+        $area = $areaNivel->areaOlimpiada->area;
+        $nivel = $areaNivel->nivel;
+        $olimpiada = $areaNivel->areaOlimpiada->olimpiada;
 
         return [
             'id_parametro' => $parametro->id_parametro,
-            'nota_min_clasif' => $parametro->nota_min_clasif,
+            'nota_min_clasif' => $parametro->nota_min_aprox_param, // Columna corregida
             'cantidad_max_apro' => $cantidadMaxApro,
             'area_nivel' => [
-                'id_area_nivel' => $parametro->areaNivel->id_area_nivel,
+                'id_area_nivel' => $areaNivel->id_area_nivel,
                 'area' => [
-                    'id_area' => $parametro->areaNivel->area->id_area,
-                    'nombre' => $parametro->areaNivel->area->nombre
+                    'id_area' => $area->id_area,
+                    'nombre' => $area->nombre_area // Columna corregida
                 ],
                 'nivel' => [
-                    'id_nivel' => $parametro->areaNivel->nivel->id_nivel,
-                    'nombre' => $parametro->areaNivel->nivel->nombre
+                    'id_nivel' => $nivel->id_nivel,
+                    'nombre' => $nivel->nombre_nivel // Columna corregida
                 ],
                 'olimpiada' => [
-                    'id_olimpiada' => $parametro->areaNivel->olimpiada->id_olimpiada,
-                    'gestion' => $parametro->areaNivel->olimpiada->gestion,
-                    'nombre' => $parametro->areaNivel->olimpiada->nombre
+                    'id_olimpiada' => $olimpiada->id_olimpiada,
+                    'gestion' => $olimpiada->gestion_olimp, // Columna corregida
+                    'nombre' => $olimpiada->nombre_olimp // Columna corregida
                 ]
             ]
         ];
@@ -206,6 +223,7 @@ class ParametroService
 
     public function getParametrosByAreaNiveles(array $idsAreaNivel): array
     {
+        // El Repositorio ya retorna los datos planos con alias de V7
         $parametros = $this->parametroRepository->getParametrosByAreaNiveles($idsAreaNivel);
 
         if ($parametros->isEmpty()) {
@@ -227,6 +245,7 @@ class ParametroService
             $parametrosFormateados = $parametrosArea->map(function($parametro) {
                 $cantMaxClasificados = $parametro->cant_max_clasificados ?? self::MAXIMO_CLASIFICADOS;
 
+                // Las claves ya vienen mapeadas con alias desde el Repositorio
                 return [
                     'id_olimpiada' => $parametro->id_olimpiada,
                     'gestion' => $parametro->gestion,

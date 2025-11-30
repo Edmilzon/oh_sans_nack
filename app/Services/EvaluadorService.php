@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Mail;
 use App\Model\EvaluadorAn;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
+use Exception;
 
 class EvaluadorService
 {
@@ -22,47 +24,49 @@ class EvaluadorService
     }
 
     /**
-     * Crea un nuevo responsable de área.
+     * Crea un nuevo evaluador (Persona + Usuario).
      *
-     * @param array $data
+     * @param array $data Contiene 'nombre', 'apellido', 'ci', 'email', 'password' (texto plano del front), etc.
      * @return array
      * @throws \Exception
      */
     public function createEvaluador(array $data): array
     {
         return DB::transaction(function () use ($data) {
-            // Guardar la contraseña en texto plano para el correo
+
+            // 1. **COMPATIBILIDAD CON FRONTEND:** Usamos la contraseña enviada por el front para el correo
+            // El Repositorio se encarga de HASHear antes de guardar.
             $plainPassword = $data['password'];
 
-            // Crear el usuario
+            // 2. Crear el usuario (Repositorio maneja Persona + Usuario y hasheo)
             $usuario = $this->evaluadorRepository->createUsuario($data);
 
-            // Asignar rol de "Evaluador"
+            // 3. Asignar rol de "Evaluador"
             $this->evaluadorRepository->assignEvaluadorRole($usuario, $data['id_olimpiada']);
 
-            // Crear relaciones con las áreas
+            // 4. Crear relaciones con las áreas (AreaNivel)
             $evaluadorAreas = $this->evaluadorRepository->createEvaluadorAreaRelations(
                 $usuario,
                 $data['area_nivel_ids'],
                 $data['id_olimpiada']
             );
 
-            // Enviar correo con las credenciales
-            Mail::to($usuario->email)->send(new UserCredentialsMail(
-                $usuario->nombre,
-                $usuario->email,
-                $plainPassword,
+            // 5. Enviar correo con las credenciales
+            Mail::to($usuario->email_usuario)->send(new UserCredentialsMail( // Columna corregida
+                $usuario->persona->nombre_pers, // Acceso corregido
+                $usuario->email_usuario,       // Columna corregida
+                $plainPassword,                // Contraseña en texto plano (enviada por el front)
                 'Evaluador'
             ));
 
-            // Obtener información completa del evaluador creado
-            return $this->getEvaluadorData($usuario, $evaluadorAreas);
+            // 6. Retornar datos mapeados
+            return $this->getEvaluadorData($usuario->fresh(['persona']));
         });
     }
 
     /**
      * Obtiene todos los evaluadores.
-     *
+     * El Repositorio ya retorna la data mapeada
      * @return array
      */
     public function getAllEvaluadores(): array
@@ -72,7 +76,6 @@ class EvaluadorService
 
     /**
      * Obtiene un evaluador específico por ID.
-     *
      * @param int $id
      * @return array|null
      */
@@ -82,8 +85,7 @@ class EvaluadorService
     }
 
     /**
-     * Obtiene responsables por área específica.
-     *
+     * Obtiene evaluadores por área específica.
      * @param int $areaId
      * @return array
      */
@@ -93,8 +95,7 @@ class EvaluadorService
     }
 
     /**
-     * Obtiene responsables por olimpiada específica.
-     *
+     * Obtiene evaluadores por olimpiada específica.
      * @param int $olimpiadaId
      * @return array
      */
@@ -105,7 +106,6 @@ class EvaluadorService
 
     /**
      * Obtiene las gestiones (olimpiadas) en las que ha trabajado un evaluador.
-     *
      * @param string $ci
      * @return array
      */
@@ -116,7 +116,6 @@ class EvaluadorService
 
     /**
      * Obtiene las áreas asignadas a un evaluador para una gestión específica.
-     *
      * @param string $ci
      * @param string $gestion
      * @return array
@@ -126,11 +125,8 @@ class EvaluadorService
         return $this->evaluadorRepository->findAreasByCiAndGestion($ci, $gestion);
     }
 
-
-
     /**
      * Actualiza un evaluador existente.
-     *
      * @param int $id
      * @param array $data
      * @return array
@@ -144,13 +140,12 @@ class EvaluadorService
                 $this->evaluadorRepository->updateEvaluadorAreaRelations($usuario, $data['areas'], $data['id_olimpiada']);
             }
 
-            return $this->getEvaluadorData($usuario);
+            return $this->getEvaluadorData($usuario->fresh(['persona']));
         });
     }
 
     /**
      * Actualiza un evaluador existente por su CI.
-     *
      * @param string $ci
      * @param array $data
      * @return array|null
@@ -160,7 +155,7 @@ class EvaluadorService
         $usuario = $this->evaluadorRepository->findUsuarioByCi($ci);
 
         if (!$usuario) {
-            return null; // O lanzar una excepción si se prefiere
+            return null;
         }
 
         return DB::transaction(function () use ($usuario, $data) {
@@ -176,7 +171,6 @@ class EvaluadorService
 
     /**
      * Añade nuevas áreas a un evaluador existente por su CI.
-     *
      * @param string $ci
      * @param array $data
      * @return array|null
@@ -195,13 +189,12 @@ class EvaluadorService
                 $data['areas'],
                 $data['id_olimpiada']
             );
-            return $this->getEvaluadorData($usuario->fresh());
+            return $this->getEvaluadorData($usuario->fresh(['persona']));
         });
     }
 
     /**
      * Añade nuevas asignaciones de área/nivel a un evaluador existente por su CI.
-     *
      * @param string $ci
      * @param array $data
      * @return array|null
@@ -220,13 +213,12 @@ class EvaluadorService
                 $data['area_nivel_ids'],
                 $data['id_olimpiada']
             );
-            return $this->getEvaluadorData($usuario->fresh());
+            return $this->getEvaluadorData($usuario->fresh(['persona']));
         });
     }
 
     /**
      * Elimina un evaluador.
-     *
      * @param int $id
      * @return bool
      */
@@ -239,7 +231,6 @@ class EvaluadorService
 
     /**
      * Valida que las áreas existan.
-     *
      * @param array $areaIds
      * @return void
      * @throws ValidationException
@@ -257,36 +248,47 @@ class EvaluadorService
     }
 
     /**
-     * Obtiene los datos formateados del responsable.
+     * Obtiene los datos formateados del evaluador.
+     * Mapea los campos de Persona y las relaciones anidadas a la estructura simple de salida.
      *
      * @param Usuario $usuario
-     * @param array|null $responsableAreas
+     * @param array|null $evaluadorAreas Se usa principalmente para la respuesta inmediata del create.
      * @return array
      */
     private function getEvaluadorData(Usuario $usuario, ?array $evaluadorAreas = null): array
     {
-        $usuario->loadMissing('evaluadorAn.areaNivel.area', 'evaluadorAn.areaNivel.nivel');
+        // Asegurar que las relaciones estén cargadas para mapear
+        $usuario->loadMissing('persona', 'evaluadorAn.areaNivel.areaOlimpiada.area', 'evaluadorAn.areaNivel.nivel');
+
+        // Si no se pasaron las áreas explícitamente, las obtenemos del modelo cargado.
         if (!$evaluadorAreas) {
             $evaluadorAreas = $usuario->evaluadorAn;
         }
 
         return [
             'id_usuario' => $usuario->id_usuario,
-            'nombre' => $usuario->nombre,
-            'apellido' => $usuario->apellido,
-            'ci' => $usuario->ci,
-            'email' => $usuario->email,
-            'telefono' => $usuario->telefono ?? null,
+            // Mapeo Persona -> Frontend keys
+            'nombre' => $usuario->persona->nombre_pers,
+            'apellido' => $usuario->persona->apellido_pers,
+            'ci' => $usuario->persona->ci_pers,
+            'email' => $usuario->email_usuario, // Columna corregida
+            'telefono' => $usuario->persona->telefono_pers ?? null, // Columna corregida
             'rol' => 'Evaluador',
+
+            // Mapear asignaciones (Area/Nivel)
             'asignaciones' => collect($evaluadorAreas)->map(function ($ea) {
+                // Navegación corregida para obtener Area y Nivel
+                $area = $ea->areaNivel->areaOlimpiada->area ?? null;
+                $nivel = $ea->areaNivel->nivel ?? null;
+
+                if (!$area || !$nivel) return null; // Filtrar relaciones rotas
+
                 return [
-                    'area' => $ea->areaNivel->area->nombre ?? null,
-                    'nivel' => $ea->areaNivel->nivel->nombre ?? null,
+                    'area' => $area->nombre_area, // Columna corregida
+                    'nivel' => $nivel->nombre_nivel, // Columna corregida
                 ];
-            })->filter(function ($value) {
-                return !is_null($value['area']) && !is_null($value['nivel']);
-            })->values()
-            ->toArray(),
+            })->filter()->values()->toArray(),
+
             'created_at' => $usuario->created_at,
             'updated_at' => $usuario->updated_at
         ];
@@ -294,12 +296,12 @@ class EvaluadorService
 
     /**
      * Obtiene las áreas y niveles asignados a un evaluador por su ID.
-     *
      * @param int $id
      * @return array
      */
     public function getAreasNivelesByEvaluadorId(int $id): array
     {
+        // El Repositorio ya retorna la data mapeada
         return $this->evaluadorRepository->findAreasNivelesByEvaluadorId($id);
     }
 }

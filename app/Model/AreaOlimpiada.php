@@ -21,6 +21,7 @@ class AreaOlimpiada extends Model
      * RELACIONES DIRECTAS (Padres)
      */
 
+<<<<<<< HEAD
     // Pertenece a un Área (Matemáticas, Física, etc.)
     public function area()
     {
@@ -49,3 +50,19 @@ class AreaOlimpiada extends Model
         return $this->hasMany(ResponsableArea::class, 'id_area_olimpiada', 'id_area_olimpiada');
     }
 }
+=======
+    public function olimpiada() {
+        return $this->belongsTo(\App\Model\Olimpiada::class, 'id_olimpiada');
+    }
+
+    public function responsablesArea()
+    {
+        return $this->hasMany(\App\Model\ResponsableArea::class, 'id_area_olimpiada');
+    }
+
+    public function areaNiveles()
+    {
+        return $this->hasMany(AreaNivel::class, 'id_area_olimpiada');
+    }
+}
+>>>>>>> 7b7c59242b03600d58a5d1c8f3276e3d5044c776

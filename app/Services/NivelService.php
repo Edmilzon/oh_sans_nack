@@ -13,15 +13,33 @@ class NivelService {
         $this->nivelRepository = $nivelRepository;
     }
 
-    public function getNivelList(){
+    /**
+     * Obtiene el listado de todos los niveles.
+     * @return Collection
+     */
+    public function getNivelList(): Collection
+    {
         return $this->nivelRepository->getAllNivel();
     }
 
-    public function createNewNivel(array $data){
+    /**
+     * Crea un nuevo nivel.
+     * @param array $data Contiene el campo 'nombre'.
+     * @return Nivel
+     */
+    public function createNewNivel(array $data): Nivel
+    {
+        // El Repositorio se encarga de mapear 'nombre' a 'nombre_nivel'
         return $this->nivelRepository->createNivel($data);
     }
 
-    public function findById(int $id) : ?Nivel {
+    /**
+     * Busca un nivel por su ID.
+     * @param int $id
+     * @return Nivel|null
+     */
+    public function findById(int $id) : ?Nivel
+    {
         return $this->nivelRepository->findById($id);
     }
 }

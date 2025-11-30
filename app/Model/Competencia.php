@@ -21,6 +21,7 @@ class Competencia extends Model
         'ponderacion',
         'maxima_nota',
         'es_avalado',
+<<<<<<< HEAD
         'estado_comp'
     ];
 
@@ -47,6 +48,19 @@ class Competencia extends Model
     public function areaNivel()
     {
         return $this->belongsTo(AreaNivel::class, 'id_area_nivel', 'id_area_nivel');
+=======
+        'estado_comp',
+    ];
+
+    public function faseGlobal()
+    {
+        return $this->belongsTo(FaseGlobal::class, 'id_fase_global');
+    }
+
+    public function areaNivel()
+    {
+        return $this->belongsTo(AreaNivel::class, 'id_area_nivel');
+>>>>>>> 7b7c59242b03600d58a5d1c8f3276e3d5044c776
     }
 
     /**
