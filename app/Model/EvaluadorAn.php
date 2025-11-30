@@ -32,8 +32,6 @@ class EvaluadorAn extends Model
         return $this->belongsTo(Usuario::class, 'id_usuario', 'id_usuario');
     }
 
-<<<<<<< HEAD
-=======
     // El área y nivel específico donde está autorizado a evaluar
     public function areaNivel()
     {
@@ -45,7 +43,6 @@ class EvaluadorAn extends Model
      */
 
     // Las evaluaciones (notas) que ha registrado este evaluador
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     public function evaluaciones()
     {
         return $this->hasMany(Evaluacion::class, 'id_evaluador_an', 'id_evaluador_an');

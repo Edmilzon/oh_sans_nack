@@ -25,13 +25,6 @@ class Usuario extends Authenticatable
         'password_usuario',
     ];
 
-<<<<<<< HEAD
-    public function persona()
-    {
-        return $this->belongsTo(\App\Model\Persona::class, 'id_persona', 'id_persona');
-    }
-    
-=======
     // Importante para que Laravel sepa cuál es la contraseña
     public function getAuthPassword()
     {
@@ -45,7 +38,6 @@ class Usuario extends Authenticatable
         return $this->belongsTo(Persona::class, 'id_persona', 'id_persona');
     }
 
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     public function roles()
     {
         return $this->belongsToMany(Rol::class, 'usuario_rol', 'id_usuario', 'id_rol')
@@ -57,23 +49,15 @@ class Usuario extends Authenticatable
     public function asignarRol(string $nombreRol, int $idOlimpiada)
     {
         $rol = Rol::where('nombre_rol', $nombreRol)->firstOrFail();
-<<<<<<< HEAD
-        $this->roles()->attach($rol->id_rol, ['id_olimpiada' => $idOlimpiada]);
-=======
         $this->roles()->syncWithoutDetaching([
             $rol->id_rol => ['id_olimpiada' => $idOlimpiada]
         ]);
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     }
 
     public function tieneRol(string $nombreRol, ?int $idOlimpiada = null): bool
     {
-<<<<<<< HEAD
-        return $this->roles()->where('nombre_rol', $nombreRol)
-=======
         return $this->roles()
             ->where('nombre_rol', $nombreRol)
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
             ->when($idOlimpiada, function ($query) use ($idOlimpiada) {
                 return $query->wherePivot('id_olimpiada', $idOlimpiada);
             })

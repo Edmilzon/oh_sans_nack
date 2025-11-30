@@ -13,22 +13,6 @@ class Area extends Model
     protected $primaryKey = 'id_area';
 
     protected $fillable = [
-<<<<<<< HEAD
-        'nombre_area',
-    ];
-
-    public function olimpiadas()
-    {
-        return $this->belongsToMany(Olimpiada::class, 'area_olimpiada', 'id_area', 'id_olimpiada')
-                    ->withTimestamps();
-    }
-
-    public function areasOlimpiada()
-    {
-        return $this->hasMany(\App\Model\AreaOlimpiada::class, 'id_area');
-    }
-}
-=======
         'nombre_area', // Antes: 'nombre'
     ];
 
@@ -41,4 +25,3 @@ class Area extends Model
         return $this->hasMany(AreaOlimpiada::class, 'id_area', 'id_area');
     }
 }
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1

@@ -13,11 +13,7 @@ class Rol extends Model
     protected $primaryKey = 'id_rol';
 
     protected $fillable = [
-<<<<<<< HEAD
-        'nombre_rol'
-=======
         'nombre_rol',
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     ];
 
     /**

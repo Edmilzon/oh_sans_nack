@@ -13,15 +13,9 @@ class AccionSistema extends Model
     protected $primaryKey = 'id_accion';
 
     protected $fillable = [
-<<<<<<< HEAD
-        'codigo_acc_sis',
-        'nombre_acc_sis',
-        'descripcion_acc_sis',
-=======
         'codigo_acc_sis',      // Antes: codigo
         'nombre_acc_sis',      // Antes: nombre
         'descripcion_acc_sis', // Antes: descripcion
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     ];
 
     /**
@@ -33,13 +27,6 @@ class AccionSistema extends Model
         return $this->hasMany(ConfiguracionAccion::class, 'id_accion', 'id_accion');
     }
 
-<<<<<<< HEAD
-    public function roles()
-    {
-        return $this->belongsToMany(Rol::class, 'rol_accion', 'id_accion', 'id_rol');
-    }
-}
-=======
     /**
      * Relación con la tabla intermedia explícita RolAccion.
      * Útil si necesitas consultar el estado 'activo' de la asignación.
@@ -65,4 +52,3 @@ class AccionSistema extends Model
         ->withTimestamps();
     }
 }
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1

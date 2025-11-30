@@ -4,10 +4,7 @@ namespace App\Model;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-<<<<<<< HEAD
-=======
 use Carbon\Carbon;
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
 
 class CronogramaFase extends Model
 {
@@ -21,11 +18,7 @@ class CronogramaFase extends Model
         'id_fase_global',
         'fecha_inicio',
         'fecha_fin',
-<<<<<<< HEAD
-        'estado',
-=======
         'estado' // 'Pendiente', 'En Curso', 'Finalizada'
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     ];
 
     protected $casts = [
@@ -33,18 +26,6 @@ class CronogramaFase extends Model
         'fecha_fin' => 'datetime',
     ];
 
-<<<<<<< HEAD
-    public function olimpiada()
-    {
-        return $this->belongsTo(Olimpiada::class, 'id_olimpiada');
-    }
-
-    public function faseGlobal()
-    {
-        return $this->belongsTo(FaseGlobal::class, 'id_fase_global');
-    }
-}
-=======
     // --- ACCESORES (Virtuales) ---
 
     /**
@@ -72,4 +53,3 @@ class CronogramaFase extends Model
         return $this->belongsTo(FaseGlobal::class, 'id_fase_global', 'id_fase_global');
     }
 }
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1

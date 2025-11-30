@@ -13,15 +13,9 @@ class Olimpiada extends Model
     protected $primaryKey = 'id_olimpiada';
 
     protected $fillable = [
-<<<<<<< HEAD
-        'nombre_olimp',
-        'gestion_olimp',
-        'estado_olimp'
-=======
         'nombre_olimp',   // Antes: nombre
         'gestion_olimp',  // Antes: gestion (Ej: "2025")
         'estado_olimp',   // Antes: estado
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
     ];
 
     protected $casts = [

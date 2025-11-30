@@ -13,14 +13,6 @@ class ArchivoCsv extends Model
     protected $primaryKey = 'id_archivo_csv';
 
     protected $fillable = [
-<<<<<<< HEAD
-        'nombre_arc_csv',
-        'fecha_arc_csv',
-    ];
-
-    /**
-     * Get the competidores for the archivo_csv.
-=======
         'nombre_arc_csv', // Antes: 'nombre'
         'fecha_arc_csv',  // Antes: 'fecha'
     ];
@@ -31,7 +23,6 @@ class ArchivoCsv extends Model
 
     /**
      * Obtiene los competidores que fueron importados mediante este archivo.
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
      */
     public function competidores()
     {
