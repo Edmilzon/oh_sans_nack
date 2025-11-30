@@ -12,14 +12,7 @@ class OlimpiadaSeeder extends Seeder
      */
     public function run(): void
     {
-<<<<<<< HEAD
-        Olimpiada::create([
-            'nombre_olimp' => 'Olimpiada Científica Estudiantil',
-            'gestion_olimp' => date('Y'),
-        ]);
-=======
         $gestion = date('Y'); // Año actual (ej: 2025)
->>>>>>> 3941ec078f622a25b39feac36dc616b2346017d1
 
         // Usamos firstOrCreate para evitar duplicados si corres el seeder varias veces
         $olimpiada = Olimpiada::firstOrCreate(

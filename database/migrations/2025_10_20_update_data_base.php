@@ -8,412 +8,440 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * lista de tablas en orden para el schema::create.
+     */
+    private array $tablas = [
+        'accion_sistema', 'archivo_csv', 'area', 'departamento', 'fase_global',
+        'grado_escolaridad', 'grupo', 'institucion', 'nivel', 'olimpiada',
+        'persona', 'personal_access_tokens', 'rol', 'usuario', 'area_olimpiada',
+        'area_nivel', 'competencia', 'cronograma_fase', 'responsable_area', 
+        'usuario_rol', 'competidor', 'evaluador_an', 'parametro', 'param_medallero',
+        'configuracion_accion', 'rol_accion', 'area_nivel_grado', 
+        'grupo_competidor', 'evaluacion', 'log_cambio_nota', 'medallero', 
+    ];
+
+    /**
+     * run the migrations.
      */
     public function up(): void
     {
-        // 1. Desactivar FK checks para limpieza total
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        // desactivar fk checks para garantizar el drop exitoso (especialmente en mysql)
+        db::statement('set foreign_key_checks=0;');
 
-        // 2. Lista de tablas a limpiar (Orden inverso de dependencia)
-        $tablas = [
-            'log_cambio_nota', 'medallero', 'param_medallero', 'evaluacion', 
-            'grupo_competidor', 'grupo', 'inscripcion', 'competidor', 'competencia', 
-            'cronograma_fase', 'fase_global', 'configuracion_accion', 'rol_accion', 
-            'accion_sistema', 'usuario_rol', 'rol', 'responsable_area', 'evaluador_an', 
-            'parametro', 'nivel_grado', 'area_nivel', 'area_olimpiada', 'area', 'grado_escolaridad', 'nivel', 
-            'olimpiada', 'usuario', 'persona', 'institucion', 'departamento', 'archivo_csv'
-        ];
-
-        foreach ($tablas as $tabla) {
-            Schema::dropIfExists($tabla);
+        // eliminar tablas existentes para una recreación limpia (similar al ddl)
+        foreach (array_reverse($this->tablas) as $tabla) {
+            schema::dropifexists($tabla);
         }
 
         // ==========================================
-        // 3. INFRAESTRUCTURA Y USUARIOS
+        // 1. creación de tablas base
         // ==========================================
 
-        Schema::create('departamento', function (Blueprint $table) {
-            $table->id('id_departamento');
-            $table->string('nombre_dep', 50);
-            $table->timestamps();
+        schema::create('accion_sistema', function (blueprint $table) {
+            $table->increments('id_accion_sistema')->comment('');
+            $table->string('codigo_acc_sis', 100)->unique()->comment('');
+            $table->string('nombre_acc_sis', 250)->comment('');
+            $table->text('descriocion_acc_sis')->nullable()->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
         });
 
-        Schema::create('institucion', function (Blueprint $table) {
-            $table->id('id_institucion');
-            $table->string('nombre_inst', 250);
-            $table->timestamps();
+        schema::create('archivo_csv', function (blueprint $table) {
+            $table->increments('id_archivo_csv')->comment('');
+            $table->string('nombre_arc_csv', 250)->comment('');
+            $table->date('fecha_arc_csv')->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_ar')->nullable()->comment('error tipográfico replicado'); // updated_ar en el ddl
         });
 
-        Schema::create('persona', function (Blueprint $table) {
-            $table->id('id_persona');
-            $table->string('nombre_pers', 100);
-            $table->string('apellido_pers', 100);
-            $table->string('ci_pers', 20)->unique();
-            $table->string('telefono_pers', 20);
-            $table->string('email_pers', 150);
-            $table->timestamps();
+        schema::create('area', function (blueprint $table) {
+            $table->increments('id_area')->comment('');
+            $table->string('nombre_area', 120)->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
+        });
+        
+        schema::create('departamento', function (blueprint $table) {
+            $table->increments('id_departamento')->comment('');
+            $table->string('nombre_dep', 20)->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
         });
 
-        Schema::create('usuario', function (Blueprint $table) {
-            $table->id('id_usuario');
-            $table->unsignedBigInteger('id_persona');
-            $table->string('email_usuario', 150)->unique();
-            $table->string('password_usuario');
-            $table->timestamps();
-
-            $table->foreign('id_persona')->references('id_persona')->on('persona')->onDelete('cascade');
+        schema::create('fase_global', function (blueprint $table) {
+            $table->increments('id_fase_global')->comment('');
+            $table->string('codigo_fas_glo', 25)->comment('');
+            $table->string('nombre_fas_glo', 50)->comment('');
+            $table->unsignedinteger('orden_fas_glo')->comment(''); // numeric(8,0)
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
         });
 
-        Schema::create('rol', function (Blueprint $table) {
-            $table->id('id_rol');
-            $table->string('nombre_rol', 60);
-            $table->timestamps();
+        schema::create('grado_escolaridad', function (blueprint $table) {
+            $table->increments('id_grado_escolaridad')->comment('');
+            $table->text('nombre_gra_esc')->comment(''); // longtext en ddl
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
         });
 
-        Schema::create('olimpiada', function (Blueprint $table) {
-            $table->id('id_olimpiada');
-            $table->string('nombre_olimp', 100)->nullable();
-            $table->string('gestion_olimp', 10);
-            $table->boolean('estado_olimp')->default(true);
-            $table->timestamps();
+        schema::create('grupo', function (blueprint $table) {
+            $table->increments('id_grupo')->comment('');
+            $table->string('nombre_grupo', 250)->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
         });
 
-        Schema::create('usuario_rol', function (Blueprint $table) {
-            $table->id('id_usuario_rol');
-            $table->unsignedBigInteger('id_usuario');
-            $table->unsignedBigInteger('id_rol');
-            $table->unsignedBigInteger('id_olimpiada')->nullable(); 
-            $table->timestamps();
-
-            $table->foreign('id_usuario')->references('id_usuario')->on('usuario')->onDelete('cascade');
-            $table->foreign('id_rol')->references('id_rol')->on('rol')->onDelete('cascade');
-            $table->foreign('id_olimpiada')->references('id_olimpiada')->on('olimpiada')->onDelete('cascade');
+        schema::create('institucion', function (blueprint $table) {
+            $table->increments('id_institucion')->comment('');
+            $table->string('nombre_inst', 250)->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
         });
 
-        // ==========================================
-        // 4. ESTRUCTURA ACADÉMICA
-        // ==========================================
-
-        Schema::create('area', function (Blueprint $table) {
-            $table->id('id_area');
-            $table->string('nombre_area', 120);
-            $table->timestamps();
+        schema::create('nivel', function (blueprint $table) {
+            $table->increments('id_nivel')->comment('');
+            $table->string('nombre_nivel', 100)->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
         });
 
-        Schema::create('nivel', function (Blueprint $table) {
-            $table->id('id_nivel');
-            $table->string('nombre_nivel', 100);
-            $table->timestamps();
+        schema::create('olimpiada', function (blueprint $table) {
+            $table->increments('id_olimpiada')->comment('');
+            $table->string('nombre_olimp', 100)->nullable()->comment('');
+            $table->char('gestion_olimp', 10)->comment('');
+            $table->boolean('estado_olimp')->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
         });
 
-        Schema::create('grado_escolaridad', function (Blueprint $table) {
-            $table->id('id_grado_escolaridad');
-            $table->string('nombre_grado', 100);
-            $table->timestamps();
+        schema::create('persona', function (blueprint $table) {
+            $table->increments('id_persona')->comment('');
+            $table->string('nombre_pers', 255)->comment('');
+            $table->string('apellido_pers', 255)->comment('');
+            $table->char('ci_pers', 15)->unique()->comment('');
+            $table->char('telefono_pers', 15)->comment('');
+            $table->string('email_pers', 255)->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
         });
 
-        Schema::create('area_olimpiada', function (Blueprint $table) {
-            $table->id('id_area_olimpiada');
-            $table->unsignedBigInteger('id_area');
-            $table->unsignedBigInteger('id_olimpiada');
-            $table->timestamps();
-
-            $table->foreign('id_area')->references('id_area')->on('area')->onDelete('cascade');
-            $table->foreign('id_olimpiada')->references('id_olimpiada')->on('olimpiada')->onDelete('cascade');
+        schema::create('personal_access_tokens', function (blueprint $table) {
+            $table->increments('id_personal_access_tokens')->comment('');
+            $table->string('tokenable_type', 255)->nullable()->comment('');
+            $table->string('tokenable_id', 255)->nullable()->comment('');
+            $table->text('name')->nullable()->comment('');
+            $table->string('token', 64)->nullable()->comment('');
+            $table->timestamp('habilities')->nullable()->comment('');
+            $table->timestamp('last_used_at')->nullable()->comment('');
+            $table->timestamp('expires_at')->nullable()->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
         });
 
-        Schema::create('area_nivel', function (Blueprint $table) {
-            $table->id('id_area_nivel');
-            $table->unsignedBigInteger('id_area_olimpiada');
-            $table->unsignedBigInteger('id_nivel');
-            $table->boolean('es_activo_area_nivel')->default(true);
-            $table->timestamps();
-
-            $table->foreign('id_area_olimpiada')->references('id_area_olimpiada')->on('area_olimpiada')->onDelete('cascade');
-            $table->foreign('id_nivel')->references('id_nivel')->on('nivel')->onDelete('cascade');
-        });
-
-        // --- CORRECCIÓN APLICADA AQUÍ: NIVEL_GRADO ---
-        // Ahora vincula id_area_nivel con id_grado_escolaridad
-        Schema::create('nivel_grado', function (Blueprint $table) {
-            $table->id('id_nivel_grado');
-            $table->unsignedBigInteger('id_area_nivel'); // <--- CORREGIDO (Antes id_nivel)
-            $table->unsignedBigInteger('id_grado_escolaridad');
-            $table->timestamps();
-
-            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')->onDelete('cascade');
-            $table->foreign('id_grado_escolaridad')->references('id_grado_escolaridad')->on('grado_escolaridad')->onDelete('cascade');
+        schema::create('rol', function (blueprint $table) {
+            $table->increments('id_rol')->comment('');
+            $table->string('nombre_rol', 60)->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
         });
 
         // ==========================================
-        // 5. GESTIÓN DE PARTICIPANTES
+        // 2. tablas con fk (nivel 1)
         // ==========================================
+        
+        schema::create('usuario', function (blueprint $table) {
+            $table->increments('id_usuario')->comment('');
+            $table->unsignedinteger('id_persona')->nullable()->comment('');
+            $table->text('email_usuario')->comment(''); // ddl usa text, no string
+            $table->text('password_usuario')->comment(''); // ddl usa text
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
 
-        Schema::create('archivo_csv', function (Blueprint $table) {
-            $table->id('id_archivo_csv');
-            $table->string('nombre_arc_csv', 250);
-            $table->date('fecha_arc_csv');
-            $table->timestamps();
+            $table->foreign('id_persona')->references('id_persona')->on('persona')
+                  ->restrictOnDelete()->restrictOnUpdate();
         });
 
-        Schema::create('competidor', function (Blueprint $table) {
-            $table->id('id_competidor');
-            $table->unsignedBigInteger('id_persona');
-            $table->unsignedBigInteger('id_institucion');
-            $table->unsignedBigInteger('id_departamento');
-            $table->unsignedBigInteger('id_grado_escolaridad'); // Grado actual del alumno
-            $table->unsignedBigInteger('id_archivo_csv')->nullable();
-            $table->string('contacto_tutor_compe', 100)->nullable();
-            $table->string('genero_competidor', 2)->nullable();
-            $table->timestamps();
+        schema::create('area_olimpiada', function (blueprint $table) {
+            $table->increments('id_area_olimpiada')->comment('');
+            $table->unsignedinteger('id_area')->nullable()->comment('');
+            $table->unsignedinteger('id_olimpiada')->nullable()->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
 
-            $table->foreign('id_persona')->references('id_persona')->on('persona')->onDelete('cascade');
-            $table->foreign('id_institucion')->references('id_institucion')->on('institucion')->onDelete('cascade');
-            $table->foreign('id_departamento')->references('id_departamento')->on('departamento')->onDelete('cascade');
-            $table->foreign('id_grado_escolaridad')->references('id_grado_escolaridad')->on('grado_escolaridad')->onDelete('cascade');
-            $table->foreign('id_archivo_csv')->references('id_archivo_csv')->on('archivo_csv')->onDelete('set null');
+            $table->foreign('id_area')->references('id_area')->on('area')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_olimpiada')->references('id_olimpiada')->on('olimpiada')
+                  ->restrictOnDelete()->restrictOnUpdate();
         });
 
-        Schema::create('inscripcion', function (Blueprint $table) {
-            $table->id('id_inscripcion');
-            $table->unsignedBigInteger('id_competidor');
-            $table->unsignedBigInteger('id_area_nivel');
-            $table->timestamps();
+        schema::create('area_nivel', function (blueprint $table) {
+            $table->increments('id_area_nivel')->comment('');
+            $table->unsignedinteger('id_area_olimpiada')->nullable()->comment('');
+            $table->unsignedinteger('id_nivel')->nullable()->comment('');
+            $table->boolean('es_activo_area_nivel')->nullable()->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
 
-            $table->foreign('id_competidor')->references('id_competidor')->on('competidor')->onDelete('cascade');
-            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')->onDelete('cascade');
-            $table->unique(['id_competidor', 'id_area_nivel'], 'unique_inscripcion');
+            $table->foreign('id_area_olimpiada')->references('id_area_olimpiada')->on('area_olimpiada')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_nivel')->references('id_nivel')->on('nivel')
+                  ->restrictOnDelete()->restrictOnUpdate();
         });
 
-        // GRUPO: Simplificado (Sin id_area_nivel, como pediste)
-        Schema::create('grupo', function (Blueprint $table) {
-            $table->id('id_grupo');
-            $table->string('nombre_grupo', 250);
-            $table->timestamps();
+        schema::create('usuario_rol', function (blueprint $table) {
+            $table->increments('id_usuario_rol')->comment('');
+            $table->unsignedinteger('id_usuario')->nullable()->comment('');
+            $table->unsignedinteger('id_rol')->nullable()->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
+
+            $table->foreign('id_usuario')->references('id_usuario')->on('usuario')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_rol')->references('id_rol')->on('rol')
+                  ->restrictOnDelete()->restrictOnUpdate();
         });
 
-        Schema::create('grupo_competidor', function (Blueprint $table) {
-            $table->id('id_grupo_competidor');
-            $table->unsignedBigInteger('id_grupo');
-            $table->unsignedBigInteger('id_inscripcion');
-            $table->timestamps();
+        schema::create('responsable_area', function (blueprint $table) {
+            $table->increments('id_responsable_area')->comment('');
+            $table->unsignedinteger('id_usuario')->nullable()->comment('');
+            $table->unsignedinteger('id_area_olimpiada')->nullable()->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
 
-            $table->foreign('id_grupo')->references('id_grupo')->on('grupo')->onDelete('cascade');
-            $table->foreign('id_inscripcion')->references('id_inscripcion')->on('inscripcion')->onDelete('cascade');
+            $table->foreign('id_usuario')->references('id_usuario')->on('usuario')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_area_olimpiada')->references('id_area_olimpiada')->on('area_olimpiada')
+                  ->restrictOnDelete()->restrictOnUpdate();
         });
 
-        // ==========================================
-        // 6. EVALUACIÓN Y COMPETENCIA
-        // ==========================================
+        schema::create('cronograma_fase', function (blueprint $table) {
+            $table->increments('id_cronograma_fase')->comment('');
+            $table->unsignedinteger('id_fase_global')->nullable()->comment('');
+            $table->date('fecha_ini_crono_fase')->comment('');
+            $table->date('fecha_fin_crono_fase')->comment('');
+            $table->boolean('estado_crono_fase')->nullable()->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
 
-        Schema::create('fase_global', function (Blueprint $table) {
-            $table->id('id_fase_global');
-            $table->string('codigo_fas_glo', 25);
-            $table->string('nombre_fas_glo', 50);
-            $table->integer('orden_fas_glo');
-            $table->timestamps();
+            $table->foreign('id_fase_global')->references('id_fase_global')->on('fase_global')
+                  ->restrictOnDelete()->restrictOnUpdate();
         });
 
-        Schema::create('competencia', function (Blueprint $table) {
-            $table->id('id_competencia');
-            $table->unsignedBigInteger('id_fase_global');
-            $table->unsignedBigInteger('id_area_nivel');
-            $table->string('nombre_examen');
-            $table->dateTime('fecha_inicio');
-            $table->dateTime('fecha_fin');
-            $table->decimal('ponderacion', 10, 2)->default(100.00);
-            $table->decimal('maxima_nota', 10, 2)->default(100.00);
-            $table->boolean('es_avalado')->default(false);
-            $table->boolean('estado_comp')->default(true);
-            $table->timestamps();
+        schema::create('rol_accion', function (blueprint $table) {
+            $table->increments('id_rol_accion')->comment('');
+            $table->unsignedinteger('id_rol')->nullable()->comment('');
+            $table->unsignedinteger('id_accion_sistema')->nullable()->comment('');
+            $table->integer('activo_rol_acc')->nullable()->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
 
-            $table->foreign('id_fase_global')->references('id_fase_global')->on('fase_global')->onDelete('cascade');
-            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')->onDelete('cascade');
+            $table->foreign('id_rol')->references('id_rol')->on('rol')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_accion_sistema')->references('id_accion_sistema')->on('accion_sistema')
+                  ->restrictOnDelete()->restrictOnUpdate();
         });
 
-        Schema::create('evaluador_an', function (Blueprint $table) {
-            $table->id('id_evaluador_an');
-            $table->unsignedBigInteger('id_usuario');
-            $table->unsignedBigInteger('id_area_nivel');
-            $table->boolean('estado_eva_an')->default(true);
-            $table->timestamps();
-
-            $table->foreign('id_usuario')->references('id_usuario')->on('usuario')->onDelete('cascade');
-            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')->onDelete('cascade');
-        });
-
-        Schema::create('evaluacion', function (Blueprint $table) {
-            $table->id('id_evaluacion');
-            $table->unsignedBigInteger('id_inscripcion');
-            $table->unsignedBigInteger('id_competencia');
-            $table->unsignedBigInteger('id_evaluador_an');
-            $table->decimal('nota_evalu', 10, 2);
-            $table->string('estado_competidor_eva', 25)->default('PENDIENTE');
-            $table->text('observacion_evalu')->nullable();
-            $table->dateTime('fecha_evalu')->useCurrent();
-            $table->boolean('estado_evalu')->default(true);
-            $table->timestamps();
-
-            $table->foreign('id_inscripcion')->references('id_inscripcion')->on('inscripcion')->onDelete('cascade');
-            $table->foreign('id_competencia')->references('id_competencia')->on('competencia')->onDelete('cascade');
-            $table->foreign('id_evaluador_an')->references('id_evaluador_an')->on('evaluador_an')->onDelete('cascade');
-        });
-
-        // ==========================================
-        // 7. AUDITORÍA Y RESULTADOS
-        // ==========================================
-
-        Schema::create('log_cambio_nota', function (Blueprint $table) {
-            $table->id('id_log_cambio_nota');
-            $table->unsignedBigInteger('id_evaluacion');
-            $table->decimal('nota_anterior', 10, 2);
-            $table->decimal('nota_nueva', 10, 2);
-            $table->timestamp('fecha_cambio')->useCurrent();
-
-            $table->foreign('id_evaluacion')->references('id_evaluacion')->on('evaluacion')->onDelete('cascade');
-        });
-
-        Schema::create('medallero', function (Blueprint $table) {
-            $table->id('id_medallero');
-            $table->unsignedBigInteger('id_inscripcion');
-            $table->unsignedBigInteger('id_competencia');
-            $table->integer('puesto_medall');
-            $table->string('medalla_medall', 15);
-            $table->timestamps();
-
-            $table->foreign('id_inscripcion')->references('id_inscripcion')->on('inscripcion')->onDelete('cascade');
-            $table->foreign('id_competencia')->references('id_competencia')->on('competencia')->onDelete('cascade');
-        });
-
-        // ==========================================
-        // 8. PARAMETRIZACIÓN Y SEGURIDAD
-        // ==========================================
-
-        Schema::create('parametro', function (Blueprint $table) {
-            $table->id('id_parametro');
-            $table->unsignedBigInteger('id_area_nivel');
-            $table->decimal('nota_min_aprox_param', 10, 2)->nullable();
-            $table->integer('cantidad_maxi_param')->nullable();
-            $table->timestamps();
-
-            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')->onDelete('cascade');
-        });
-
-        Schema::create('param_medallero', function (Blueprint $table) {
-            $table->id('id_param_medallero');
-            $table->unsignedBigInteger('id_area_nivel');
-            $table->integer('oro_pa_med')->default(1);
-            $table->integer('plata_pa_med')->default(1);
-            $table->integer('bronce_pa_med')->default(1);
-            $table->integer('mencion_pa_med')->default(0);
-            $table->timestamps();
-
-            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')->onDelete('cascade');
-        });
-
-        Schema::create('accion_sistema', function (Blueprint $table) {
-            $table->id('id_accion');
-            $table->string('codigo_acc_sis', 100)->unique();
-            $table->string('nombre_acc_sis', 250);
-            $table->text('descripcion_acc_sis')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('responsable_area', function (Blueprint $table) {
-            $table->id('id_responsable_area');
-            $table->unsignedBigInteger('id_usuario');
-            $table->unsignedBigInteger('id_area_olimpiada');
-            $table->timestamps();
-
-            $table->foreign('id_usuario')->references('id_usuario')->on('usuario')->onDelete('cascade');
-            $table->foreign('id_area_olimpiada')->references('id_area_olimpiada')->on('area_olimpiada')->onDelete('cascade');
-        });
-
-        Schema::create('rol_accion', function (Blueprint $table) {
-            $table->id('id_rol_accion');
-            $table->unsignedBigInteger('id_rol');
-            $table->unsignedBigInteger('id_accion');
-            $table->boolean('activo')->default(true);
-            $table->timestamps();
-
-            $table->foreign('id_rol')->references('id_rol')->on('rol')->onDelete('cascade');
-            $table->foreign('id_accion')->references('id_accion')->on('accion_sistema')->onDelete('cascade');
-            $table->unique(['id_rol', 'id_accion']);
-        });
-
-        Schema::create('configuracion_accion', function (Blueprint $table) {
-            $table->id('id_configuracion');
-            $table->unsignedBigInteger('id_olimpiada');
-            $table->unsignedBigInteger('id_fase_global');
-            $table->unsignedBigInteger('id_accion');
-            $table->boolean('habilitada')->default(false);
-            $table->timestamps();
+        schema::create('area_nivel_grado', function (blueprint $table) {
+            $table->unsignedinteger('id_area_nivel')->comment('');
+            $table->unsignedinteger('id_grado_escolaridad')->comment('');
             
-            $table->foreign('id_olimpiada')->references('id_olimpiada')->on('olimpiada')->onDelete('cascade');
-            $table->foreign('id_fase_global')->references('id_fase_global')->on('fase_global')->onDelete('cascade');
-            $table->foreign('id_accion')->references('id_accion')->on('accion_sistema')->onDelete('cascade');
-            $table->unique(['id_olimpiada', 'id_fase_global', 'id_accion'], 'config_acc_unique');
+            $table->primary(['id_area_nivel', 'id_grado_escolaridad']);
+
+            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_grado_escolaridad')->references('id_grado_escolaridad')->on('grado_escolaridad')
+                  ->restrictOnDelete()->restrictOnUpdate();
         });
 
-        Schema::create('cronograma_fase', function (Blueprint $table) {
-            $table->id('id_cronograma');
-            $table->unsignedBigInteger('id_olimpiada');
-            $table->unsignedBigInteger('id_fase_global');
-            $table->dateTime('fecha_inicio');
-            $table->dateTime('fecha_fin');
-            $table->enum('estado', ['Pendiente', 'En Curso', 'Finalizada'])->default('Pendiente');
-            $table->timestamps();
+        schema::create('competencia', function (blueprint $table) {
+            $table->increments('id_competencia')->comment('');
+            $table->unsignedinteger('id_fase_global')->nullable()->comment('');
+            $table->unsignedinteger('id_area_nivel')->nullable()->comment('');
+            $table->unsignedinteger('id_persona')->nullable()->comment(''); // columna extra en el ddl
+            $table->string('nombre_examen', 255)->nullable()->comment('');
+            $table->date('fecha_inicio')->comment(''); // ddl usa date
+            $table->date('fecha_fin')->comment(''); // ddl usa date
+            $table->decimal('ponderacion', 8, 2)->nullable()->comment(''); // tipo decimal genérico
+            $table->decimal('maxima_nota', 8, 2)->nullable()->comment(''); // tipo decimal genérico
+            $table->boolean('es_avalado')->nullable()->comment('');
+            $table->boolean('estado_comp')->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
 
-            $table->foreign('id_olimpiada')->references('id_olimpiada')->on('olimpiada')->onDelete('cascade');
-            $table->foreign('id_fase_global')->references('id_fase_global')->on('fase_global')->onDelete('cascade');
-            $table->unique(['id_olimpiada', 'id_fase_global'], 'unique_crono_gestion');
+            $table->foreign('id_fase_global')->references('id_fase_global')->on('fase_global')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_persona')->references('id_persona')->on('persona')
+                  ->restrictOnDelete()->restrictOnUpdate();
         });
 
-        // 9. Trigger de Auditoría
-        DB::unprepared('
-            DROP TRIGGER IF EXISTS trg_auditoria_notas;
-            CREATE TRIGGER trg_auditoria_notas
-            AFTER UPDATE ON evaluacion
-            FOR EACH ROW
-            BEGIN
-                IF OLD.nota_evalu <> NEW.nota_evalu THEN
-                    INSERT INTO log_cambio_nota (
-                        id_evaluacion,
-                        nota_anterior,
-                        nota_nueva,
-                        fecha_cambio
-                    ) VALUES (
-                        OLD.id_evaluacion,
-                        OLD.nota_evalu,
-                        NEW.nota_evalu,
-                        NOW()
-                    );
-                END IF;
-            END
-        ');
+        schema::create('competidor', function (blueprint $table) {
+            $table->increments('id_competidor')->comment('');
+            $table->unsignedinteger('id_archivo_csv')->nullable()->comment('');
+            $table->unsignedinteger('id_institucion')->nullable()->comment('');
+            $table->unsignedinteger('id_departamento')->nullable()->comment('');
+            $table->unsignedinteger('id_area_nivel')->nullable()->comment(''); // fk a area_nivel en ddl
+            $table->unsignedinteger('id_persona')->nullable()->comment(''); // fk a persona en ddl
+            $table->unsignedinteger('id_grado_escolaridad')->nullable()->comment('');
+            $table->char('contacto_tutor_compe', 15)->nullable()->comment('');
+            $table->char('genero_competidor', 2)->nullable()->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            $table->foreign('id_archivo_csv')->references('id_archivo_csv')->on('archivo_csv')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_institucion')->references('id_institucion')->on('institucion')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_departamento')->references('id_departamento')->on('departamento')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_persona')->references('id_persona')->on('persona')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_grado_escolaridad')->references('id_grado_escolaridad')->on('grado_escolaridad');
+        });
+
+        schema::create('evaluador_an', function (blueprint $table) {
+            $table->increments('id_evaluador_an')->comment('');
+            $table->unsignedinteger('id_usuario')->nullable()->comment('');
+            $table->unsignedinteger('id_area_nivel')->nullable()->comment('');
+            $table->boolean('estado_eva_an')->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
+
+            $table->foreign('id_usuario')->references('id_usuario')->on('usuario')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')
+                  ->restrictOnDelete()->restrictOnUpdate();
+        });
+        
+        schema::create('parametro', function (blueprint $table) {
+            $table->increments('id_parametro')->comment('');
+            $table->unsignedinteger('id_area_nivel')->nullable()->comment('');
+            $table->decimal('nota_min_aprox_param', 8, 2)->nullable()->comment('');
+            $table->integer('cantidad_maxi_param')->nullable()->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
+
+            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')
+                  ->restrictOnDelete()->restrictOnUpdate();
+        });
+        
+        schema::create('param_medallero', function (blueprint $table) {
+            $table->increments('id_param_medallero')->comment('');
+            $table->unsignedinteger('id_area_nivel')->nullable()->comment('');
+            $table->integer('oro_pa_med')->nullable()->comment('');
+            $table->integer('plata_pa_med')->nullable()->comment('');
+            $table->integer('bronce_pa_med')->nullable()->comment('');
+            $table->integer('mencion_pa_med')->nullable()->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
+
+            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')
+                  ->restrictOnDelete()->restrictOnUpdate();
+        });
+
+        schema::create('configuracion_accion', function (blueprint $table) {
+            $table->increments('id_configuracion_accion')->comment('');
+            $table->unsignedinteger('id_area_nivel')->nullable()->comment('');
+            $table->unsignedinteger('id_accion_sistema')->nullable()->comment('');
+            $table->unsignedinteger('id_fase_global')->nullable()->comment('');
+            $table->boolean('habilitada_conf_acc')->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
+
+            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_accion_sistema')->references('id_accion_sistema')->on('accion_sistema')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_fase_global')->references('id_fase_global')->on('fase_global')
+                  ->restrictOnDelete()->restrictOnUpdate();
+        });
+        
+        schema::create('grupo_competidor', function (blueprint $table) {
+            $table->increments('id_grupo_competidor')->comment('');
+            $table->unsignedinteger('id_grupo')->nullable()->comment('');
+            $table->unsignedinteger('id_competidor')->nullable()->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
+
+            $table->foreign('id_grupo')->references('id_grupo')->on('grupo')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_competidor')->references('id_competidor')->on('competidor')
+                  ->restrictOnDelete()->restrictOnUpdate();
+        });
+
+        // ==========================================
+        // 3. tablas con fk (nivel 2)
+        // ==========================================
+
+        schema::create('evaluacion', function (blueprint $table) {
+            $table->increments('id_evaluacion')->comment('');
+            $table->unsignedinteger('id_competidor')->nullable()->comment('');
+            $table->unsignedinteger('id_competencia')->nullable()->comment('');
+            $table->unsignedinteger('id_evaluador_an')->nullable()->comment('');
+            $table->decimal('nota_evalu', 8, 2)->comment('');
+            $table->string('estado_competidor_eva', 25)->nullable()->comment('');
+            $table->text('observacion_evalu')->comment('');
+            $table->timestamp('fecha_evalu')->comment(''); // ddl usa timestamp
+            $table->boolean('estado_evalu')->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
+
+            $table->foreign('id_competidor')->references('id_competidor')->on('competidor')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_competencia')->references('id_competencia')->on('competencia')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_evaluador_an')->references('id_evaluador_an')->on('evaluador_an')
+                  ->restrictOnDelete()->restrictOnUpdate();
+        });
+
+        schema::create('log_cambio_nota', function (blueprint $table) {
+            $table->increments('id_log_cambio_nota')->comment('');
+            $table->unsignedinteger('id_evaluacion')->nullable()->comment('');
+            $table->decimal('nota_nueva', 8, 2)->comment('');
+            $table->decimal('nota_anterior', 8, 2)->comment('');
+            $table->timestamp('fecha_cambio')->comment('');
+            
+            $table->foreign('id_evaluacion')->references('id_evaluacion')->on('evaluacion')
+                  ->restrictOnDelete()->restrictOnUpdate();
+        });
+        
+        schema::create('medallero', function (blueprint $table) {
+            $table->increments('id_medallero')->comment('');
+            $table->unsignedinteger('id_competidor')->nullable()->comment('');
+            $table->unsignedinteger('id_competencia')->nullable()->comment('');
+            $table->integer('puesto_medall')->comment('');
+            $table->string('medalla_medall', 15)->comment('');
+            $table->timestamp('created_at')->nullable()->comment('');
+            $table->timestamp('updated_at')->nullable()->comment('');
+
+            $table->foreign('id_competidor')->references('id_competidor')->on('competidor')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_competencia')->references('id_competencia')->on('competencia')
+                  ->restrictOnDelete()->restrictOnUpdate();
+        });
+
+
+        // reactivar fk checks
+        db::statement('set foreign_key_checks=1;');
     }
 
+    /**
+     * reverse the migrations.
+     */
     public function down(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        // el orden de eliminación es importante para las fks
+        db::statement('set foreign_key_checks=0;');
         
-        DB::unprepared('DROP TRIGGER IF EXISTS trg_auditoria_notas');
-
-        $tablas = [
-            'cronograma_fase', 'rol_accion', 'configuracion_accion', 'log_cambio_nota', 'medallero', 
-            'param_medallero', 'evaluacion', 'grupo_competidor', 'grupo', 'inscripcion', 'competidor', 
-            'competencia', 'fase_global', 'accion_sistema', 'usuario_rol', 'rol', 'responsable_area', 
-            'evaluador_an', 'parametro', 'nivel_grado', 'area_nivel', 'area_olimpiada', 'area', 'grado_escolaridad', 'nivel', 
-            'olimpiada', 'usuario', 'persona', 'institucion', 'departamento', 'archivo_csv'
-        ];
-
-        foreach ($tablas as $tabla) {
-            Schema::dropIfExists($tabla);
+        $tablasreverse = array_reverse($this->tablas);
+        
+        foreach ($tablasreverse as $tabla) {
+            schema::dropifexists($tabla);
         }
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        db::statement('set foreign_key_checks=1;');
     }
 };
