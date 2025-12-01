@@ -2,58 +2,55 @@
 
 namespace Database\Seeders;
 
-use App\Model\Area;
-use App\Model\AreaOlimpiada;
-use App\Model\Olimpiada;
 use Illuminate\Database\Seeder;
+use App\Model\Area;
+use App\Model\Olimpiada;
 
 class AreasSeeder extends Seeder
 {
     public function run(): void
     {
-        $areasData = [
-            ['nombre' => 'Matemáticas'],
-            ['nombre' => 'Física'],
-            ['nombre' => 'Química'],
-            ['nombre' => 'Biología'],
-            ['nombre' => 'Informática'],
-            // 5 áreas nuevas
-            ['nombre' => 'Historia'],
-            ['nombre' => 'Geografía'],
-            ['nombre' => 'Literatura'],
-            ['nombre' => 'Arte'],
-            ['nombre' => 'Educación Física'],
+        // 1. Lista de Áreas a crear
+        $areasNombres = [
+            'Matemáticas',
+            'Física',
+            'Química',
+            'Biología',
+            'Informática',
+            'Historia',
+            'Geografía',
+            'Literatura',
+            'Arte',
+            'Educación Física',
         ];
 
-        // 1. Insertar todas las áreas en un solo query.
-        Area::insert($areasData);
-        $this->command->info('Áreas base creadas exitosamente.');
+        // 2. Crear las áreas (Evitando duplicados con firstOrCreate)
+        $this->command->info('Verificando áreas...');
+        foreach ($areasNombres as $nombre) {
+            Area::firstOrCreate(['nombre' => $nombre]);
+        }
+        $this->command->info('Áreas base listas.');
 
-        // Buscar la primera olimpiada existente.
-        $olimpiada = Olimpiada::first();
+        // 3. Buscar la Olimpiada objetivo
+        // Prioridad: La del año actual. Si no existe, la última creada.
+        $olimpiada = Olimpiada::where('gestion', date('Y'))->first()
+                     ?? Olimpiada::latest('id_olimpiada')->first();
 
         if (!$olimpiada) {
-            $this->command->warn('No se encontraron olimpiadas. Las relaciones en area_olimpiada no se crearán. Ejecuta el seeder de Olimpiadas primero.');
+            $this->command->warn('⚠️ No se encontraron olimpiadas. Ejecuta OlimpiadaSeeder primero.');
             return;
         }
 
-        $this->command->info("Asociando áreas con la olimpiada: '{$olimpiada->nombre}' (ID: {$olimpiada->id_olimpiada})");
+        $this->command->info("Asociando todas las áreas a: {$olimpiada->nombre}");
 
-        // 2. Preparar los datos para la tabla pivote.
-        $todasLasAreas = Area::all();
-        $relaciones = [];
-        foreach ($todasLasAreas as $area) {
-            $relaciones[] = [
-                'id_area' => $area->id_area,
-                'id_olimpiada' => $olimpiada->id_olimpiada,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-        }
+        // 4. Llenar la tabla pivote 'area_olimpiada' usando Eloquent
+        // Obtenemos todos los IDs de las áreas
+        $areasIds = Area::pluck('id_area');
 
-        // 3. Insertar todas las relaciones en un solo query.
-        AreaOlimpiada::insert($relaciones);
+        // Usamos la relación 'areas()' definida en el modelo Olimpiada.
+        // syncWithoutDetaching: Agrega las relaciones si no existen, sin borrar las que ya estaban.
+        $olimpiada->areas()->syncWithoutDetaching($areasIds);
 
-        $this->command->info('Relaciones entre áreas y olimpiada creadas exitosamente.');
+        $this->command->info('✅ Relaciones creadas exitosamente.');
     }
 }

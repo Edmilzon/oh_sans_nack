@@ -2,22 +2,51 @@
 
 namespace Database\Seeders;
 
-use App\Model\Olimpiada;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
+use App\Model\Olimpiada; // Namespace correcto
 
 class OlimpiadaSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        Olimpiada::create([
-            'nombre' => 'Olimpiada Científica Estudiantil',
-            'gestion' => date('Y'),
-        ]);
+        Schema::disableForeignKeyConstraints();
+        Olimpiada::truncate();
+        Schema::enableForeignKeyConstraints();
 
-        $this->command->info('Olimpiada de prueba creada exitosamente.');
+        // 2. Variables dinámicas
+        $anioActual = date('Y');
+        $anioPasado = $anioActual - 1;
+
+        // 3. Crear Olimpiadas usando Eloquent
+        $olimpiadas = [
+            [
+                'nombre'  => "Olimpiada Científica $anioActual (Gestión Actual)",
+                'gestion' => (string) $anioActual,
+                'estado'  => true,
+            ],
+            [
+                'nombre'  => "Olimpiada Científica $anioPasado (Histórico)",
+                'gestion' => (string) $anioPasado,
+                'estado'  => false,
+            ],
+            // Puedes agregar un futuro si quieres pruebas
+            /*
+            [
+                'nombre'  => "Olimpiada Científica " . ($anioActual + 1),
+                'gestion' => (string) ($anioActual + 1),
+                'estado'  => false,
+            ],
+            */
+        ];
+
+        foreach ($olimpiadas as $data) {
+            Olimpiada::firstOrCreate(
+                ['gestion' => $data['gestion']],
+                $data
+            );
+        }
+
+        $this->command->info("Olimpiadas generadas. Gestión activa: $anioActual");
     }
 }

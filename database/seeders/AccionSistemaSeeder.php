@@ -3,42 +3,46 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Model\AccionSistema;
 
 class AccionSistemaSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
-    public function run()
+    public function run(): void
     {
-        DB::table('accion_sistema')->insert([
+        $acciones = [
             [
-                'id_accion' => 10,
-                'codigo' => 'REG_ESTUD',
-                'nombre' => 'Registrar estudiantes',
+                'codigo'      => 'REG_ESTUD',
+                'nombre'      => 'Registrar estudiantes',
                 'descripcion' => 'Permite a los responsables registrar a sus estudiantes en la olimpiada.',
-                'created_at' => now(),
-                'updated_at' => now()
             ],
             [
-                'id_accion' => 20,
-                'codigo' => 'CARGAR_NOTAS',
-                'nombre' => 'Cargar notas',
+                'codigo'      => 'CARGAR_NOTAS',
+                'nombre'      => 'Cargar notas',
                 'descripcion' => 'Permite a los evaluadores cargar las notas de las evaluaciones de los estudiantes.',
-                'created_at' => now(),
-                'updated_at' => now()
             ],
             [
-                'id_accion' => 30,
-                'codigo' => 'PUB_CLASIF',
-                'nombre' => 'Publicar clasificados',
+                'codigo'      => 'PUB_CLASIF',
+                'nombre'      => 'Publicar clasificados',
                 'descripcion' => 'Permite publicar la lista de estudiantes que clasificaron a la siguiente fase.',
-                'created_at' => now(),
-                'updated_at' => now()
             ],
-        ]);
+        ];
+
+        $this->command->info('⚙️ Configurando acciones del sistema...');
+
+        foreach ($acciones as $data) {
+            // Buscamos por el código único. Si no existe, lo crea.
+            AccionSistema::firstOrCreate(
+                ['codigo' => $data['codigo']],
+                [
+                    'nombre'      => $data['nombre'],
+                    'descripcion' => $data['descripcion']
+                ]
+            );
+        }
+
+        $this->command->info('✅ Acciones del sistema listas.');
     }
 }

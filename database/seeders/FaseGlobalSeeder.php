@@ -3,39 +3,56 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Model\FaseGlobal;
+use App\Model\Olimpiada;
 
 class FaseGlobalSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
-    public function run()
+    public function run(): void
     {
-        DB::table('fase_global')->insert([
+        // 1. Obtener la Olimpiada actual para vincular las fases
+        $olimpiada = Olimpiada::where('gestion', date('Y'))->first()
+                     ?? Olimpiada::latest('id_olimpiada')->first();
+
+        $idOlimpiada = $olimpiada ? $olimpiada->id_olimpiada : null;
+
+        $fases = [
             [
                 'codigo' => 'CONFIG',
                 'nombre' => 'Fase de Configuración',
-                'orden' => 1,
-                'created_at' => now(),
-                'updated_at' => now()
+                'orden'  => 1,
             ],
             [
                 'codigo' => 'EVAL',
                 'nombre' => 'Fase de Calificación',
-                'orden' => 2,
-                'created_at' => now(),
-                'updated_at' => now()
+                'orden'  => 2,
             ],
             [
                 'codigo' => 'FINAL',
                 'nombre' => 'Fase Final',
-                'orden' => 3,
-                'created_at' => now(),
-                'updated_at' => now()
+                'orden'  => 3,
             ],
-        ]);
+        ];
+
+        $this->command->info('Generando fases globales...');
+
+        foreach ($fases as $fase) {
+            // Buscamos por código y olimpiada para evitar duplicados en la misma gestión
+            FaseGlobal::firstOrCreate(
+                [
+                    'codigo'       => $fase['codigo'],
+                    'id_olimpiada' => $idOlimpiada
+                ],
+                [
+                    'nombre' => $fase['nombre'],
+                    'orden'  => $fase['orden']
+                ]
+            );
+        }
+
+        $this->command->info('✅ Fases globales creadas correctamente.');
     }
 }

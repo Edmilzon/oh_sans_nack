@@ -4,187 +4,183 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use App\Model\Area;
 use App\Model\Nivel;
 use App\Model\Olimpiada;
 use App\Model\Usuario;
+use App\Model\Persona;
+use App\Model\Rol;
 use App\Model\GradoEscolaridad;
+use App\Model\AreaOlimpiada;
+use App\Model\AreaNivel;
+use App\Model\ResponsableArea;
+use App\Model\EvaluadorAn;
 
 class AreasEvaluadoresSeeder extends Seeder
 {
     public function run(): void
     {
-        $now = now();
+        DB::transaction(function () {
+            $now = now();
 
-        // 1️⃣ Verificar que existan grados escolares
-        $grados = GradoEscolaridad::all();
-        if ($grados->isEmpty()) {
-            $this->command->error('❌ No hay grados de escolaridad. Ejecuta primero: php artisan db:seed --class=GradoEscolaridadSeeder');
-            return;
-        }
+            // 1️⃣ Validaciones previas
+            $grados = GradoEscolaridad::all();
+            $areas = Area::all();
+            $niveles = Nivel::all();
 
-        // 2️⃣ Olimpiada del año actual
-        $olimpiada = Olimpiada::where('gestion', date('Y'))->first();
-        if (!$olimpiada) {
-            $this->command->error('❌ No se encontró olimpiada para el año actual.');
-            return;
-        }
+            // Buscar olimpiada actual o la última creada
+            $olimpiada = Olimpiada::where('gestion', date('Y'))->first()
+                         ?? Olimpiada::latest('id_olimpiada')->first();
 
-        // 3️⃣ Áreas
-        $areas = Area::all();
-        if ($areas->isEmpty()) {
-            $this->command->error('❌ No hay áreas. Ejecuta AreasSeeder primero.');
-            return;
-        }
+            if ($grados->isEmpty() || $areas->isEmpty() || $niveles->isEmpty() || !$olimpiada) {
+                $this->command->error('❌ Faltan datos base (Grados, Áreas, Niveles u Olimpiada). Ejecuta los seeders anteriores.');
+                return;
+            }
 
-        // 4️⃣ Niveles
-        $niveles = Nivel::all();
-        if ($niveles->isEmpty()) {
-            $this->command->error('❌ No hay niveles. Ejecuta NivelesSeeder primero.');
-            return;
-        }
+            $this->command->info("Procesando para Olimpiada: {$olimpiada->nombre}");
 
-        // 5️⃣ Crear area_nivel según la distribución
-        $areaNivelData = [];
-        foreach ($areas as $area) {
-            if (in_array($area->id_area, [1, 2, 3])) { // Áreas 1,2,3 → 3 niveles
-                for ($i = 1; $i <= 3; $i++) {
-                    $areaNivelData[] = [
-                        'id_area' => $area->id_area,
-                        'id_nivel' => $i,
-                        'id_grado_escolaridad' => $i,
-                        'id_olimpiada' => $olimpiada->id_olimpiada,
-                        'activo' => true,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ];
-                }
-            } else { // Áreas 4,5 → 1 nivel (1ro)
-                $areaNivelData[] = [
+            // 2️⃣ Obtener Roles
+            $rolResp = Rol::where('nombre', 'Responsable Area')->first();
+            $rolEval = Rol::where('nombre', 'Evaluador')->first();
+
+            if (!$rolResp || !$rolEval) {
+                $this->command->error('❌ Roles no encontrados.');
+                return;
+            }
+
+            // 3️⃣ Crear Estructura Académica (AreaOlimpiada -> AreaNivel -> Grados)
+            $this->command->info('Configurando niveles por área...');
+
+            foreach ($areas as $area) {
+                // A. Crear AreaOlimpiada
+                $areaOlimpiada = AreaOlimpiada::firstOrCreate([
                     'id_area' => $area->id_area,
-                    'id_nivel' => 1,
-                    'id_grado_escolaridad' => 1,
-                    'id_olimpiada' => $olimpiada->id_olimpiada,
-                    'activo' => true,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
-            }
-        }
+                    'id_olimpiada' => $olimpiada->id_olimpiada
+                ]);
 
-        DB::table('area_nivel')->insert($areaNivelData);
-        $this->command->info("✅ Registros en area_nivel creados correctamente.");
+                // Lógica de niveles: Áreas 1,2,3 tienen 3 niveles. Las demás solo 1.
+                // (Asumiendo que IDs 1,2,3 son las ciencias duras como Mat, Fis, Quim)
+                $maxNiveles = in_array($area->id_area, [1, 2, 3]) ? 3 : 1;
 
-        // 6️⃣ Roles
-        $rolResp = DB::table('rol')->where('nombre', 'Responsable Area')->first();
-        $rolEval = DB::table('rol')->where('nombre', 'Evaluador')->first();
-        if (!$rolResp || !$rolEval) {
-            $this->command->error('❌ No se encontraron roles. Ejecuta RolesSeeder primero.');
-            return;
-        }
+                for ($i = 1; $i <= $maxNiveles; $i++) {
+                    // Buscar el objeto nivel (1ro, 2do, etc)
+                    // Asumimos que el Nivel con ID $i corresponde al iterador (cuidado si borraste niveles)
+                    $nivelObj = $niveles->skip($i - 1)->first();
+                    $gradoObj = $grados->skip($i - 1)->first(); // Asumimos correspondencia 1 a 1 para este ejemplo
 
-        // 7️⃣ Crear responsables
-        $responsables = [
-            ['nombre' => 'Resp1', 'apellido' => 'Sistema', 'areas' => [1, 2, 3]],
-            ['nombre' => 'Resp2', 'apellido' => 'Sistema', 'areas' => [4]],
-            ['nombre' => 'Resp3', 'apellido' => 'Sistema', 'areas' => [5]],
-            ['nombre' => 'Resp4', 'apellido' => 'Sistema', 'areas' => [1, 2]],
-            ['nombre' => 'Resp5', 'apellido' => 'Sistema', 'areas' => [3, 4]],
-        ];
-
-        $contadorEval = 1;
-
-        foreach ($responsables as $resp) {
-            $usuario = Usuario::create([
-                'nombre' => $resp['nombre'],
-                'apellido' => $resp['apellido'],
-                'ci' => rand(1000000, 9999999),
-                'email' => strtolower($resp['nombre'] . '@ohsansi.com'),
-                'password' => Hash::make('responsable123'),
-                'telefono' => '7' . rand(1000000, 9999999),
-            ]);
-
-            // Asignar rol de responsable
-            DB::table('usuario_rol')->insert([
-                'id_usuario' => $usuario->id_usuario,
-                'id_rol' => $rolResp->id_rol,
-                'id_olimpiada' => $olimpiada->id_olimpiada,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-
-            // Asignar áreas al responsable
-            foreach ($resp['areas'] as $id_area) {
-                $areaOlimpiada = DB::table('area_olimpiada')
-                    ->where('id_area', $id_area)
-                    ->where('id_olimpiada', $olimpiada->id_olimpiada)
-                    ->first();
-
-                if ($areaOlimpiada) {
-                    DB::table('responsable_area')->insert([
-                        'id_usuario' => $usuario->id_usuario,
-                        'id_area_olimpiada' => $areaOlimpiada->id_area_olimpiada,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ]);
-                }
-            }
-
-            // 8️⃣ Crear evaluadores por área_nivel
-            foreach ($resp['areas'] as $id_area) {
-                $areaObj = $areas->where('id_area', $id_area)->first();
-                $nombreArea = strtolower(str_replace(' ', '_', $areaObj->nombre));
-                $nombreAreaEmail = iconv('UTF-8', 'ASCII//TRANSLIT', $nombreArea);
-                $nombreAreaEmail = preg_replace('/[^A-Za-z0-9_]/', '', $nombreAreaEmail);
-
-                $areaNiveles = DB::table('area_nivel')
-                    ->where('id_area', $id_area)
-                    ->where('id_olimpiada', $olimpiada->id_olimpiada)
-                    ->get();
-
-                foreach ($areaNiveles as $an) {
-                    $cantidad = match ($id_area) {
-                        1 => 1,
-                        2 => 2,
-                        3 => ($an->id_nivel == 1 ? 2 : 1),
-                        4 => 2,
-                        5 => 1,
-                        default => 1,
-                    };
-
-                    for ($i = 0; $i < $cantidad; $i++) {
-                        $eval = Usuario::create([
-                            'nombre' => "Eval{$contadorEval}_{$nombreArea}_N{$an->id_nivel}",
-                            'apellido' => 'Tester',
-                            'ci' => rand(1000000, 9999999),
-                            'email' => "eval_{$nombreAreaEmail}_n{$an->id_nivel}_{$contadorEval}@ohsansi.com",
-                            'password' => Hash::make('evaluador123'),
-                            'telefono' => '6' . rand(1000000, 9999999),
+                    if ($nivelObj && $gradoObj) {
+                        // B. Crear AreaNivel
+                        $areaNivel = AreaNivel::firstOrCreate([
+                            'id_area_olimpiada' => $areaOlimpiada->id_area_olimpiada,
+                            'id_nivel' => $nivelObj->id_nivel
+                        ], [
+                            'es_activo' => true
                         ]);
 
-                        DB::table('usuario_rol')->insert([
-                            'id_usuario' => $eval->id_usuario,
-                            'id_rol' => $rolEval->id_rol,
-                            'id_olimpiada' => $olimpiada->id_olimpiada,
-                            'created_at' => $now,
-                            'updated_at' => $now,
-                        ]);
-
-                        DB::table('evaluador_an')->insert([
-                            'id_usuario' => $eval->id_usuario,
-                            'id_area_nivel' => $an->id_area_nivel,
-                            'created_at' => $now,
-                            'updated_at' => $now,
-                        ]);
-
-                        $contadorEval++;
+                        // C. Asociar Grado (Tabla pivote area_nivel_grado)
+                        $areaNivel->gradosEscolaridad()->syncWithoutDetaching([$gradoObj->id_grado_escolaridad]);
                     }
                 }
             }
-        }
 
-        $this->command->info('🎯 Responsables y evaluadores creados correctamente.');
-        $this->command->info('🔑 Contraseñas predeterminadas: responsable123 / evaluador123');
+            // 4️⃣ Crear Responsables de Área
+            $responsablesData = [
+                ['nombre' => 'Resp1', 'apellido' => 'Sistema', 'areas_ids' => [1, 2, 3]],
+                ['nombre' => 'Resp2', 'apellido' => 'Sistema', 'areas_ids' => [4]], // Biología?
+                ['nombre' => 'Resp3', 'apellido' => 'Sistema', 'areas_ids' => [5]], // Informática?
+                ['nombre' => 'Resp4', 'apellido' => 'Sistema', 'areas_ids' => [1, 2]], // Multidisciplinario
+                ['nombre' => 'Resp5', 'apellido' => 'Sistema', 'areas_ids' => [3, 4]],
+            ];
+
+            foreach ($responsablesData as $data) {
+                // Crear Persona
+                $persona = Persona::firstOrCreate(['ci' => 'R-' . rand(1000, 9999) . $data['nombre']], [
+                    'nombre' => $data['nombre'],
+                    'apellido' => $data['apellido'],
+                    'email' => strtolower($data['nombre']) . '@personal.com',
+                    'telefono' => '7000' . rand(1000, 9999)
+                ]);
+
+                // Crear Usuario
+                $usuario = Usuario::firstOrCreate(['email' => strtolower($data['nombre']) . '@ohsansi.com'], [
+                    'id_persona' => $persona->id_persona,
+                    'password' => 'responsable123'
+                ]);
+
+                // Asignar Rol
+                if (!$usuario->roles()->where('rol.id_rol', $rolResp->id_rol)->exists()) {
+                    $usuario->roles()->attach($rolResp->id_rol, ['id_olimpiada' => $olimpiada->id_olimpiada]);
+                }
+
+                // Asignar Áreas de Responsabilidad
+                foreach ($data['areas_ids'] as $areaId) {
+                    $ao = AreaOlimpiada::where('id_area', $areaId)
+                        ->where('id_olimpiada', $olimpiada->id_olimpiada)
+                        ->first();
+
+                    if ($ao) {
+                        ResponsableArea::firstOrCreate([
+                            'id_usuario' => $usuario->id_usuario,
+                            'id_area_olimpiada' => $ao->id_area_olimpiada
+                        ]);
+                    }
+                }
+            }
+            $this->command->info("✅ Responsables creados.");
+
+            // 5️⃣ Crear Evaluadores (1 o 2 por cada Area-Nivel)
+            $contadorEval = 1;
+
+            // Recorremos todas las configuraciones creadas en esta olimpiada
+            $todosAreaNiveles = AreaNivel::with(['areaOlimpiada.area', 'nivel'])
+                ->whereHas('areaOlimpiada', function($q) use ($olimpiada) {
+                    $q->where('id_olimpiada', $olimpiada->id_olimpiada);
+                })->get();
+
+            foreach ($todosAreaNiveles as $an) {
+                $areaId = $an->areaOlimpiada->id_area;
+
+                // Lógica de cantidad definida por ti:
+                // Area 1, 3, 5 = 1 evaluador. Area 2, 4 = 2 evaluadores.
+                // Excepción: Area 3 Nivel 1 = 2 evaluadores.
+                $cantidad = 1;
+                if (in_array($areaId, [2, 4])) $cantidad = 2;
+                if ($areaId == 3 && $an->nivel->nombre == '1ro de Secundaria') $cantidad = 2;
+
+                for ($i = 0; $i < $cantidad; $i++) {
+                    $nombreArea = preg_replace('/[^A-Za-z0-9]/', '', $an->areaOlimpiada->area->nombre);
+
+                    // Persona
+                    $pEval = Persona::create([
+                        'nombre' => "Eval{$contadorEval}",
+                        'apellido' => "Area{$areaId}",
+                        'ci' => rand(100000, 999999) . "-E",
+                        'email' => "p.eval{$contadorEval}@test.com",
+                        'telefono' => '6000' . rand(1000, 9999)
+                    ]);
+
+                    // Usuario
+                    $uEval = Usuario::create([
+                        'id_persona' => $pEval->id_persona,
+                        'email' => "eval.{$nombreArea}.{$contadorEval}@ohsansi.com",
+                        'password' => 'evaluador123'
+                    ]);
+
+                    // Rol
+                    $uEval->roles()->attach($rolEval->id_rol, ['id_olimpiada' => $olimpiada->id_olimpiada]);
+
+                    // Asignación específica (EvaluadorAn)
+                    EvaluadorAn::create([
+                        'id_usuario' => $uEval->id_usuario,
+                        'id_area_nivel' => $an->id_area_nivel,
+                        'estado' => true
+                    ]);
+
+                    $contadorEval++;
+                }
+            }
+
+            $this->command->info("✅ Evaluadores creados y asignados a sus niveles.");
+        });
     }
 }

@@ -3,29 +3,38 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Model\Nivel; // Importamos el modelo correcto
 
 class NivelesSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
     public function run(): void
     {
-        DB::table('nivel')->insert([
-            ['nombre' => '1ro de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '2do de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '3ro de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '4to de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '5to de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => '6to de Secundaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Guacamayo', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Tapir', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Cóndor', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // Lista mixta de niveles (Académicos y Categorías de Biología/Ecología)
+        $niveles = [
+            '1ro de Secundaria',
+            '2do de Secundaria',
+            '3ro de Secundaria',
+            '4to de Secundaria',
+            '5to de Secundaria',
+            '6to de Secundaria',
+            // Categorías especiales (Ej: Olimpiada Biología)
+            'Guacamayo',
+            'Tapir',
+            'Cóndor',
+        ];
 
-        $this->command->info('Niveles base creados exitosamente.');
+        $this->command->info('Verificando niveles...');
+
+        foreach ($niveles as $nombre) {
+            // firstOrCreate busca por nombre; si no existe, lo crea.
+            Nivel::firstOrCreate([
+                'nombre' => $nombre
+            ]);
+        }
+
+        $this->command->info('✅ Niveles base creados/verificados exitosamente.');
     }
 }

@@ -14,7 +14,6 @@ class ConfiguracionAccion extends Model
     public $timestamps = true;
 
     protected $fillable = [
-        'id_area_nivel',
         'id_accion_sistema',
         'id_fase_global',
         'habilitada',
@@ -23,11 +22,6 @@ class ConfiguracionAccion extends Model
     protected $casts = [
         'habilitada' => 'boolean',
     ];
-
-    public function areaNivel()
-    {
-        return $this->belongsTo(AreaNivel::class, 'id_area_nivel', 'id_area_nivel');
-    }
 
     public function faseGlobal()
     {

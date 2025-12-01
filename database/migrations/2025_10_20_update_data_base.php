@@ -320,14 +320,11 @@ return new class extends Migration
 
         Schema::create('configuracion_accion', function (Blueprint $table) {
             $table->id('id_configuracion_accion');
-            $table->unsignedBigInteger('id_area_nivel')->nullable();
             $table->unsignedBigInteger('id_accion_sistema')->nullable();
             $table->unsignedBigInteger('id_fase_global')->nullable();
             $table->boolean('habilitada');
             $table->timestamps();
 
-            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')
-                  ->restrictOnDelete()->restrictOnUpdate();
             $table->foreign('id_accion_sistema')->references('id_accion_sistema')->on('accion_sistema')
                   ->restrictOnDelete()->restrictOnUpdate();
             $table->foreign('id_fase_global')->references('id_fase_global')->on('fase_global')

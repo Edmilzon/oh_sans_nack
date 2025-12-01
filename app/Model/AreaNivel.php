@@ -59,11 +59,6 @@ class AreaNivel extends Model
         return $this->hasMany(ParametroMedallero::class, 'id_area_nivel');
     }
 
-    public function configuracionAcciones()
-    {
-        return $this->hasMany(ConfiguracionAccion::class, 'id_area_nivel');
-    }
-
     public function areaNivelGrados()
     {
         return $this->hasMany(AreaNivelGrado::class, 'id_area_nivel');

@@ -3,27 +3,32 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Model\GradoEscolaridad;
 
 class GradoEscolaridadSeeder extends Seeder
 {
     public function run(): void
     {
-        $now = now();
-
-        // Limpiar tabla antes de insertar (opcional)
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        DB::table('grado_escolaridad')->truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
+        // Lista estándar completa de grados
         $grados = [
-            ['nombre' => '1ro de Secundaria', 'created_at' => $now, 'updated_at' => $now],
-            ['nombre' => '2do de Secundaria', 'created_at' => $now, 'updated_at' => $now],
-            ['nombre' => '3ro de Secundaria', 'created_at' => $now, 'updated_at' => $now],
+            '1ro de Secundaria',
+            '2do de Secundaria',
+            '3ro de Secundaria',
+            '4to de Secundaria',
+            '5to de Secundaria',
+            '6to de Secundaria',
         ];
 
-        DB::table('grado_escolaridad')->insert($grados);
+        $this->command->info('Verificando grados de escolaridad...');
 
-        $this->command->info('✅ Grados de escolaridad (1ro a 3ro de Secundaria) insertados correctamente.');
+        foreach ($grados as $nombre) {
+            // firstOrCreate: Si existe, lo deja; si no, lo crea.
+            // Esto evita problemas de FK si intentas truncar una tabla en uso.
+            GradoEscolaridad::firstOrCreate([
+                'nombre' => $nombre
+            ]);
+        }
+
+        $this->command->info('✅ Grados de escolaridad (1ro a 6to) listos.');
     }
 }

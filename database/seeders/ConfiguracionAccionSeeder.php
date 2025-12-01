@@ -3,54 +3,90 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use App\Model\Olimpiada;
 use App\Model\FaseGlobal;
 use App\Model\AccionSistema;
+use App\Model\ConfiguracionAccion;
 
 class ConfiguracionAccionSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
-    public function run()
+    public function run(): void
     {
-        $olimpiada = Olimpiada::where('gestion', '2025')->first();
-        $fases = FaseGlobal::all();
-        $acciones = AccionSistema::all();
+        // 1. Obtener la Olimpiada objetivo (Gestión actual o última creada)
+        $olimpiada = Olimpiada::where('gestion', date('Y'))->first()
+                     ?? Olimpiada::latest('id_olimpiada')->first();
 
         if (!$olimpiada) {
-            $this->command->error('No se encontró la olimpiada para la gestión 2025. Ejecute Olimpiada2025Seeder primero.');
+            $this->command->error('❌ No se encontró olimpiada activa.');
             return;
         }
 
-        // Datos de ejemplo basados en la API
-        $configuraciones = [
-            // REG_ESTUD
-            ['id_fase_global' => 1, 'id_accion' => 10, 'habilitada' => true],
-            ['id_fase_global' => 2, 'id_accion' => 10, 'habilitada' => false],
-            ['id_fase_global' => 3, 'id_accion' => 10, 'habilitada' => false],
-            // CARGAR_NOTAS
-            ['id_fase_global' => 1, 'id_accion' => 20, 'habilitada' => false],
-            ['id_fase_global' => 2, 'id_accion' => 20, 'habilitada' => true],
-            ['id_fase_global' => 3, 'id_accion' => 20, 'habilitada' => false],
-            // PUB_CLASIF (por defecto deshabilitado en todas las fases)
-            ['id_fase_global' => 1, 'id_accion' => 30, 'habilitada' => false],
-            ['id_fase_global' => 2, 'id_accion' => 30, 'habilitada' => false],
-            ['id_fase_global' => 3, 'id_accion' => 30, 'habilitada' => false],
+        $this->command->info("Configurando acciones para: {$olimpiada->nombre}");
+
+        // 2. Obtener Fases filtradas por la olimpiada correcta
+        // Usamos first() porque asumimos que solo hay una fase de cada tipo por olimpiada
+        $faseConfig = FaseGlobal::where('codigo', 'CONFIG')->where('id_olimpiada', $olimpiada->id_olimpiada)->first();
+        $faseEval   = FaseGlobal::where('codigo', 'EVAL')->where('id_olimpiada', $olimpiada->id_olimpiada)->first();
+        $faseFinal  = FaseGlobal::where('codigo', 'FINAL')->where('id_olimpiada', $olimpiada->id_olimpiada)->first();
+
+        // 3. Obtener Acciones del Sistema (Catálogo estático)
+        $accionRegEstud   = AccionSistema::where('codigo', 'REG_ESTUD')->first();
+        $accionCargarNotas= AccionSistema::where('codigo', 'CARGAR_NOTAS')->first();
+        $accionPubClasif  = AccionSistema::where('codigo', 'PUB_CLASIF')->first();
+
+        // Validamos que existan datos mínimos antes de continuar
+        if (!$faseConfig || !$accionRegEstud) {
+            $this->command->warn('⚠️ Faltan datos base (Fases o Acciones). Ejecuta FaseGlobalSeeder y AccionSistemaSeeder primero.');
+            return;
+        }
+
+        // 4. Matriz de Configuración
+        // Definimos qué acciones están habilitadas en cada fase
+        $matrizConfiguracion = [
+            // --- Fase de Configuración ---
+            // Solo se permite registrar estudiantes
+            ['fase' => $faseConfig, 'accion' => $accionRegEstud, 'habilitada' => true],
+            ['fase' => $faseConfig, 'accion' => $accionCargarNotas, 'habilitada' => false],
+            ['fase' => $faseConfig, 'accion' => $accionPubClasif, 'habilitada' => false],
+
+            // --- Fase de Evaluación ---
+            // Se cierran registros, se abren notas
+            ['fase' => $faseEval, 'accion' => $accionRegEstud, 'habilitada' => false],
+            ['fase' => $faseEval, 'accion' => $accionCargarNotas, 'habilitada' => true],
+            ['fase' => $faseEval, 'accion' => $accionPubClasif, 'habilitada' => false],
+
+            // --- Fase Final ---
+            // Se permiten reportes finales y ajustes de notas si es necesario
+            ['fase' => $faseFinal, 'accion' => $accionRegEstud, 'habilitada' => false],
+            ['fase' => $faseFinal, 'accion' => $accionCargarNotas, 'habilitada' => true], // A veces se cargan notas de la final
+            ['fase' => $faseFinal, 'accion' => $accionPubClasif, 'habilitada' => true],   // Se publican ganadores
         ];
 
-        foreach ($configuraciones as $config) {
-            DB::table('configuracion_accion')->insert([
-                'id_olimpiada' => $olimpiada->id_olimpiada,
-                'id_fase_global' => $config['id_fase_global'],
-                'id_accion' => $config['id_accion'],
-                'habilitada' => $config['habilitada'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        // 5. Insertar Configuración
+        foreach ($matrizConfiguracion as $item) {
+            $fase = $item['fase'];
+            $accion = $item['accion'];
+            $habilitada = $item['habilitada'];
+
+            if ($fase && $accion) {
+                // firstOrCreate verifica si ya existe la combinación fase-acción para no duplicar
+                ConfiguracionAccion::firstOrCreate(
+                    [
+                        // Claves de búsqueda (Unique Constraint implícito)
+                        'id_fase_global'    => $fase->id_fase_global,
+                        'id_accion_sistema' => $accion->id_accion_sistema,
+                    ],
+                    [
+                        // Valores a insertar si no existe
+                        'habilitada' => $habilitada
+                    ]
+                );
+            }
         }
+
+        $this->command->info('✅ Configuración de acciones inicializada correctamente.');
     }
 }
