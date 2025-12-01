@@ -51,13 +51,17 @@ class ListaResponsableAreaService
 }
 
 
-    public function getListaGrados(int $idNivel): Collection
+   public function getListaGrados(?int $idArea, int $idNivel): Collection
     {
         if ($idNivel <= 0) {
             return collect();
         }
 
-        return $this->listaResponsableAreaRepository->getListaGrados($idNivel);
+        if ($idArea !== null && $idArea > 0) {
+            return $this->listaResponsableAreaRepository->getListaGradosPorAreaNivel($idArea, $idNivel);
+        }
+
+        return $this->listaResponsableAreaRepository->getListaGradosPorNivel($idNivel);
     }
 
 
