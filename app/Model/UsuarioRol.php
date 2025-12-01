@@ -3,11 +3,12 @@
 namespace App\Model;
 
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class UsuarioRol extends Pivot
 {
     use HasFactory;
-    
+
     protected $table = 'usuario_rol';
     protected $primaryKey = 'id_usuario_rol';
     public $timestamps = true;
