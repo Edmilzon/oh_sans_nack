@@ -10,14 +10,24 @@ class Olimpiada extends Model {
 
     protected $table = 'olimpiada';
     protected $primaryKey = 'id_olimpiada';
+    public $timestamps = true;
+
     protected $fillable = [
         'nombre',
         'gestion',
-        'estado' // Agregado
+        'estado',
     ];
 
     protected $casts = [
         'estado' => 'boolean',
     ];
 
+    public function areas() {
+        return $this->belongsToMany(Area::class, 'area_olimpiada', 'id_olimpiada', 'id_area')->withTimestamps();
+    }
+
+    public function areaOlimpiadas() {
+        return $this->hasMany(AreaOlimpiada::class, 'id_olimpiada', 'id_olimpiada');
+
+    }
 }

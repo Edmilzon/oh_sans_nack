@@ -11,6 +11,7 @@ class AreaOlimpiada extends Model
 
     protected $table = 'area_olimpiada';
     protected $primaryKey = 'id_area_olimpiada';
+    public $timestamps = true;
 
     protected $fillable = [
         'id_area',

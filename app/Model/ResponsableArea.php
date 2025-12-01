@@ -10,7 +10,8 @@ class ResponsableArea extends Model
     use HasFactory;
 
     protected $table = 'responsable_area';
-    protected $primaryKey = 'id_responsable_area'; // Corregido de id_responsableArea
+    protected $primaryKey = 'id_responsable_area';
+    public $timestamps = true;
 
     protected $fillable = [
         'id_usuario',

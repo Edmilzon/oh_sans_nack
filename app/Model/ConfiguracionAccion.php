@@ -10,11 +10,12 @@ class ConfiguracionAccion extends Model
     use HasFactory;
 
     protected $table = 'configuracion_accion';
-    protected $primaryKey = 'id_configuracion_accion'; // Corregido de id_configuracion
+    protected $primaryKey = 'id_configuracion_accion';
+    public $timestamps = true;
 
     protected $fillable = [
         'id_area_nivel',
-        'id_accion_sistema', // Corregido de id_accion
+        'id_accion_sistema',
         'id_fase_global',
         'habilitada',
     ];

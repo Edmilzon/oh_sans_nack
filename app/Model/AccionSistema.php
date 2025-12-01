@@ -10,7 +10,7 @@ class AccionSistema extends Model
     use HasFactory;
 
     protected $table = 'accion_sistema';
-    protected $primaryKey = 'id_accion_sistema'; // Corregido de id_accion
+    protected $primaryKey = 'id_accion_sistema';
 
     protected $fillable = [
         'codigo',
@@ -20,7 +20,11 @@ class AccionSistema extends Model
 
     public function configuraciones()
     {
-        // Corregido FK
         return $this->hasMany(ConfiguracionAccion::class, 'id_accion_sistema', 'id_accion_sistema');
+    }
+
+    public function rolAcciones()
+    {
+        return $this->hasMany(Rol::class, 'rol_accion_sistema', 'id_accion_sistema', 'id_rol');
     }
 }

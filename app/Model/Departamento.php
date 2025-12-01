@@ -11,6 +11,12 @@ class Departamento extends Model
 
     protected $table = 'departamento';
     protected $primaryKey = 'id_departamento';
+    public $timestamps = true;
 
     protected $fillable = ['nombre'];
+
+    public function competidores()
+    {
+        return $this->hasMany(Competidor::class, 'id_departamento');
+    }
 }

@@ -11,7 +11,8 @@ class RolAccion extends Model
 
     protected $table = 'rol_accion';
     protected $primaryKey = 'id_rol_accion';
-
+    public $timestamps = true;
+    
     protected $fillable = [
         'id_rol',
         'id_accion_sistema',

@@ -11,14 +11,12 @@ class Institucion extends Model
 
     protected $table = 'institucion';
     protected $primaryKey = 'id_institucion';
+    public $timestamps = true;
 
     protected $fillable = [
         'nombre',
     ];
 
-    /**
-     * Get the competidores for the institucion.
-     */
     public function competidores()
     {
         return $this->hasMany(Competidor::class, 'id_institucion', 'id_institucion');

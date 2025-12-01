@@ -11,8 +11,8 @@ class Persona extends Model
 
     protected $table = 'persona';
     protected $primaryKey = 'id_persona';
+    public $timestamps = true;
 
-    // Se eliminó 'genero' ya que en la migración está en 'competidor'
     protected $fillable = [
         'nombre', 'apellido', 'ci', 'telefono', 'email'
     ];
@@ -25,5 +25,10 @@ class Persona extends Model
     public function competidores()
     {
         return $this->hasMany(Competidor::class, 'id_persona', 'id_persona');
+    }
+
+    public function competencias()
+    {
+        return $this->hasMany(Competencia::class, 'id_persona', 'id_persona');
     }
 }

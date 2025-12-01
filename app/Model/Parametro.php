@@ -11,11 +11,12 @@ class Parametro extends Model
 
     protected $table = 'parametro';
     protected $primaryKey = 'id_parametro';
+    public $timestamps = true;
 
     protected $fillable = [
         'id_area_nivel',
-        'nota_min_aprobacion', // Corregido de nota_min_clasif
-        'cantidad_maxima', // Corregido de cantidad_max_apro
+        'nota_min_aprobacion',
+        'cantidad_maxima',
     ];
 
     protected $casts = [

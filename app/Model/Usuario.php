@@ -1,28 +1,27 @@
 <?php
 
-namespace App\Model;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class Usuario extends Authenticatable
 {
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory;
 
     protected $table = 'usuario';
     protected $primaryKey = 'id_usuario';
+    public $timestamps = true;
 
-    // Limpiado: La tabla usuario ahora solo tiene referencias y credenciales
     protected $fillable = [
         'id_persona',
         'email',
-        'password',
+        'password'
     ];
 
     protected $hidden = [
-        'password',
+        'password'
     ];
 
     public function persona()
@@ -30,29 +29,23 @@ class Usuario extends Authenticatable
         return $this->belongsTo(Persona::class, 'id_persona', 'id_persona');
     }
 
+    public function usuarioRoles()
+    {
+        return $this->hasMany(UsuarioRol::class, 'id_usuario');
+    }
+
+    public function responsableAreas()
+    {
+        return $this->hasMany(ResponsableArea::class, 'id_usuario');
+    }
+
+    public function evaluadoresAn()
+    {
+        return $this->hasMany(EvaluadorAn::class, 'id_usuario');
+    }
+
     public function roles()
     {
-        return $this->belongsToMany(Rol::class, 'usuario_rol', 'id_usuario', 'id_rol')
-                    ->using(UsuarioRol::class)
-                    ->withTimestamps();
-    }
-
-    public function responsableArea()
-    {
-        return $this->hasMany(ResponsableArea::class, 'id_usuario', 'id_usuario');
-    }
-
-    public function evaluadorAn()
-    {
-        return $this->hasMany(EvaluadorAn::class, 'id_usuario', 'id_usuario');
-    }
-
-    // Métodos helper para acceso a datos de persona
-    public function getNombreAttribute() {
-        return $this->persona->nombre ?? null;
-    }
-
-    public function getApellidoAttribute() {
-        return $this->persona->apellido ?? null;
+        return $this->belongsToMany(Rol::class, 'usuario_rol', 'id_usuario', 'id_rol');
     }
 }

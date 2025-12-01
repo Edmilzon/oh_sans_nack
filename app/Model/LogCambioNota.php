@@ -9,8 +9,6 @@ class LogCambioNota extends Model
 {
     use HasFactory;
 
-    // Esta tabla no tiene timestamps (created_at/updated_at) gestionados por Laravel,
-    // el trigger inserta la fecha.
     public $timestamps = false;
 
     protected $table = 'log_cambio_nota';

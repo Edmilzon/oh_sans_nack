@@ -48,13 +48,16 @@ return new class extends Migration
             $table->string('nombre', 250);
             $table->date('fecha');
             $table->timestamp('created_at')->nullable();
-            $table->timestamp('updated_ar')->nullable()->comment('ERROR TIPOGRÁFICO ORIGINAL REPLICADO');
+            $table->timestamp('updated_at')->nullable()->comment('ERROR TIPOGRÁFICO ORIGINAL REPLICADO');
         });
 
         Schema::create('area', function (Blueprint $table) {
             $table->increments('id_area');
             $table->string('nombre', 120);
             $table->timestamps();
+
+            $table->belongsToMany('Olimpiada', 'area_olimpiada', 'id_area', 'id_olimpiada')->withTimestamps();
+            $table->hasMany('AreaOlimpiada', 'id_area', 'id_area');
         });
 
         Schema::create('departamento', function (Blueprint $table) {

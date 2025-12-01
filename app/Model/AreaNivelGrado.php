@@ -6,12 +6,10 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class AreaNivelGrado extends Pivot
 {
+    protected $table = 'area_nivel_grado';
+    protected $primaryKey = ['id_area_nivel', 'id_grado_escolaridad'];
     public $timestamps = false;
     public $incrementing = false;
-
-    protected $table = 'area_nivel_grado';
-
-    // Al ser una clave compuesta, no definimos una primaryKey simple estándar
 
     protected $fillable = [
         'id_area_nivel',

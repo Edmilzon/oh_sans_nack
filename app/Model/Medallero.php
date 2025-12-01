@@ -11,6 +11,7 @@ class Medallero extends Model
 
     protected $table = 'medallero';
     protected $primaryKey = 'id_medallero';
+    public $timestamps = true;
 
     protected $fillable = [
         'puesto',

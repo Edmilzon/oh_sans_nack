@@ -11,15 +11,16 @@ class Evaluacion extends Model
 
     protected $table = 'evaluacion';
     protected $primaryKey = 'id_evaluacion';
+    public $timestamps = true;
 
     protected $fillable = [
         'id_competidor',
         'id_competencia',
-        'id_evaluador_an', // Corregido de id_evaluadorAN
+        'id_evaluador_an',
         'nota',
         'estado_competidor',
-        'observacion', // Corregido de observaciones
-        'fecha', // Corregido de fecha_evaluacion
+        'observacion',
+        'fecha',
         'estado',
     ];
 
@@ -46,7 +47,6 @@ class Evaluacion extends Model
 
     public function logsCambios()
     {
-        // Asumiendo que existe un modelo LogCambioNota
         return $this->hasMany(\App\Model\LogCambioNota::class, 'id_evaluacion', 'id_evaluacion');
     }
 }

@@ -6,14 +6,24 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class UsuarioRol extends Pivot
 {
-    /**
-     * La tabla asociada con el modelo.
-     *
-     * @var string
-     */
+    use HasFactory;
+    
     protected $table = 'usuario_rol';
+    protected $primaryKey = 'id_usuario_rol';
+    public $timestamps = true;
 
-    public function olimpiada() {
-        return $this->belongsTo(Olimpiada::class, 'id_olimpiada');
+    protected $fillable = [
+        'id_usuario',
+        'id_rol'
+    ];
+
+    public function usuario()
+    {
+        return $this->belongsTo(Usuario::class, 'id_usuario');
+    }
+
+    public function rol()
+    {
+        return $this->belongsTo(Rol::class, 'id_rol');
     }
 }

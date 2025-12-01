@@ -11,6 +11,7 @@ class CronogramaFase extends Model
 
     protected $table = 'cronograma_fase';
     protected $primaryKey = 'id_cronograma_fase';
+    public $timestamps = true;
 
     protected $fillable = [
         'id_fase_global',

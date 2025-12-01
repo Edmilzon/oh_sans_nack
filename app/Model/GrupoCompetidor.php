@@ -11,6 +11,7 @@ class GrupoCompetidor extends Model
 
     protected $table = 'grupo_competidor';
     protected $primaryKey = 'id_grupo_competidor';
+    public $timestamps = true;
 
     protected $fillable = [
         'id_grupo',

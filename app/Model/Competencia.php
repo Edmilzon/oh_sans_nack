@@ -11,11 +11,12 @@ class Competencia extends Model
 
     protected $table = 'competencia';
     protected $primaryKey = 'id_competencia';
+    public $timestamps = true;
 
     protected $fillable = [
         'id_fase_global',
         'id_area_nivel',
-        'id_persona', // Responsable
+        'id_persona',
         'nombre_examen',
         'fecha_inicio',
         'fecha_fin',

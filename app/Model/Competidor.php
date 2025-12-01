@@ -11,6 +11,7 @@ class Competidor extends Model
 
     protected $table = 'competidor';
     protected $primaryKey = 'id_competidor';
+    public $timestamps = true;
 
     protected $fillable = [
         'id_archivo_csv',
@@ -18,7 +19,7 @@ class Competidor extends Model
         'id_departamento',
         'id_area_nivel',
         'id_persona',
-        'id_grado_escolaridad', // Agregado según migración
+        'id_grado_escolaridad',
         'contacto_tutor',
         'genero',
     ];
@@ -51,6 +52,21 @@ class Competidor extends Model
     public function persona()
     {
         return $this->belongsTo(Persona::class, 'id_persona', 'id_persona');
+    }
+
+    public function grupoCompetidores()
+    {
+        return $this->hasMany(GrupoCompetidor::class, 'id_competidor', 'id_competidor');
+    }
+
+    public function evaluaciones()
+    {
+        return $this->hasMany(Evaluacion::class, 'id_competidor', 'id_competidor');
+    }
+
+    public function medalleros()
+    {
+        return $this->hasMany(Medallero::class, 'id_competidor', 'id_competidor');
     }
 
     public function grupos()

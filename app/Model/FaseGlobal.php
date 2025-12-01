@@ -22,4 +22,14 @@ class FaseGlobal extends Model
     {
         return $this->hasMany(CronogramaFase::class, 'id_fase_global', 'id_fase_global');
     }
+
+    public function competencia()
+    {
+        return $this->hasMany(Competencia::class, 'id_fase_global', 'id_fase_global');
+    }
+
+    public function configuracionAcciones()
+    {
+        return $this->hasMany(ConfiguracionAccion::class, 'id_fase_global', 'id_fase_global');
+    }
 }

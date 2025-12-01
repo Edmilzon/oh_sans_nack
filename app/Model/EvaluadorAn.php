@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Model;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,25 +10,27 @@ class EvaluadorAn extends Model
     use HasFactory;
 
     protected $table = 'evaluador_an';
-    protected $primaryKey = 'id_evaluador_an'; // Corregido de id_evaluadorAN
+    protected $primaryKey = 'id_evaluador_an';
+    public $timestamps = true;
 
     protected $fillable = [
         'id_usuario',
         'id_area_nivel',
-        'estado', // Agregado
+        'estado'
     ];
-
-    protected $casts = [
-        'estado' => 'boolean',
-    ];
-
-    public function areaNivel()
-    {
-        return $this->belongsTo(AreaNivel::class, 'id_area_nivel', 'id_area_nivel');
-    }
 
     public function usuario()
     {
-        return $this->belongsTo(Usuario::class, 'id_usuario', 'id_usuario');
+        return $this->belongsTo(Usuario::class, 'id_usuario');
+    }
+
+    public function areaNivel()
+    {
+        return $this->belongsTo(AreaNivel::class, 'id_area_nivel');
+    }
+
+    public function evaluaciones()
+    {
+        return $this->hasMany(Evaluacion::class, 'id_evaluador_an');
     }
 }
