@@ -38,4 +38,11 @@ class OlimpiadaRepository
         // Delegamos la lógica de persistencia al modelo (encapsulado)
         return $this->model->firstOrCreate($attributes, $values);
     }
+
+    public function obtenerOlimpiadasAnteriores($gestionActual): Collection
+    {
+        return $this->model->where('gestion', '!=', $gestionActual)
+                          ->orderBy('gestion', 'desc')
+                          ->get();
+    }
 }

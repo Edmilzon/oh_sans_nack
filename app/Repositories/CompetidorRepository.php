@@ -4,15 +4,17 @@ namespace App\Repositories;
 
 use App\Model\Competidor;
 use App\Model\Persona;
+use App\Model\Institucion;
+use App\Model\Departamento;
+use App\Model\GradoEscolaridad;
+use App\Model\Area;
+use App\Model\Nivel;
 use App\Model\AreaOlimpiada;
 use App\Model\AreaNivel;
+use Illuminate\Database\Eloquent\Collection;
 
 class CompetidorRepository
 {
-    public function findWithRelations($id) {
-        return Competidor::with(['persona', 'institucion', 'areaNivel', 'archivoCsv'])->find($id);
-    }
-    
     public function createPersona(array $data): Persona
     {
         return Persona::create($data);
@@ -23,53 +25,42 @@ class CompetidorRepository
         return Competidor::create($data);
     }
 
-    public function getAllCompetidores()
+    /**
+     * Busca Personas existentes masivamente y CARGA sus inscripciones previas.
+     * Esto permite detectar si ya están inscritos en una materia específica.
+     */
+    public function getPersonasConCompetidores(array $cis): Collection
     {
-        return Competidor::with(['persona', 'institucion', 'areaNivel.area', 'areaNivel.nivel', 'archivoCsv'])
+        return Persona::whereIn('ci', $cis)
+            // Cargamos competidores para ver sus materias (areaNivel) y el archivo de origen
+            ->with(['competidores.archivoCsv', 'competidores.areaNivel'])
             ->get();
     }
 
-    public function findPersonasDuplicadas(string $ci, string $email, ?string $telefono = null)
+    /**
+     * Busca Instituciones por nombres masivamente.
+     */
+    public function getInstitucionesByNombres(array $nombres): Collection
     {
-        return Persona::where(function($query) use ($ci, $email, $telefono) {
-                $query->where('ci', $ci)
-                      ->orWhere('email', $email);
-                
-                if ($telefono) {
-                    $query->orWhere('telefono', $telefono);
-                }
-            })
-            ->with(['competidor.archivoCsv.olimpiada'])
+        return Institucion::whereIn('nombre', $nombres)->get();
+    }
+
+    // --- CARGA DE CATÁLOGOS COMPLETOS (Para cache en memoria) ---
+    public function getAllDepartamentos(): Collection { return Departamento::all(); }
+    public function getAllGrados(): Collection { return GradoEscolaridad::all(); }
+    public function getAllAreas(): Collection { return Area::all(); }
+    public function getAllNiveles(): Collection { return Nivel::all(); }
+
+    // --- ESTRUCTURA OLIMPIADA ---
+    public function getAreaOlimpiadas(int $olimpiadaId): Collection
+    {
+        return AreaOlimpiada::where('id_olimpiada', $olimpiadaId)->get();
+    }
+
+    public function getAreaNiveles(array $areaOlimpiadaIds): Collection
+    {
+        return AreaNivel::whereIn('id_area_olimpiada', $areaOlimpiadaIds)
+            ->with(['areaOlimpiada', 'nivel']) // Eager loading para macheo rápido
             ->get();
-    }
-
-    public function existePersona(string $ci, string $email, ?string $telefono = null): bool
-    {
-        return Persona::where('ci', $ci)
-            ->orWhere('email', $email)
-            ->orWhere('telefono', $telefono)
-            ->exists();
-    }
-
-    public function getCompetidoresByArchivoCsv($archivoCsvId)
-    {
-        return Competidor::with(['persona', 'institucion', 'areaNivel'])
-            ->where('id_archivo_csv', $archivoCsvId)
-            ->get();
-    }
-
-    public function findAreaOlimpiada($areaId, $olimpiadaId)
-    {
-        return AreaOlimpiada::where('id_area', $areaId)
-            ->where('id_olimpiada', $olimpiadaId)
-            ->first();
-    }
-
-    public function findAreaNivel($areaId, $nivelId, $olimpiadaId)
-    {
-        return AreaNivel::where('id_area', $areaId)
-            ->where('id_nivel', $nivelId)
-            ->where('id_olimpiada', $olimpiadaId)
-            ->first();
     }
 }
