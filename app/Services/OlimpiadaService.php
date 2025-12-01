@@ -3,19 +3,58 @@
 namespace App\Services;
 
 use App\Model\Olimpiada;
-use Illuminate\Database\Eloquent\Collection;
 use App\Repositories\OlimpiadaRepository;
+use Illuminate\Support\Collection;
+use Exception;
 
 class OlimpiadaService
 {
-    protected $olimpiadaRepository;
+    public function __construct(
+        protected OlimpiadaRepository $olimpiadaRepository
+    ) {}
 
-    public function __construct(OlimpiadaRepository $olimpiadaRepository)
+    /**
+     * Obtiene la olimpiada de la gestión actual o la crea si no existe.
+     * (El service ya no usa Olimpiada::firstOrCreate())
+     */
+    public function obtenerOlimpiadaActual(): Olimpiada
     {
-        $this->olimpiadaRepository = $olimpiadaRepository;
+        $gestionActual = date('Y');
+        $nombreOlimpiada = "Olimpiada Científica Estudiantil $gestionActual";
+
+        return $this->olimpiadaRepository->firstOrCreate(
+            ['gestion' => $gestionActual],
+            ['nombre' => $nombreOlimpiada, 'estado' => true]
+        );
     }
 
-    public function obtenerGestiones()
+    /**
+     * Obtiene una olimpiada para una gestión específica, creándola si no existe.
+     * (El service ya no usa Olimpiada::firstOrCreate())
+     */
+    public function obtenerOlimpiadaPorGestion(string $gestion): Olimpiada
+    {
+        $nombreOlimpiada = "Olimpiada Científica Estudiantil $gestion";
+
+        return $this->olimpiadaRepository->firstOrCreate(
+            ['gestion' => $gestion],
+            ['nombre' => $nombreOlimpiada, 'estado' => false]
+        );
+    }
+
+    /**
+     * Obtiene las olimpiadas anteriores a la gestión actual.
+     */
+    public function obtenerOlimpiadasAnteriores(): Collection
+    {
+        $gestionActual = date('Y');
+        return $this->olimpiadaRepository->getAnteriores($gestionActual);
+    }
+
+    /**
+     * Obtiene todas las gestiones de olimpiadas y las formatea.
+     */
+    public function obtenerGestiones(): Collection
     {
         $gestiones = $this->olimpiadaRepository->obtenerGestiones();
         $currentYear = date('Y');
@@ -25,41 +64,8 @@ class OlimpiadaService
                 'id' => $olimpiada->id_olimpiada,
                 'nombre' => $olimpiada->nombre,
                 'gestion' => $olimpiada->gestion,
-                'esActual' => $olimpiada->gestion == $currentYear,
+                'esActual' => (string)$olimpiada->gestion === $currentYear,
             ];
         });
-    }
-
-    public function obtenerOlimpiadaActual(): Olimpiada
-    {
-        $gestionActual = date('Y');
-        $nombreOlimpiada = "Olimpiada Científica Estudiantil $gestionActual";
-        
-        return Olimpiada::firstOrCreate(
-            ['gestion' => $gestionActual],
-            ['nombre' => $nombreOlimpiada]
-        );
-    }
-
-    public function obtenerOlimpiadaPorGestion($gestion): Olimpiada
-    {
-        $nombreOlimpiada = "Olimpiada Científica Estudiantil $gestion";
-        
-        return Olimpiada::firstOrCreate(
-            ['gestion' => $gestion],
-            ['nombre' => $nombreOlimpiada]
-        );
-    }
-
-    public function existeOlimpiadaActual(): bool
-    {
-        $gestionActual = date('Y');
-        return Olimpiada::where('gestion', $gestionActual)->exists();
-    }
-
-    public function obtenerOlimpiadasAnteriores(): Collection
-    {
-        $gestionActual = date('Y');
-        return $this->olimpiadaRepository->obtenerOlimpiadasAnteriores($gestionActual);
     }
 }

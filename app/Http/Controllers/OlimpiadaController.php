@@ -4,29 +4,30 @@ namespace App\Http\Controllers;
 
 use App\Services\OlimpiadaService;
 use Illuminate\Routing\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Exception;
 
 class OlimpiadaController extends Controller
 {
-    protected $olimpiadaService;
+    public function __construct(
+        protected OlimpiadaService $olimpiadaService
+    ) {}
 
-    public function __construct(OlimpiadaService $olimpiadaService)
-    {
-        $this->olimpiadaService = $olimpiadaService;
-    }
-
-    public function olimpiadasAnteriores()
+    /**
+     * Endpoint: GET /api/olimpiadas/anteriores
+     */
+    public function olimpiadasAnteriores(): JsonResponse
     {
         try {
             $olimpiadas = $this->olimpiadaService->obtenerOlimpiadasAnteriores();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $olimpiadas,
                 'message' => 'Olimpiadas anteriores obtenidas correctamente'
             ]);
-            
-        } catch (\Exception $e) {
+
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener las olimpiadas anteriores: ' . $e->getMessage()
@@ -34,18 +35,21 @@ class OlimpiadaController extends Controller
         }
     }
 
-    public function olimpiadaActual()
+    /**
+     * Endpoint: GET /api/olimpiadas/actual
+     */
+    public function olimpiadaActual(): JsonResponse
     {
         try {
             $olimpiada = $this->olimpiadaService->obtenerOlimpiadaActual();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $olimpiada,
                 'message' => 'Olimpiada actual obtenida correctamente'
             ]);
-            
-        } catch (\Exception $e) {
+
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener la olimpiada actual: ' . $e->getMessage()
@@ -53,18 +57,21 @@ class OlimpiadaController extends Controller
         }
     }
 
-    public function gestiones()
+    /**
+     * Endpoint: GET /api/gestiones
+     */
+    public function gestiones(): JsonResponse
     {
         try {
             $gestiones = $this->olimpiadaService->obtenerGestiones();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $gestiones,
                 'message' => 'Gestiones obtenidas correctamente'
             ]);
-            
-        } catch (\Exception $e) {
+
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener las gestiones: ' . $e->getMessage()
