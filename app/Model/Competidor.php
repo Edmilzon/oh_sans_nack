@@ -22,6 +22,11 @@ class Competidor extends Model
         'id_grado_escolaridad',
         'contacto_tutor',
         'genero',
+        'estado_evaluacion',
+    ];
+
+    protected $attributes = [
+        'estado_evaluacion' => 'disponible',
     ];
 
     public function institucion()

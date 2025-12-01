@@ -3,12 +3,14 @@
 namespace App\Model;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens; // <--- VITAL para tu API
 
 class Usuario extends Authenticatable
 {
-    use HasFactory;
+    // Agregamos HasApiTokens y Notifiable
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'usuario';
     protected $primaryKey = 'id_usuario';
@@ -21,7 +23,12 @@ class Usuario extends Authenticatable
     ];
 
     protected $hidden = [
-        'password'
+        'password',
+        'remember_token',
+    ];
+
+    protected $casts = [
+        'password' => 'hashed',
     ];
 
     public function persona()
