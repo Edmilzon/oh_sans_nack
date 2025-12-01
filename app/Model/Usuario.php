@@ -53,6 +53,10 @@ class Usuario extends Authenticatable
 
     public function roles()
     {
-        return $this->belongsToMany(Rol::class, 'usuario_rol', 'id_usuario', 'id_rol');
+        // CORRECCIÓN CLAVE: Cargar el campo del pivote y la relación a Olimpiada
+        return $this->belongsToMany(Rol::class, 'usuario_rol', 'id_usuario', 'id_rol')
+                    ->withPivot('id_olimpiada')
+                    ->using(UsuarioRol::class) // Necesario si queremos usar 'olimpiada' en el pivote
+                    ->withTimestamps();
     }
 }

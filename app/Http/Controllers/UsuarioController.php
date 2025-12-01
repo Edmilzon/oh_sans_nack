@@ -2,39 +2,25 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\UsuarioService;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Services\UsuarioService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class UsuarioController extends Controller
 {
-    protected $usuarioService;
-
-    public function __construct(UsuarioService $usuarioService)
-    {
-        $this->usuarioService = $usuarioService;
-    }
+    public function __construct(
+        protected UsuarioService $usuarioService
+    ) {}
 
     /**
-     * Maneja la solicitud de login del usuario.
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * Login de usuario.
      */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $result = $this->usuarioService->login($request->only('email', 'password'));
+        // La validación ya se hizo en LoginRequest
+        $result = $this->usuarioService->login($request->validated());
 
         if (!$result) {
             return response()->json(['message' => 'Credenciales no autorizadas'], 401);
@@ -44,24 +30,29 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Muestra la información detallada de un usuario por su CI.
-     *
-     * @param string $ci
-     * @return JsonResponse
+     * Obtener usuario detallado por CI.
      */
     public function showByCi(string $ci): JsonResponse
     {
-        $usuario = $this->usuarioService->getUsuarioDetalladoPorCi($ci);
+        try {
+            $usuario = $this->usuarioService->getUsuarioDetalladoPorCi($ci);
 
-        if (!$usuario) {
+            if (!$usuario) {
+                return response()->json([
+                    'message' => 'Usuario no encontrado con el CI proporcionado.'
+                ], 404);
+            }
+
             return response()->json([
-                'message' => 'Usuario no encontrado con el CI proporcionado.'
-            ], 404);
-        }
+                'message' => 'Usuario obtenido exitosamente',
+                'data'    => $usuario
+            ]);
 
-        return response()->json([
-            'message' => 'Usuario obtenido exitosamente',
-            'data' => $usuario
-        ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error interno del servidor',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
     }
 }
