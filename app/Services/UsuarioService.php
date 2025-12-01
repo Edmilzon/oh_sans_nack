@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\UsuarioRepository;
 use Illuminate\Support\Facades\Hash;
+use App\Model\Olimpiada; // Aseguramos importación
 
 class UsuarioService
 {
@@ -16,25 +17,17 @@ class UsuarioService
 
     /**
      * Autentica un usuario y genera un token de acceso.
-     *
-     * @param array $credentials
-     * @return array|null
      */
     public function login(array $credentials): ?array
     {
         $usuario = $this->usuarioRepository->findByEmail($credentials['email']);
 
         if (!$usuario || !Hash::check($credentials['password'], $usuario->password)) {
-            return null; // Credenciales inválidas
+            return null;
         }
 
-        // Elimina tokens antiguos para mantener la tabla limpia
         $usuario->tokens()->delete();
-
-        // Crea un nuevo token que expira en 1 hora (configurado en config/sanctum.php)
         $token = $usuario->createToken('auth_token')->plainTextToken;
-
-        // Obtiene una lista simple de los nombres de los roles del usuario.
         $roles = $usuario->roles->pluck('nombre');
 
         return [
@@ -42,8 +35,8 @@ class UsuarioService
             'token_type' => 'Bearer',
             'user' => [
                 'id_usuario' => $usuario->id_usuario,
-                'nombre' => $usuario->nombre,
-                'apellido' => $usuario->apellido,
+                'nombre' => $usuario->persona->nombre ?? '',
+                'apellido' => $usuario->persona->apellido ?? '',
                 'email' => $usuario->email,
                 'roles' => $roles,
             ]
@@ -52,9 +45,6 @@ class UsuarioService
 
     /**
      * Obtiene la información detallada de un usuario por su CI.
-     *
-     * @param string $ci
-     * @return array|null
      */
     public function getUsuarioDetalladoPorCi(string $ci): ?array
     {
@@ -64,56 +54,90 @@ class UsuarioService
             return null;
         }
 
-        // Agrupa los roles y sus detalles por gestión de olimpiada
-        $rolesPorGestion = $usuario->roles->groupBy('pivot.id_olimpiada')->map(function ($roles, $idOlimpiada) use ($usuario) {
-            $olimpiada = $roles->first()->pivot->olimpiada;
+        // Acceso correcto a datos personales
+        $nombre = $usuario->persona->nombre;
+        $apellido = $usuario->persona->apellido;
+        $telefono = $usuario->persona->telefono;
+        $ci_persona = $usuario->persona->ci;
+
+        // Agrupar por el id_olimpiada del pivote
+        $rolesPorGestion = $usuario->roles->groupBy(function ($rol) {
+            return $rol->pivot->id_olimpiada;
+        })->map(function ($roles, $idOlimpiada) use ($usuario) {
+
+            // Buscar la gestión (Olimpiada) para obtener el nombre
+            $gestionNombre = "Desconocida";
+            $olimpiada = Olimpiada::find($idOlimpiada);
+            if ($olimpiada) {
+                $gestionNombre = $olimpiada->gestion;
+            }
 
             return [
                 'id_olimpiada' => $idOlimpiada,
-                'gestion' => $olimpiada->gestion,
+                'gestion' => $gestionNombre,
                 'roles' => $roles->map(function ($rol) use ($usuario, $idOlimpiada) {
+
                     $detalles = null;
-                    if ($rol->nombre === 'Responsable Area') {
-                        $detalles = [
-                            'areas_responsable' => $usuario->responsableArea
-                                ->where('areaOlimpiada.id_olimpiada', $idOlimpiada)
-                                ->map(function ($ra) {
-                                    return [
-                                        'id_area' => $ra->areaOlimpiada->area->id_area,
-                                        'nombre_area' => $ra->areaOlimpiada->area->nombre,
-                                    ];
-                                })->values()
-                        ];
-                    } elseif ($rol->nombre === 'Evaluador') {
-                        $detalles = [
-                            'asignaciones_evaluador' => $usuario->evaluadorAn
-                                ->where('areaNivel.id_olimpiada', $idOlimpiada)
-                                ->map(function ($ea) {
-                                    return [
-                                        'id_area_nivel' => $ea->areaNivel->id_area_nivel,
-                                        'nombre_area' => $ea->areaNivel->area->nombre,
-                                        'nombre_nivel' => $ea->areaNivel->nivel->nombre,
-                                        'nombre_grado' => $ea->areaNivel->gradoEscolaridad->nombre,
-                                    ];
-                                })->values()
-                        ];
+                    $rolName = $rol->nombre;
+
+                    // Lógica para Responsable de Área
+                    if ($rolName === 'Responsable de area' || $rolName === 'Responsable Area') {
+                        // CORREGIDO: Usamos la relación PLURAL 'responsableAreas' del modelo Usuario
+                        $areas = $usuario->responsableAreas
+                            // Filtramos las áreas de esta gestión usando la relación cargada
+                            ->filter(fn ($ra) => $ra->areaOlimpiada && $ra->areaOlimpiada->id_olimpiada == $idOlimpiada)
+                            ->map(function ($ra) {
+                                return [
+                                    'id_area' => $ra->areaOlimpiada->area->id_area,
+                                    'nombre_area' => $ra->areaOlimpiada->area->nombre,
+                                ];
+                            })->values();
+
+                        // Devolvemos la estructura de detalles solo si hay áreas asignadas
+                        if ($areas->isNotEmpty()) {
+                            $detalles = ['areas_responsable' => $areas];
+                        }
+                    }
+                    // Lógica para Evaluador
+                    elseif ($rolName === 'Evaluador') {
+                        $asignaciones = $usuario->evaluadoresAn
+                            // Filtramos las asignaciones que pertenecen a esta olimpiada
+                            ->filter(function ($ea) use ($idOlimpiada) {
+                                return $ea->areaNivel
+                                    && $ea->areaNivel->areaOlimpiada
+                                    && $ea->areaNivel->areaOlimpiada->id_olimpiada == $idOlimpiada;
+                            })
+                            ->map(function ($ea) {
+                                // Concatenar grados (Many-to-Many)
+                                $nombresGrados = $ea->areaNivel->gradosEscolaridad->pluck('nombre')->join(', ');
+
+                                return [
+                                    'id_area_nivel' => $ea->areaNivel->id_area_nivel,
+                                    'nombre_area' => $ea->areaNivel->areaOlimpiada->area->nombre,
+                                    'nombre_nivel' => $ea->areaNivel->nivel->nombre,
+                                    'nombre_grado' => $nombresGrados ?: 'N/A',
+                                ];
+                            })->values();
+
+                        $detalles = ['asignaciones_evaluador' => $asignaciones];
                     }
 
                     return [
-                        'rol' => $rol->nombre,
+                        'rol' => $rolName,
                         'detalles' => $detalles,
                     ];
-                })
+                })->values()
             ];
         })->values();
 
+        // Estructura EXACTA del JSON que espera el frontend
         return [
             'id_usuario' => $usuario->id_usuario,
-            'nombre' => $usuario->nombre,
-            'apellido' => $usuario->apellido,
-            'ci' => $usuario->ci,
+            'nombre' => $nombre,
+            'apellido' => $apellido,
+            'ci' => $ci_persona,
             'email' => $usuario->email,
-            'telefono' => $usuario->telefono,
+            'telefono' => $telefono,
             'created_at' => $usuario->created_at,
             'updated_at' => $usuario->updated_at,
             'roles_por_gestion' => $rolesPorGestion,

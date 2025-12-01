@@ -117,7 +117,7 @@ return new class extends Migration
             $table->string('tokenable_id', 255)->nullable();
             $table->text('name')->nullable();
             $table->string('token', 64)->nullable();
-            $table->timestamp('habilities')->nullable();
+            $table->text('abilities')->nullable();
             $table->timestamp('last_used_at')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
