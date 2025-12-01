@@ -3,365 +3,137 @@
 namespace App\Repositories;
 
 use App\Model\Usuario;
-use App\Model\ResponsableArea;
+use App\Model\Persona;
 use App\Model\Rol;
-use App\Model\Area;
+use App\Model\ResponsableArea;
 use App\Model\AreaOlimpiada;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\Builder;
+use Exception;
 
 class ResponsableRepository
 {
     /**
-     * Crea un nuevo usuario.
-     *
-     * @param array $data
-     * @return Usuario
+     * Busca o crea la Persona (Manejo inteligente de duplicados por CI).
      */
-    public function createUsuario(array $data): Usuario
+    public function findOrCreatePersona(array $data): Persona
+    {
+        return Persona::updateOrCreate(
+            ['ci' => $data['ci']],
+            [
+                'nombre'   => $data['nombre'],
+                'apellido' => $data['apellido'],
+                'email'    => $data['email'],
+                'telefono' => $data['telefono'] ?? null,
+            ]
+        );
+    }
+
+    /**
+     * Crea el Usuario vinculado.
+     */
+    public function createUsuario(Persona $persona, array $data): Usuario
     {
         return Usuario::create([
-            'nombre' => $data['nombre'],
-            'apellido' => $data['apellido'],
-            'ci' => $data['ci'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']), 
-            'telefono' => $data['telefono'] ?? null,
+            'id_persona' => $persona->id_persona,
+            'email'      => $data['email'],
+            'password'   => Hash::make($data['password']),
         ]);
     }
 
     /**
-     * Asigna el rol de "Responsable Area" al usuario.
-     *
-     * @param Usuario $usuario
-     * @param int $olimpiadaId
-     * @return void
+     * Asigna el rol 'Responsable Area' con el pivote de Olimpiada.
      */
-    public function assignResponsableRole(Usuario $usuario, int $olimpiadaId): void
+    public function assignResponsableRole(Usuario $usuario, int $idOlimpiada): void
     {
-        $rolResponsable = Rol::where('nombre', 'Responsable Area')->first();
-        
-        if (!$rolResponsable) {
-            throw new \Exception('El rol "Responsable Area" no existe en el sistema');
+        $rol = Rol::where('nombre', 'Responsable Area')->first();
+
+        if (!$rol) {
+            throw new Exception("El rol 'Responsable Area' no existe en la BD.");
         }
 
-        $usuario->asignarRol('Responsable Area', $olimpiadaId);
-    }
+        // Evitar duplicados en la tabla pivote
+        if (!$usuario->roles()
+                ->where('usuario_rol.id_rol', $rol->id_rol)
+                ->wherePivot('id_olimpiada', $idOlimpiada)
+                ->exists()) {
 
-    /**
-     * Crea las relaciones entre el responsable y las áreas.
-     *
-     * @param Usuario $usuario
-     * @param array $areaIds
-     * @param int $olimpiadaId
-     * @return array
-     */
-    public function createResponsableAreaRelations(Usuario $usuario, array $areaIds, int $olimpiadaId): array
-    {
-        $responsableAreas = [];
-
-        foreach ($areaIds as $areaId) {
-            $areaOlimpiada = AreaOlimpiada::where('id_area', $areaId)
-                                          ->where('id_olimpiada', $olimpiadaId)
-                                          ->first();
-
-            if (!$areaOlimpiada) {
-                throw new \Exception("La combinación del área ID {$areaId} y la olimpiada ID {$olimpiadaId} no existe.");
-            }
-
-            $responsableArea = ResponsableArea::create([
-                'id_usuario' => $usuario->id_usuario,
-                'id_area_olimpiada' => $areaOlimpiada->id_area_olimpiada,
+            $usuario->roles()->attach($rol->id_rol, [
+                'id_olimpiada' => $idOlimpiada
             ]);
-
-            $responsableAreas[] = $responsableArea->load('area');
         }
-        return $responsableAreas;
     }
 
-
-    public function addResponsableAreaRelations(Usuario $usuario, array $areaIds, int $olimpiadaId): void
+    /**
+     * Vincula al usuario con las Áreas seleccionadas.
+     * Traduce: id_area + id_olimpiada => id_area_olimpiada => tabla responsable_area
+     */
+    public function syncResponsableAreas(Usuario $usuario, array $areaIds, int $idOlimpiada): void
     {
-        foreach ($areaIds as $areaId) {
-            $areaOlimpiada = AreaOlimpiada::where('id_area', $areaId)
-                                          ->where('id_olimpiada', $olimpiadaId)
-                                          ->first();
+        foreach ($areaIds as $idArea) {
+            // 1. Buscar el ID intermedio (AreaOlimpiada)
+            $areaOlimpiada = AreaOlimpiada::where('id_area', $idArea)
+                ->where('id_olimpiada', $idOlimpiada)
+                ->first();
 
-            if (!$areaOlimpiada) {
-                throw new \Exception("La combinación del área ID {$areaId} y la olimpiada ID {$olimpiadaId} no existe.");
+            if ($areaOlimpiada) {
+                // 2. Crear la asignación si no existe
+                ResponsableArea::firstOrCreate([
+                    'id_usuario'        => $usuario->id_usuario,
+                    'id_area_olimpiada' => $areaOlimpiada->id_area_olimpiada
+                ]);
             }
-
-            ResponsableArea::firstOrCreate(
-                [
-                    'id_usuario' => $usuario->id_usuario,
-                    'id_area_olimpiada' => $areaOlimpiada->id_area_olimpiada,
-                ]
-            );
-        }
-
-        if (!$usuario->tieneRol('Responsable Area', $olimpiadaId)) {
-            $this->assignResponsableRole($usuario, $olimpiadaId);
         }
     }
 
     /**
-     * Obtiene todos los responsables con sus áreas asignadas.
-     *
-     * @return array
+     * Obtiene un responsable formateado para el Frontend.
      */
-    public function getAllResponsablesWithAreas(): array
+    public function getById(int $id): ?array
     {
-        $responsables = Usuario::whereHas('roles', function ($query) {
-            $query->where('nombre', 'Responsable Area');
-        })
-        ->with(['responsableArea.area', 'roles'])->get();
-        return $responsables->map(fn($usuario) => $this->formatResponsableData($usuario, true))->toArray();
+        $usuario = Usuario::with([
+            'persona',
+            // Navegación: ResponsableArea -> AreaOlimpiada -> Area
+            'responsableAreas.areaOlimpiada.area',
+            'responsableAreas.areaOlimpiada.olimpiada'
+        ])->find($id);
+
+        if (!$usuario) return null;
+
+        return $this->mapToLegacyJson($usuario);
     }
 
-    /**
-     * Obtiene un responsable específico por ID con sus áreas.
-     *
-     * @param int $id
-     * @return array|null
-     */
-    public function getResponsableByIdWithAreas(int $id): ?array
+    public function getAllResponsables(): Collection
     {
-        $usuario = Usuario::whereHas('roles', function ($query) {
-            $query->where('nombre', 'Responsable Area');
-        })
-        ->with(['responsableArea.area', 'roles'])->find($id);
-
-        if (!$usuario) {
-            return null;
-        }
-        return $this->formatResponsableData($usuario, true);
-    }
-
-    /**
-     * Obtiene responsables por área específica.
-     *
-     * @param int $areaId
-     * @return array
-     */
-    public function getResponsablesByArea(int $areaId): array
-    {
-        $responsables = Usuario::whereHas('responsableArea', function ($query) use ($areaId) {
-            $query->whereHas('area', fn($q) => $q->where('area.id_area', $areaId));
-        })
-        ->whereHas('roles', function ($query) {
-            $query->where('nombre', 'Responsable Area');
-        })->with(['responsableArea.area', 'roles'])->get();
-        return $responsables->map(fn($usuario) => $this->formatResponsableData($usuario, false))->toArray();
-    }
-
-    /**
-     * Obtiene responsables por olimpiada específica.
-     *
-     * @param int $olimpiadaId
-     * @return array
-     */
-    public function getResponsablesByOlimpiada(int $olimpiadaId): array
-    {
-        $responsables = Usuario::whereHas('roles', function ($query) use ($olimpiadaId) {
-            $query->where('nombre', 'Responsable Area')
-                  ->where('usuario_rol.id_olimpiada', $olimpiadaId);
-        })->with(['responsableArea.area', 'roles'])->get();
-        return $responsables->map(fn($usuario) => $this->formatResponsableData($usuario, false))->toArray();
-    }
-
-    /**
-     * Encuentra las gestiones (olimpiadas) en las que un responsable ha trabajado, buscado por CI.
-     *
-     * @param string $ci
-     * @return array
-     */
-    public function findGestionesByCi(string $ci): array
-    {
-        $usuario = Usuario::where('ci', $ci)
-            ->whereHas('roles', function ($query) {
-                $query->where('nombre', 'Responsable Area');
+        return Usuario::whereHas('roles', function (Builder $q) {
+                $q->where('nombre', 'Responsable Area');
             })
-            ->with('roles')
-            ->first();
-
-        if (!$usuario) {
-            return [];
-        }
-
-        $olimpiadaIds = $usuario->roles->pluck('pivot.id_olimpiada')->unique()->values();
-
-        $olimpiadas = \App\Model\Olimpiada::whereIn('id_olimpiada', $olimpiadaIds)
-            ->get(['id_olimpiada', 'gestion']);
-
-        return $olimpiadas->map(function ($olimpiada) {
-            return [
-                'Id_olimpiada' => $olimpiada->id_olimpiada,
-                'gestion' => $olimpiada->gestion,
-            ];
-        })->toArray();
+            ->with(['persona', 'responsableAreas'])
+            ->get()
+            ->map(fn($u) => $this->mapToLegacyJson($u));
     }
 
-    /**
-      * Encuentra las áreas asignadas a un responsable por su CI y una gestión específica.
-     *
-     * @param string $ci
-     * @param string $gestion
-     * @return array
-     */
-    public function findAreasByCiAndGestion(string $ci, string $gestion): array
+    private function mapToLegacyJson(Usuario $usuario): array
     {
-        $usuario = Usuario::where('ci', $ci)
-            ->whereHas('roles', function ($query) use ($gestion) {
-                $query->where('nombre', 'Responsable Area');
-                $query->whereIn('usuario_rol.id_olimpiada', function ($subquery) use ($gestion) {
-                    $subquery->select('id_olimpiada')->from('olimpiada')->where('gestion', $gestion);
-                });
-            })
-            ->with(['responsableArea.areaOlimpiada.olimpiada', 'responsableArea.area'])
-            ->first();
-
-        if (!$usuario) {
-            return [];
-        }
-
-        $areasDeLaGestion = $usuario->responsableArea->filter(function ($responsableArea) use ($gestion) {
-            return $responsableArea->areaOlimpiada && $responsableArea->areaOlimpiada->olimpiada->gestion == $gestion;
-        });
-
-        return $areasDeLaGestion->map(function ($responsableArea) {
-            return [
-                'id_responsable_area' => $responsableArea->id_responsableArea,
-                'Area' => [
-                    'Id_area' => $responsableArea->area->id_area,
-                    'Nombre' => $responsableArea->area->nombre,
-                ]
-            ];
-        })->values()->toArray();
-    }
-
-    /**
-     * Actualiza un usuario existente.
-     *
-     * @param int $id
-     * @param array $data
-     * @return Usuario
-     */
-    public function updateUsuario(int $id, array $data): Usuario
-    {
-        $usuario = Usuario::findOrFail($id);
-
-        $updateData = [];
-        if (isset($data['nombre'])) $updateData['nombre'] = $data['nombre'];
-        if (isset($data['apellido'])) $updateData['apellido'] = $data['apellido'];
-        if (isset($data['ci'])) $updateData['ci'] = $data['ci'];
-        if (isset($data['email'])) $updateData['email'] = $data['email'];
-        if (isset($data['password'])) $updateData['password'] = Hash::make($data['password']);
-        if (isset($data['telefono'])) $updateData['telefono'] = $data['telefono'];
-
-        $usuario->update($updateData);
-        return $usuario->fresh();
-    }
-
-    /**
-     * Actualiza las relaciones del responsable con las áreas.
-     *
-     * @param Usuario $usuario
-     * @param array $areaIds
-     * @param int $olimpiadaId
-     * @return void
-     */
-    public function updateResponsableAreaRelations(Usuario $usuario, array $areaIds, int $olimpiadaId): void
-    {
-        ResponsableArea::where('id_usuario', $usuario->id_usuario)->delete();
-        $this->createResponsableAreaRelations($usuario, $areaIds, $olimpiadaId);
-    }
-
-    /**
-     * Elimina un responsable y todas sus relaciones.
-     *
-     * @param int $id
-     * @return bool
-     */
-    public function deleteResponsable(int $id): bool
-    {
-        $usuario = Usuario::find($id);
-        
-        if (!$usuario) {
-            return false;
-        }
-
-        ResponsableArea::where('id_usuario', $id)->delete();
-
-        $usuario->roles()->detach();
-
-        return $usuario->delete();
-    }
-
-    /**
-     * Formatea los datos de un usuario responsable.
-     *
-     * @param Usuario $usuario
-     * @param bool $includeOlimpiadas
-     * @return array
-     */
-    private function formatResponsableData(Usuario $usuario, bool $includeOlimpiadas = true): array
-    {
-        $data = [
+        return [
             'id_usuario' => $usuario->id_usuario,
-            'nombre' => $usuario->nombre,
-            'apellido' => $usuario->apellido,
-            'ci' => $usuario->ci,
-            'email' => $usuario->email,
-            'telefono' => $usuario->telefono ?? null,
-            'areas_asignadas' => $usuario->responsableArea->map(function ($ra) {
-                return $ra->area ? ['id_area' => $ra->area->id_area, 'nombre_area' => $ra->area->nombre] : null;
-            })->filter()->values(),
-            'created_at' => $usuario->created_at,
-            'updated_at' => $usuario->updated_at,
+            'nombre'     => $usuario->persona->nombre ?? '',
+            'apellido'   => $usuario->persona->apellido ?? '',
+            'ci'         => $usuario->persona->ci ?? '',
+            'telefono'   => $usuario->persona->telefono ?? '',
+            'email'      => $usuario->email,
+            'activo'     => (bool) $usuario->estado,
+
+            // Lista de áreas asignadas
+            'areas_asignadas' => $usuario->responsableAreas->map(function($ra) {
+                return [
+                    'id_responsable_area' => $ra->id_responsable_area,
+                    'id_area'             => $ra->areaOlimpiada->id_area ?? null,
+                    'nombre_area'         => $ra->areaOlimpiada->area->nombre ?? 'Desconocido',
+                    'gestion'             => $ra->areaOlimpiada->olimpiada->gestion ?? null
+                ];
+            })->values()->toArray()
         ];
-
-        if ($includeOlimpiadas) {
-            $data['olimpiadas'] = $usuario->roles->map(function ($role) {
-                return ['id_olimpiada' => $role->pivot->id_olimpiada, 'rol' => $role->nombre];
-            });
-        }
-
-        return $data;
-    }
-
-    /**
-     * Obtiene las áreas que ya tienen un responsable asignado en la gestión actual.
-     *
-     * @param string $gestion
-     * @return \Illuminate\Support\Collection
-     */
-    public function getAreasOcupadasPorGestion(string $gestion)
-    {
-        return Area::whereHas('areaOlimpiada', function ($query) use ($gestion) {
-            $query->whereHas('olimpiada', function ($q) use ($gestion) {
-                $q->where('gestion', $gestion);
-            });
-            $query->whereHas('responsableArea');
-        })
-        ->select('id_area', 'nombre')
-        ->distinct()
-        ->get();
-    }
-
-
-
-
-
-
-
-    /**
-     * Busca un usuario por su CI.
-     *
-     * @param string $ci
-     * @return Usuario|null
-     */
-    public function findUsuarioByCi(string $ci): ?Usuario
-    {
-        return Usuario::where('ci', $ci)->first();
     }
 }
