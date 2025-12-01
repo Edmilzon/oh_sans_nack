@@ -2,274 +2,195 @@
 
 namespace App\Repositories;
 
-use App\Model\AreaNivel;
-use App\Model\AreaOlimpiada;
-use App\Model\Competencia;
-use App\Model\Fase;
 use App\Model\FaseGlobal;
+use App\Model\Competencia;
 use App\Model\AccionSistema;
 use App\Model\ConfiguracionAccion;
 use App\Model\Olimpiada;
-use Illuminate\Database\Eloquent\Collection;
+use App\Model\AreaNivel;
+use App\Model\ResponsableArea;
+// CORRECCIÓN: Usamos Support\Collection para permitir mapeos
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class FaseRepository
 {
+    // ... (Métodos de obtenerPorAreaNivel, crearCompetencia, etc. se mantienen igual) ...
+    // ... (Copia los métodos anteriores que ya funcionaban) ...
+
+    public function obtenerPorAreaNivel(int $idAreaNivel): Collection
+    {
+        return Competencia::where('id_area_nivel', $idAreaNivel)
+            ->orderBy('fecha_inicio')
+            ->get()
+            ->map(function ($comp) {
+                $comp->id_fase = $comp->id_competencia;
+                $comp->nombre = $comp->nombre_examen;
+                $comp->orden = 0;
+                return $comp;
+            });
+    }
+
+    public function crearCompetencia(array $data, int $idAreaNivel): Competencia
+    {
+        $areaNivel = AreaNivel::findOrFail($idAreaNivel);
+        $idResponsable = null;
+
+        $responsable = ResponsableArea::where('id_area_olimpiada', $areaNivel->id_area_olimpiada)->first();
+        if ($responsable && $responsable->usuario) {
+            $idResponsable = $responsable->usuario->id_persona;
+        }
+
+        $competencia = Competencia::create([
+            'id_area_nivel'  => $idAreaNivel,
+            'id_persona'     => $idResponsable,
+            'nombre_examen'  => $data['nombre'],
+            'fecha_inicio'   => $data['fecha_inicio'],
+            'fecha_fin'      => $data['fecha_fin'],
+            'estado'         => false,
+            'id_fase_global' => null,
+        ]);
+
+        $competencia->id_fase = $competencia->id_competencia;
+        $competencia->nombre = $competencia->nombre_examen;
+
+        return $competencia;
+    }
+
+    public function findCompetenciaById(int $id): ?Competencia
+    {
+        return Competencia::find($id);
+    }
+
+    public function updateCompetencia(Competencia $competencia, array $data): bool
+    {
+        if (isset($data['nombre'])) {
+            $data['nombre_examen'] = $data['nombre'];
+        }
+        return $competencia->update($data);
+    }
+
+    public function deleteCompetencia(Competencia $competencia): bool
+    {
+        return $competencia->delete();
+    }
+
+    // --- Métodos Globales (sin cambios) ---
     public function obtenerFasesGlobales(): Collection
     {
         return FaseGlobal::orderBy('orden')->get();
     }
 
-    public function obtenerPorAreaNivel(int $id_area_nivel): Collection
-    {
-        return Fase::where('id_area_nivel', $id_area_nivel)->orderBy('orden')->get();
-    }
-
-    public function crearConCompetencia(array $data): Fase
-    {
-        return DB::transaction(function () use ($data) {
-            $fase = Fase::create([
-                'nombre' => $data['nombre'],
-                'orden' => $data['orden'] ?? 1,
-                'id_area_nivel' => $data['id_area_nivel'],
-            ]);
-
-            $areaNivel = AreaNivel::findOrFail($data['id_area_nivel']);
-            $areaOlimpiada = AreaOlimpiada::where('id_area', $areaNivel->id_area)
-                ->where('id_olimpiada', $areaNivel->id_olimpiada)
-                ->firstOrFail();
-
-            $responsableArea = DB::table('responsable_area')
-                ->where('id_area_olimpiada', $areaOlimpiada->id_area_olimpiada)
-                ->first();
-
-            if (!$responsableArea) {
-                throw new \Exception("No se encontró un responsable para el área de esta fase.");
-            }
-
-            Competencia::create([
-                'fecha_inicio' => $data['fecha_inicio'],
-                'fecha_fin' => $data['fecha_fin'],
-                'estado' => $data['estado'],
-                'id_fase' => $fase->id_fase,
-                'id_responsableArea' => $responsableArea->id_responsableArea,
-            ]);
-
-            return $fase->load('competencias');
-        });
-    }
-
-    public function obtenerPorId(int $id_fase): ?Fase
-    {
-        return Fase::find($id_fase);
-    }
-
-    public function actualizar(int $id_fase, array $data): bool
-    {
-        $fase = Fase::find($id_fase);
-        if ($fase) {
-            return $fase->update($data);
-        }
-        return false;
-    }
-
-    public function eliminar(int $id_fase): bool
-    {
-        $fase = Fase::find($id_fase);
-        if ($fase) {
-            return $fase->delete();
-        }
-        return false;
-    }
-
     public function listarAccionesSistema(): Collection
     {
-        return AccionSistema::select('id_accion as id', 'codigo', 'nombre')->get();
+        return AccionSistema::select('id_accion_sistema as id', 'codigo', 'nombre')->get();
     }
 
-    public function getConfiguracionAccionesPorGestion(int $idGestion): array
+    public function getConfiguracionMatriz(int $idOlimpiada): array
     {
-        $olimpiada = Olimpiada::findOrFail($idGestion);
-        $fasesGlobales = FaseGlobal::orderBy('orden')->get();
-        $accionesSistema = AccionSistema::get();
-        $configuraciones = ConfiguracionAccion::where('id_olimpiada', $idGestion)->get();
+        $olimpiada = Olimpiada::findOrFail($idOlimpiada);
+        $fasesGlobales = FaseGlobal::where('id_olimpiada', $idOlimpiada)->orderBy('orden')->get();
+        if ($fasesGlobales->isEmpty()) $fasesGlobales = FaseGlobal::orderBy('orden')->get();
 
-        $fasesIds = $fasesGlobales->pluck('id_fase_global');
-        $accionesIds = $accionesSistema->pluck('id_accion');
+        $acciones = AccionSistema::all();
+        $idsFases = $fasesGlobales->pluck('id_fase_global');
+        $configuraciones = ConfiguracionAccion::whereIn('id_fase_global', $idsFases)->get();
 
-        $configuracionMatrix = [];
-        foreach ($configuraciones as $config) {
-            $configuracionMatrix[$config->id_accion][$config->id_fase_global] = $config->habilitada;
+        $mapaConfig = [];
+        foreach ($configuraciones as $conf) {
+            $mapaConfig[$conf->id_accion_sistema][$conf->id_fase_global] = $conf->habilitada;
         }
 
-        $accionesResponse = [];
-        foreach ($accionesSistema as $accion) {
-            $porFase = [];
-            foreach ($fasesGlobales as $fase) {
-                $habilitada = $configuracionMatrix[$accion->id_accion][$fase->id_fase_global] ?? false;
-                $porFase[] = [
-                    'idFase' => $fase->id_fase_global,
-                    'habilitada' => (bool) $habilitada,
+        $accionesResponse = $acciones->map(function($accion) use ($fasesGlobales, $mapaConfig) {
+            $porFase = $fasesGlobales->map(function($fase) use ($accion, $mapaConfig) {
+                return [
+                    'idFase'     => $fase->id_fase_global,
+                    'habilitada' => $mapaConfig[$accion->id_accion_sistema][$fase->id_fase_global] ?? false
                 ];
-            }
-
-            $accionesResponse[] = [
-                'id' => $accion->id_accion,
-                'codigo' => $accion->codigo,
-                'nombre' => $accion->nombre,
-                'porFase' => $porFase,
+            });
+            return [
+                'id'      => $accion->id_accion_sistema,
+                'codigo'  => $accion->codigo,
+                'nombre'  => $accion->nombre,
+                'porFase' => $porFase
             ];
-        }
+        });
 
         return [
-            'gestion' => [
-                'id' => $olimpiada->id_olimpiada,
-                'gestion' => $olimpiada->gestion,
-            ],
-            'fases' => $fasesGlobales->map(function ($fase) {
-                return [
-                    'id' => $fase->id_fase_global,
-                    'codigo' => $fase->codigo,
-                    'nombre' => $fase->nombre,
-                ];
-            }),
-            'acciones' => $accionesResponse,
+            'gestion' => ['id' => $olimpiada->id_olimpiada, 'gestion' => $olimpiada->gestion],
+            'fases' => $fasesGlobales->map(fn($f) => ['id' => $f->id_fase_global, 'codigo' => $f->codigo, 'nombre' => $f->nombre]),
+            'acciones' => $accionesResponse
         ];
     }
 
-    public function guardarConfiguracionAccionesPorGestion(int $idGestion, array $accionesPorFase): void
+    public function guardarConfiguracion(array $accionesPorFase): void
     {
-        DB::transaction(function () use ($idGestion, $accionesPorFase) {
-            foreach ($accionesPorFase as $accionPorFase) {
-                ConfiguracionAccion::updateOrCreate(
-                    [
-                        'id_olimpiada' => $idGestion,
-                        'id_fase_global' => $accionPorFase['idFase'],
-                        'id_accion' => $accionPorFase['idAccion'],
-                    ],
-                    [
-                        'habilitada' => $accionPorFase['habilitada'],
-                    ]
-                );
-            }
-        });
+        foreach ($accionesPorFase as $item) {
+            ConfiguracionAccion::updateOrCreate(
+                ['id_accion_sistema' => $item['idAccion'], 'id_fase_global' => $item['idFase']],
+                ['habilitada' => $item['habilitada']]
+            );
+        }
     }
 
-    public function actualizarAccionHabilitada(int $idGestion, int $idFase, int $idAccion, bool $habilitada): void
+    public function actualizarAccionUnica(int $idFase, int $idAccion, bool $habilitada): void
     {
         ConfiguracionAccion::updateOrCreate(
-            [
-                'id_olimpiada' => $idGestion,
-                'id_fase_global' => $idFase,
-                'id_accion' => $idAccion,
-            ],
-            [
-                'habilitada' => $habilitada,
-            ]
+            ['id_fase_global' => $idFase, 'id_accion_sistema' => $idAccion],
+            ['habilitada' => $habilitada]
         );
     }
-    public function getAccionesHabilitadas(int $idGestion, int $idFase)
+
+    // --- NUEVO MÉTODO PARA CAMBIAR ESTADO (PATCH) ---
+    public function actualizarEstadoCompetencia(int $idCompetencia, bool $estado): array
     {
-        return ConfiguracionAccion::where('id_olimpiada', $idGestion)
-            ->where('id_fase_global', $idFase)
-            ->where('habilitada', true)
-            ->join('accion_sistema', 'configuracion_accion.id_accion', '=', 'accion_sistema.id_accion')
-            ->pluck('accion_sistema.codigo');
-    }
-
-    public function getFaseDetails(int $id_fase): ?array
-    {
-        $fase = Fase::with('areaNivel.olimpiada')->find($id_fase);
-
-        if (!$fase || $fase->areaNivel->olimpiada->gestion !== '2025') {
-            return null;
-        }
-
-        $id_area_nivel = $fase->id_area_nivel;
-
-        $cantidad_evaluadores = DB::table('evaluador_an')->where('id_area_nivel', $id_area_nivel)->count();
-
-        $cantidad_competidores = DB::table('competidor')->where('id_area_nivel', $id_area_nivel)->count();
-
-        $competenciaIds = DB::table('competencia')->where('id_fase', $id_fase)->pluck('id_competencia');
-        
-        $progreso = DB::table('evaluacion')->whereIn('id_competencia', $competenciaIds)->distinct()->count('id_competidor');
+        $competencia = Competencia::findOrFail($idCompetencia);
+        $competencia->update(['estado' => $estado]);
 
         return [
-            'cantidad_evaluadores' => $cantidad_evaluadores,
-            'cantidad_competidores' => $cantidad_competidores,
-            'progreso' => $progreso,
+            'id_subfase' => $competencia->id_competencia,
+            'estado'     => $estado ? 'EN_EVALUACION' : 'FINALIZADA' // O 'NO_INICIADA'
         ];
     }
 
-    public function getSubFasesDetails(int $id_area, int $id_nivel, int $id_olimpiada)
+    // --- REPORTE SUBFASES (FIX DE TIPO DE DATO) ---
+    public function getSubFasesDetails(int $idArea, int $idNivel, int $idOlimpiada): Collection
     {
-        $areaNivel = AreaNivel::where('id_area', $id_area)
-            ->where('id_nivel', $id_nivel)
-            ->where('id_olimpiada', $id_olimpiada)
-            ->first();
+        // 1. Buscar AreaNivel
+        $areaNivel = AreaNivel::whereHas('areaOlimpiada', function($q) use ($idArea, $idOlimpiada) {
+            $q->where('id_area', $idArea)->where('id_olimpiada', $idOlimpiada);
+        })->where('id_nivel', $idNivel)->first();
 
-        if (!$areaNivel) {
-            return collect();
-        }
+        if (!$areaNivel) return collect([]);
 
-        $id_area_nivel = $areaNivel->id_area_nivel;
+        $competencias = Competencia::where('id_area_nivel', $areaNivel->id_area_nivel)
+            ->orderBy('fecha_inicio')
+            ->get();
 
-        $fases = Fase::where('id_area_nivel', $id_area_nivel)->orderBy('orden')->get();
-        if ($fases->isEmpty()) {
-            return collect();
-        }
+        // 2. Mapear datos (esto devuelve Support\Collection)
+        return $competencias->map(function($comp) use ($areaNivel) {
 
-        $cant_evaluadores = DB::table('evaluador_an')->where('id_area_nivel', $id_area_nivel)->count();
-        $cant_estudiantes = DB::table('competidor')->where('id_area_nivel', $id_area_nivel)->count();
+            $cantEstudiantes = DB::table('competidor')->where('id_area_nivel', $areaNivel->id_area_nivel)->count();
+            $cantEvaluadores = DB::table('evaluador_an')->where('id_area_nivel', $areaNivel->id_area_nivel)->where('estado', true)->count();
 
-        $faseIds = $fases->pluck('id_fase');
-        $competencias = DB::table('competencia')->whereIn('id_fase', $faseIds)->get();
-        $competenciaIds = $competencias->pluck('id_competencia');
+            $evaluados = DB::table('evaluacion')
+                ->where('id_competencia', $comp->id_competencia)
+                ->distinct('id_competidor')
+                ->count();
 
-        $evaluatedCounts = DB::table('evaluacion')
-            ->whereIn('id_competencia', $competenciaIds)
-            ->select('id_competencia', DB::raw('COUNT(DISTINCT id_competidor) as count'))
-            ->groupBy('id_competencia')
-            ->get()
-            ->keyBy('id_competencia');
+            $progreso = ($cantEstudiantes > 0) ? ($evaluados / $cantEstudiantes) * 100 : 0;
 
-        $competenciasGroupedByFase = $competencias->groupBy('id_fase');
-
-        return $fases->map(function ($fase) use ($cant_estudiantes, $cant_evaluadores, $competenciasGroupedByFase, $evaluatedCounts) {
-            $competenciasDeLaFase = $competenciasGroupedByFase->get($fase->id_fase, collect());
-            $competidoresEvaluados = 0;
-            $estadoCompetencia = 'Pendiente'; 
-
-            if ($competenciasDeLaFase->isNotEmpty()) {
-                if ($competenciasDeLaFase->contains('estado', 'En Curso')) {
-                    $estadoCompetencia = 'En Curso';
-                } elseif ($competenciasDeLaFase->every('estado', 'Finalizado')) {
-                    $estadoCompetencia = 'Finalizado';
-                }
-            }
-            
-            foreach ($competenciasDeLaFase as $competencia) {
-                $competidoresEvaluados += $evaluatedCounts->get($competencia->id_competencia)->count ?? 0;
-            }
-
-            $progreso = ($cant_estudiantes > 0) ? ($competidoresEvaluados / $cant_estudiantes) * 100 : 0;
-            
-            $estadoMapping = [
-                'Pendiente' => 'NO_INICIADA',
-                'En Curso' => 'EN_EVALUACION',
-                'Finalizado' => 'FINALIZADA',
-            ];
-            $estado = $estadoMapping[$estadoCompetencia] ?? 'NO_INICIADA';
+            $estadoStr = 'NO_INICIADA';
+            if ($comp->estado) $estadoStr = 'EN_EVALUACION';
 
             return [
-                'id_subfase' => $fase->id_fase,
-                'nombre' => $fase->nombre,
-                'orden' => $fase->orden,
-                'estado' => $estado,
-                'cant_estudiantes' => $cant_estudiantes,
-                'cant_evaluadores' => $cant_evaluadores,
-                'progreso' => round($progreso),
+                'id_subfase'       => $comp->id_competencia,
+                'nombre'           => $comp->nombre_examen,
+                'orden'            => 0,
+                'estado'           => $estadoStr,
+                'cant_estudiantes' => $cantEstudiantes,
+                'cant_evaluadores' => $cantEvaluadores,
+                'progreso'         => round($progreso)
             ];
         });
     }

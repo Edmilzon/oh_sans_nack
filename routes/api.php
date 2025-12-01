@@ -191,3 +191,4 @@ Route::post('/medallero/configuracion', [MedalleroController::class, 'guardarMed
 Route::apiResource('departamentos', DepartamentoController::class);
 Route::apiResource('grados-escolaridad', GradoEscolaridadController::class);
 Route::apiResource('instituciones', InstitucionController::class);
+Route::patch('/sub-fases/{id}/estado', [FaseController::class, 'updateEstado']);
