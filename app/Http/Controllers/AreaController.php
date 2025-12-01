@@ -47,7 +47,7 @@ class AreaController extends Controller {
     public function obtenerAreasGestionActual(): JsonResponse
     {
         try {
-            $areas = $this->areaService->obtenerAreasGestionActual();
+            $areas = $this->areaService->getAreasGestionActual();
             
             return response()->json([
                 'success' => true,
