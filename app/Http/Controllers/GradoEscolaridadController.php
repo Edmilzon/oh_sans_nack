@@ -2,57 +2,102 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\GradoEscolaridadService;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use App\Http\Requests\GradoEscolaridad\StoreGradoEscolaridadRequest;
+use App\Services\GradoEscolaridadService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Exception;
 
 class GradoEscolaridadController extends Controller
 {
-    protected $gradoEscolaridadService;
-
-    public function __construct(GradoEscolaridadService $gradoEscolaridadService)
-    {
-        $this->gradoEscolaridadService = $gradoEscolaridadService;
-    }
+    public function __construct(
+        protected GradoEscolaridadService $gradoService
+    ) {}
 
     public function index(): JsonResponse
     {
         try {
-            $grados = $this->gradoEscolaridadService->getAll();
-
+            $grados = $this->gradoService->getAll();
             return response()->json([
                 'success' => true,
-                'data' => $grados
+                'data'    => $grados
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener los grados de escolaridad: ' . $e->getMessage()
+                'message' => 'Error al obtener grados: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    public function show($id): JsonResponse
+    public function show(int $id): JsonResponse
     {
         try {
-            $grado = $this->gradoEscolaridadService->findById($id);
+            $grado = $this->gradoService->findById($id);
+            return response()->json([
+                'success' => true,
+                'data'    => $grado
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 404);
+        }
+    }
 
-            if (!$grado) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Grado de escolaridad no encontrado'
-                ], 404);
-            }
+    public function store(StoreGradoEscolaridadRequest $request): JsonResponse
+    {
+        try {
+            $grado = $this->gradoService->create($request->validated());
 
             return response()->json([
                 'success' => true,
-                'data' => $grado
-            ]);
-        } catch (\Exception $e) {
+                'message' => 'Grado creado correctamente',
+                'data'    => $grado
+            ], 201);
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener el grado de escolaridad: ' . $e->getMessage()
+                'message' => 'Error al crear: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'nombre' => 'sometimes|string|max:255|unique:grado_escolaridad,nombre,' . $id . ',id_grado_escolaridad'
+        ]);
+
+        try {
+            $grado = $this->gradoService->update($id, $request->all());
+            return response()->json([
+                'success' => true,
+                'message' => 'Grado actualizado correctamente',
+                'data'    => $grado
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        try {
+            $this->gradoService->delete($id);
+            return response()->json([
+                'success' => true,
+                'message' => 'Grado eliminado correctamente'
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
             ], 500);
         }
     }

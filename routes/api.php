@@ -22,6 +22,7 @@ use App\Http\Controllers\FaseController;
 use App\Http\Controllers\MedalleroController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DepartamentoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -120,7 +121,7 @@ Route::prefix('v1')->group(function () {
 //area mostrar y insertar
 Route::get('/areas/{gestion}', [AreaController::class, 'getAreasPorGestion']);
 
-//responsable de area mostrar y insertar 
+//responsable de area mostrar y insertar
 Route::get('/responsableArea', [ResponsableController::class, 'index']);
 Route::post('/responsableArea', [ResponsableController::class, 'store']);
 Route::get('/usuarios/roles/{ci}', [ResponsableController::class, 'showRolesByCi']);
@@ -180,7 +181,11 @@ Route::get('/competidores/{id_competidor}/evaluacion', [EvaluacionController::cl
 Route::put('/evaluaciones/{id_evaluacion}', [EvaluacionController::class, 'update']);
 Route::post('/evaluaciones/{id_evaluacion}/finalizar', [EvaluacionController::class, 'finalizarCalificacion']);
 
-//Rutas para parametrizacion 
+//Rutas para parametrizacion
 Route::get('/responsableGestion/{idResponsable}', [MedalleroController::class, 'getAreaPorResponsable']);
 Route::get('/medallero/area/{idArea}/niveles', [MedalleroController::class, 'getNivelesPorArea']);
 Route::post('/medallero/configuracion', [MedalleroController::class, 'guardarMedallero']);
+
+// nuevos
+Route::apiResource('departamentos', DepartamentoController::class);
+Route::apiResource('grados-escolaridad', GradoEscolaridadController::class);
