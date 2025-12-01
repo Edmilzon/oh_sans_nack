@@ -27,6 +27,6 @@ class GradoEscolaridad extends Model
 
     public function competidores()
     {
-        return $this->hasMany(\App\Model\Competidor::class, 'id_grado_escolaridad');
+        return $this->hasMany(Competidor::class, 'id_grado_escolaridad');
     }
 }

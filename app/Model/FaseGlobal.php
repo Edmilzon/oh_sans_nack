@@ -13,6 +13,7 @@ class FaseGlobal extends Model
     protected $primaryKey = 'id_fase_global';
 
     protected $fillable = [
+        'id_olimpiada',
         'codigo',
         'nombre',
         'orden',
@@ -31,5 +32,10 @@ class FaseGlobal extends Model
     public function configuracionAcciones()
     {
         return $this->hasMany(ConfiguracionAccion::class, 'id_fase_global', 'id_fase_global');
+    }
+
+    public function olimpiada()
+    {
+        return $this->belongsTo(Olimpiada::class, 'id_olimpiada', 'id_olimpiada');
     }
 }

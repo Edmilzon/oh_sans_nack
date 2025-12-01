@@ -14,10 +14,10 @@ class Medallero extends Model
     public $timestamps = true;
 
     protected $fillable = [
-        'puesto',
-        'medalla',
         'id_competidor',
         'id_competencia',
+        'puesto',
+        'medalla',
     ];
 
     /**

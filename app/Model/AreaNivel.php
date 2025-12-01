@@ -48,7 +48,7 @@ class AreaNivel extends Model
     {
         return $this->hasOneThrough(Area::class, AreaOlimpiada::class, 'id_area_olimpiada', 'id_area', 'id_area_olimpiada', 'id_area');
     }
-    
+
     public function evaluadoresAn()
     {
         return $this->hasMany(EvaluadorAn::class, 'id_area_nivel');
@@ -56,7 +56,7 @@ class AreaNivel extends Model
 
     public function paramMedalleros()
     {
-        return $this->hasMany(ParamMedallero::class, 'id_area_nivel');
+        return $this->hasMany(ParametroMedallero::class, 'id_area_nivel');
     }
 
     public function configuracionAcciones()

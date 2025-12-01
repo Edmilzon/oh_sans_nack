@@ -15,7 +15,8 @@ class UsuarioRol extends Pivot
 
     protected $fillable = [
         'id_usuario',
-        'id_rol'
+        'id_rol',
+        'id_olimpiada',
     ];
 
     public function usuario()
@@ -26,5 +27,10 @@ class UsuarioRol extends Pivot
     public function rol()
     {
         return $this->belongsTo(Rol::class, 'id_rol');
+    }
+
+    public function olimpiada()
+    {
+        return $this->belongsTo(Olimpiada::class, 'id_olimpiada');
     }
 }

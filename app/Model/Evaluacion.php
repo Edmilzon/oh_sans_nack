@@ -47,6 +47,6 @@ class Evaluacion extends Model
 
     public function logsCambios()
     {
-        return $this->hasMany(\App\Model\LogCambioNota::class, 'id_evaluacion', 'id_evaluacion');
+        return $this->hasMany(LogCambioNota::class, 'id_evaluacion', 'id_evaluacion');
     }
 }
