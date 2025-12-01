@@ -6,6 +6,8 @@ use App\Services\AreaOlimpiadaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
+use App\Model\Olimpiada;
+use App\Model\FaseGlobal;
 
 class AreaOlimpiadaController extends Controller
 {
@@ -80,23 +82,46 @@ class AreaOlimpiadaController extends Controller
         try {
             $areas = $this->areaOlimpiadaService->getAreasByGestion($gestion);
 
-            $olimpiada = \App\Model\Olimpiada::where('gestion', $gestion)->first();
+            $olimpiada = Olimpiada::where('gestion', $gestion)->first();
             $mensajeFase = '';
         
             if ($olimpiada) {
-            $existeFaseEnGestion = \App\Model\Fase::whereHas('areaNivel', function($query) use ($olimpiada) {
-                $query->where('id_olimpiada', $olimpiada->id_olimpiada);
-            })->exists();
-            
-            if ($existeFaseEnGestion) {
-                $mensajeFase = 'La funcionalidad de asignar niveles a un Área no está disponible porque el proceso de evaluación ha iniciado. Solo puede ver las asignaciones previamente realizadas.';
+                // Buscar fases globales de evaluación o calificación con cronograma activo
+                $faseActiva = FaseGlobal::where('id_olimpiada', $olimpiada->id_olimpiada)
+                    ->where(function($query) {
+                        // Buscar fases que sean de evaluación o calificación
+                        $query->where('nombre', 'like', '%Evaluación%')
+                              ->orWhere('nombre', 'like', '%Calificación%')
+                              ->orWhere('nombre', 'like', '%evaluación%')
+                              ->orWhere('nombre', 'like', '%calificación%');
+                    })
+                    ->whereHas('cronogramas', function($query) {
+                        // Verificar que el cronograma esté activo (estado = true)
+                        $query->where('estado', true);
+                    })
+                    ->first();
+                
+                if ($faseActiva) {
+                    $mensajeFase = 'La funcionalidad de asignar niveles a un Área no está disponible porque el proceso de evaluación ha iniciado. Solo puede ver las asignaciones previamente realizadas.';
+                } else {
+                    // Verificar si hay alguna fase global activa (para mostrar mensaje apropiado)
+                    $faseGlobalActiva = FaseGlobal::where('id_olimpiada', $olimpiada->id_olimpiada)
+                        ->whereHas('cronogramas', function($query) {
+                            $query->where('estado', true);
+                        })
+                        ->first();
+                    
+                    if ($faseGlobalActiva) {
+                        // Si hay fase activa pero no es de evaluación/calificación (puede ser configuración, clasificación, premiación)
+                        $mensajeFase = 'No existe un proceso de evaluación activo.';
+                    } else {
+                        // No hay ninguna fase activa
+                        $mensajeFase = 'No existe un proceso de evaluación.';
+                    }
+                }
             } else {
-                $mensajeFase = 'No existe un proceso de evaluación.';
+                $mensajeFase = 'No se encontró la olimpiada para la gestión proporcionada.';
             }
-            } else {
-            $mensajeFase = 'No se encontró la olimpiada para la gestión proporcionada.';
-            }
-
 
             return response()->json([
                 'success' => true,
