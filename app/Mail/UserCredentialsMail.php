@@ -20,11 +20,6 @@ class UserCredentialsMail extends Mailable
 
     /**
      * Create a new message instance.
-     *
-     * @param string $nombreUsuario
-     * @param string $email
-     * @param string $password
-     * @param string $rol
      */
     public function __construct(string $nombreUsuario, string $email, string $password, string $rol)
     {
@@ -40,7 +35,7 @@ class UserCredentialsMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Tus Credenciales de Acceso a oh_Sansi',
+            subject: 'Credenciales de acceso - Oh Sansi',
         );
     }
 
@@ -60,11 +55,6 @@ class UserCredentialsMail extends Mailable
         );
     }
 
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
     public function attachments(): array
     {
         return [];

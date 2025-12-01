@@ -76,7 +76,7 @@ Route::prefix('evaluadores')->group(function () {
     Route::get('/{id}/areas-niveles', [EvaluadorController::class, 'getAreasNivelesById']);
     Route::post('/ci/{ci}/areas', [EvaluadorController::class, 'addAreasByCi']);
     Route::get('/ci/{ci}/gestiones', [EvaluadorController::class, 'getGestionesByCi']);
-    Route::post('/ci/{ci}/asignaciones', [EvaluadorController::class, 'addAsignacionesByCi']);
+    Route::post('/ci/{ci}/asignaciones', [EvaluadorController::class, 'addAsignaciones']);
     Route::get('/ci/{ci}/gestion/{gestion}/areas', [EvaluadorController::class, 'getAreasByCiAndGestion']);
 });
 

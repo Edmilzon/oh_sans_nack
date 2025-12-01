@@ -2,346 +2,207 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\EvaluadorService;
 use Illuminate\Routing\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+
+use App\Http\Requests\Evaluador\StoreEvaluadorRequest;
+use App\Services\EvaluadorService;
+use App\Model\Usuario;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 
 class EvaluadorController extends Controller
 {
-    protected $evaluadorService;
-
-    public function __construct(EvaluadorService $evaluadorService)
-    {
-        $this->evaluadorService = $evaluadorService;
-    }
+    public function __construct(
+        protected EvaluadorService $service
+    ) {}
 
     /**
-     * Registra un nuevo usuario evaluador.
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * GET /api/v1/evaluadores
+     * Buscador Avanzado: Lista evaluadores con filtros, búsqueda y paginación.
      */
-    public function store(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $request->validate([
-                'nombre' => 'required|string|max:255',
-                'apellido' => 'required|string|max:255',
-                'ci' => 'required|string|unique:usuario,ci',
-                'email' => 'required|email|unique:usuario,email',
-                'password' => 'required|string|min:8',
-                'telefono' => 'nullable|string|max:20',
-                'id_olimpiada' => 'required|integer|exists:olimpiada,id_olimpiada',
-                'area_nivel_ids' => 'required|array|min:1',
-                'area_nivel_ids.*' => ['integer', 'exists:area_nivel,id_area_nivel', function ($attribute, $value, $fail) use ($request) {
-                    // Validar que el id_area_nivel pertenezca a la olimpiada proporcionada
-                    if (!DB::table('area_nivel')->where('id_area_nivel', $value)->where('id_olimpiada', $request->id_olimpiada)->exists()) {
-                        $fail("La asignación con ID {$value} no pertenece a la olimpiada con ID {$request->id_olimpiada}.");
-                    }
-                }],
-            ], [
-                'ci.unique' => 'Ya existe un Evaluador registrado con este C.I. y no se realiza el registro.',
-                'email.unique' => 'Ya existe un Evaluador registrado con este correo electrónico y no se realiza el registro.',
-            ]);
+            // 1. Iniciar Query sobre el modelo Usuario
+            $query = Usuario::query();
 
-            $evaluadorData = $request->only([
-                'nombre', 'apellido', 'ci', 'email', 'password', 
-                'telefono', 'id_olimpiada', 'area_nivel_ids'
-            ]);
+            // 2. Unir con Persona para búsquedas de texto (Nombre/Apellido/CI)
+            $query->join('persona', 'usuario.id_persona', '=', 'persona.id_persona')
+                  ->select(
+                      'usuario.*',
+                      'persona.nombre',
+                      'persona.apellido',
+                      'persona.ci',
+                      'persona.telefono'
+                  );
 
-            $result = $this->evaluadorService->createEvaluador($evaluadorData);
+            // 3. FILTRO CRÍTICO: Solo usuarios que tengan (o hayan tenido) el rol 'Evaluador'
+            $query->whereHas('roles', function($q) {
+                $q->where('nombre', 'Evaluador');
+            });
+
+            // 4. BÚSQUEDA (Search Bar)
+            if ($search = $request->input('search')) {
+                $query->where(function($q) use ($search) {
+                    $q->where('persona.nombre', 'like', "%{$search}%")
+                      ->orWhere('persona.apellido', 'like', "%{$search}%")
+                      ->orWhere('persona.ci', 'like', "%{$search}%")
+                      ->orWhere('usuario.email', 'like', "%{$search}%");
+                });
+            }
+
+            // 5. FILTROS ADICIONALES
+
+            // Filtro por Gestión (Olimpiada específica)
+            if ($olimpiadaId = $request->input('olimpiada_id')) {
+                $query->whereHas('roles', function($q) use ($olimpiadaId) {
+                    $q->where('nombre', 'Evaluador')
+                      ->where('usuario_rol.id_olimpiada', $olimpiadaId);
+                });
+            }
+
+            // Filtro por Estado (Activo/Inactivo)
+            if ($request->has('activo')) {
+                 $activo = filter_var($request->input('activo'), FILTER_VALIDATE_BOOLEAN);
+                 $query->where('usuario.estado', $activo);
+            }
+
+            // 6. ORDENAMIENTO DINÁMICO
+            $sortField = $request->input('sort_by', 'created_at'); // Default: fecha creación
+            $sortDirection = $request->input('sort_order', 'desc');
+
+            $allowedSorts = ['nombre', 'apellido', 'ci', 'email', 'created_at'];
+
+            if (in_array($sortField, $allowedSorts)) {
+                if (in_array($sortField, ['nombre', 'apellido', 'ci'])) {
+                    $query->orderBy("persona.$sortField", $sortDirection);
+                } else {
+                    $query->orderBy("usuario.$sortField", $sortDirection);
+                }
+            }
+
+            // 7. PAGINACIÓN
+            $perPage = $request->input('per_page', 15);
+            $evaluadores = $query->paginate($perPage);
 
             return response()->json([
-                'message' => 'Evaluador registrado exitosamente',
-                'data' => $result
-            ], 201);
+                'success' => true,
+                'message' => 'Listado de evaluadores obtenido exitosamente.',
+                'data'    => $evaluadores
+            ]);
 
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
+            Log::error('Error en buscador de evaluadores: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Error al registrar evaluador',
-                'error' => $e->getMessage()
-            ], 500);
+                'success' => false,
+                'message' => 'Error al obtener la lista de evaluadores.',
+                'error'   => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
     /**
-     * Obtiene todos los responsables de área.
-     *
-     * @return JsonResponse
+     * POST /api/v1/evaluadores
+     * Crea un nuevo evaluador desde cero (Persona + Usuario + Rol + Áreas).
+     * Usa StoreEvaluadorRequest para validaciones automáticas.
      */
-    public function index(): JsonResponse
+    public function store(StoreEvaluadorRequest $request): JsonResponse
     {
         try {
-            $evaluadores = $this->evaluadorService->getAllEvaluadores();
-            
+            // Laravel ya validó los datos antes de llegar aquí gracias a StoreEvaluadorRequest.
+            // Si hay error (CI duplicado, email repetido), Laravel lanza una excepción
+            // y devuelve automáticamente el JSON de error 422.
+
+            $data = $request->validated();
+
+            $result = $this->service->createEvaluador($data);
+
             return response()->json([
-                'message' => 'Evaluadores obtenidos exitosamente',
-                'data' => $evaluadores
-            ]);
+                'success' => true,
+                'message' => 'Evaluador registrado exitosamente.',
+                'data'    => $result
+            ], Response::HTTP_CREATED);
+
         } catch (\Exception $e) {
+            Log::error('Error creando evaluador: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Error al obtener evaluadores',
-                'error' => $e->getMessage()
-            ], 500);
+                'success' => false,
+                'message' => 'Error al registrar el evaluador.',
+                'error'   => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
     /**
-     * Obtiene un evaluador específico por ID.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * GET /api/v1/evaluadores/{id}
+     * Obtiene el detalle de un evaluador por su ID de Usuario.
      */
-    public function show(int $id): JsonResponse
+    public function show($id): JsonResponse
     {
         try {
-            $evaluador = $this->evaluadorService->getEvaluadorById($id);
+            $evaluador = $this->service->getEvaluadorById($id);
 
             if (!$evaluador) {
                 return response()->json([
-                    'message' => 'Evaluador no encontrado'
-                ], 404);
+                    'success' => false,
+                    'message' => 'Evaluador no encontrado.'
+                ], Response::HTTP_NOT_FOUND);
             }
 
             return response()->json([
-                'message' => 'Evaluador obtenido exitosamente',
-                'data' => $evaluador
+                'success' => true,
+                'message' => 'Evaluador obtenido exitosamente.',
+                'data'    => $evaluador
             ]);
+
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error al obtener evaluador',
-                'error' => $e->getMessage()
-            ], 500);
+                'success' => false,
+                'message' => 'Error al obtener el evaluador.',
+                'error'   => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
     /**
-     * Obtiene las gestiones en las que ha trabajado un evaluador por su CI.
-     *
-     * @param string $ci
-     * @return JsonResponse
+     * POST /api/v1/evaluadores/ci/{ci}/asignaciones
+     * Agrega nuevas áreas/niveles a un evaluador existente.
      */
-    public function getGestionesByCi(string $ci): JsonResponse
+    public function addAsignaciones(Request $request, string $ci): JsonResponse
     {
-        try {
-            $gestiones = $this->evaluadorService->getGestionesByCi($ci);
-
-            if (empty($gestiones)) {
-                return response()->json([
-                    'message' => 'No se encontraron gestiones para el evaluador con el CI proporcionado o el usuario no es un evaluador.',
-                    'data' => []
-                ]);
-            }
-
-            return response()->json($gestiones);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al obtener las gestiones del evaluador.',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Obtiene las áreas asignadas a un evaluador para una gestión específica.
-     *
-     * @param string $ci
-     * @param string $gestion
-     * @return JsonResponse
-     */
-    public function getAreasByCiAndGestion(string $ci, string $gestion): JsonResponse
-    {
-        try {
-            $areas = $this->evaluadorService->getAreasByCiAndGestion($ci, $gestion);
-
-            if (empty($areas)) {
-                return response()->json([
-                    'message' => 'No se encontraron áreas asignadas para el evaluador con el CI y la gestión proporcionados.',
-                    'data' => []
-                ]);
-            }
-
-            return response()->json($areas);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al obtener las áreas del evaluador.',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Actualiza un evaluador existente por su CI.
-     *
-     * @param Request $request
-     * @param string $ci
-     * @return JsonResponse
-     */
-    public function updateByCi(Request $request, string $ci): JsonResponse
-    {
-        $usuario = DB::table('usuario')->where('ci', $ci)->first();
-
-        if (!$usuario) {
-            return response()->json(['message' => 'Evaluador no encontrado con el CI proporcionado.'], 404);
-        }
-
+        // Validación manual aquí ya que es un payload específico
         $request->validate([
-            'nombre' => 'sometimes|required|string|max:255',
-            'apellido' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:usuario,email,' . $usuario->id_usuario . ',id_usuario',
-            'password' => 'sometimes|required|string|min:8',
-            'telefono' => 'nullable|string|max:20',
-            'id_olimpiada' => 'sometimes|required|integer|exists:olimpiada,id_olimpiada',
-            'areas' => 'sometimes|required|array|min:1',
-            'areas.*' => ['integer', 'exists:area,id_area', function ($attribute, $value, $fail) use ($request) {
-                if ($request->has('id_olimpiada') && !DB::table('area_olimpiada')->where('id_area', $value)->where('id_olimpiada', $request->id_olimpiada)->exists()) {
-                    $fail("El área con ID {$value} no está asociada a la olimpiada con ID {$request->id_olimpiada}.");
-                }
-            }],
+            'id_olimpiada'   => 'required|integer|exists:olimpiada,id_olimpiada',
+            'area_nivel_ids' => 'required|array|min:1',
+            'area_nivel_ids.*' => 'integer|exists:area_nivel,id_area_nivel'
         ]);
 
         try {
-            $data = $request->only([
-                'nombre', 'apellido', 'email', 'password', 
-                'telefono', 'id_olimpiada', 'areas'
-            ]);
-
-            $result = $this->evaluadorService->updateEvaluadorByCi($ci, $data);
-
-            return response()->json([
-                'message' => 'Evaluador actualizado exitosamente',
-                'data' => $result
-            ]);
-
-        } catch (ValidationException $e) {
-            return response()->json(['message' => 'Error de validación', 'errors' => $e->errors()], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al actualizar el evaluador',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Añade nuevas áreas a un evaluador existente por su CI.
-     *
-     * @param Request $request
-     * @param string $ci
-     * @return JsonResponse
-     */
-    public function addAreasByCi(Request $request, string $ci): JsonResponse
-    {
-        $request->validate([
-            'id_olimpiada' => 'required|integer|exists:olimpiada,id_olimpiada',
-            'areas' => 'required|array|min:1',
-            'areas.*' => ['integer', 'exists:area,id_area', function ($attribute, $value, $fail) use ($request) {
-                if (!DB::table('area_olimpiada')->where('id_area', $value)->where('id_olimpiada', $request->id_olimpiada)->exists()) {
-                    $fail("El área con ID {$value} no está asociada a la olimpiada con ID {$request->id_olimpiada}.");
-                }
-            }],
-        ]);
-
-        try {
-            $data = $request->only(['id_olimpiada', 'areas']);
-            $result = $this->evaluadorService->addAreasToEvaluadorByCi($ci, $data);
-
-            if (!$result) {
-                return response()->json([
-                    'message' => 'Evaluador no encontrado con el CI proporcionado.'
-                ], 404);
-            }
+            $result = $this->service->addAsignacionesToEvaluador(
+                $ci,
+                $request->id_olimpiada,
+                $request->area_nivel_ids
+            );
 
             return response()->json([
-                'message' => 'Áreas añadidas exitosamente al evaluador',
-                'data' => $result
+                'success' => true,
+                'message' => 'Nuevas asignaciones agregadas correctamente.',
+                'data'    => $result
             ]);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al añadir áreas al evaluador',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
+            Log::error("Error agregando asignaciones a CI $ci: " . $e->getMessage());
 
-    /**
-     * Añade nuevas asignaciones de área/nivel a un evaluador por su CI.
-     *
-     * @param Request $request
-     * @param string $ci
-     * @return JsonResponse
-     */
-    public function addAsignacionesByCi(Request $request, string $ci): JsonResponse
-    {
-        try {
-            $request->validate([
-                'id_olimpiada' => 'required|integer|exists:olimpiada,id_olimpiada',
-                'area_nivel_ids' => 'required|array|min:1',
-                'area_nivel_ids.*' => ['integer', 'exists:area_nivel,id_area_nivel', function ($attribute, $value, $fail) use ($request) {
-                    if (!DB::table('area_nivel')->where('id_area_nivel', $value)->where('id_olimpiada', $request->id_olimpiada)->exists()) {
-                        $fail("La asignación con ID {$value} no pertenece a la olimpiada con ID {$request->id_olimpiada}.");
-                    }
-                }],
-            ]);
-
-            $data = $request->only(['id_olimpiada', 'area_nivel_ids']);
-            $result = $this->evaluadorService->addAsignacionesToEvaluadorByCi($ci, $data);
-
-            if (!$result) {
-                return response()->json([
-                    'message' => 'Evaluador no encontrado con el CI proporcionado.'
-                ], 404);
-            }
+            // Si el error es "Usuario no existe", devolvemos 404, sino 500
+            $status = str_contains($e->getMessage(), 'no existe') ? 404 : 500;
 
             return response()->json([
-                'message' => 'Asignaciones añadidas exitosamente al evaluador',
-                'data' => $result
-            ]);
-
-        } catch (ValidationException $e) {
-            return response()->json(['message' => 'Error de validación', 'errors' => $e->errors()], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al añadir asignaciones al evaluador',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Obtiene las áreas y niveles asignados a un evaluador por su ID.
-     *
-     * @param int $id
-     * @return JsonResponse
-     */
-    public function getAreasNivelesById(int $id): JsonResponse
-    {
-        try {
-            $areasNiveles = $this->evaluadorService->getAreasNivelesByEvaluadorId($id);
-
-            if (empty($areasNiveles)) {
-                return response()->json([
-                    'message' => 'No se encontraron áreas y niveles asignados para el evaluador con el ID proporcionado.',
-                    'data' => []
-                ], 404);
-            }
-
-            return response()->json($areasNiveles);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al obtener las áreas y niveles del evaluador.',
-                'error' => $e->getMessage()
-            ], 500);
+                'success' => false,
+                'message' => 'No se pudieron agregar las asignaciones.',
+                'error'   => $e->getMessage()
+            ], $status);
         }
     }
 }
