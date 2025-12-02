@@ -53,6 +53,7 @@ class DatabaseSeeder extends Seeder
             // FasesGestionActualSeeder::class,
 
             Responsables2025Seeder::class,
+            AsignarAreasResponsable2Seeder::class,
         ]);
     }
 }
