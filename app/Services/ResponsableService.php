@@ -4,259 +4,98 @@ namespace App\Services;
 
 use App\Repositories\ResponsableRepository;
 use App\Model\Usuario;
-use App\Model\ResponsableArea;
-use App\Model\Area;
 use App\Mail\UserCredentialsMail;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use Exception;
 
 class ResponsableService
 {
-    protected $responsableRepository;
-
-    public function __construct(ResponsableRepository $responsableRepository)
-    {
-        $this->responsableRepository = $responsableRepository;
-    }
+    public function __construct(
+        protected ResponsableRepository $repo
+    ) {}
 
     /**
-     * Crea un nuevo responsable de área.
-     *
-     * @param array $data
-     * @return array
-     * @throws \Exception
+     * Crea un Responsable completo.
      */
     public function createResponsable(array $data): array
     {
         return DB::transaction(function () use ($data) {
-            $plainPassword = $data['password'];
 
-            $usuario = $this->responsableRepository->createUsuario($data);
+            // 1. Gestionar Persona (Update or Create)
+            $persona = $this->repo->findOrCreatePersona($data);
 
-            $this->responsableRepository->assignResponsableRole($usuario, $data['id_olimpiada']);
+            // 2. Crear Usuario
+            $usuario = $this->repo->createUsuario($persona, $data);
 
-            $responsableAreas = $this->responsableRepository->createResponsableAreaRelations(
-                $usuario, 
-                $data['areas'],
-                $data['id_olimpiada']
-            );
+            // 3. Asignar Rol
+            $this->repo->assignResponsableRole($usuario, $data['id_olimpiada']);
 
-            Mail::to($usuario->email)->send(new UserCredentialsMail(
-                $usuario->nombre,
-                $usuario->email,
-                $plainPassword,
-                'Responsable de Área'
-            ));
+            // 4. Asignar Áreas
+            // Nota: $data['areas'] es un array de IDs de área (ej: [1, 2])
+            $this->repo->syncResponsableAreas($usuario, $data['areas'], $data['id_olimpiada']);
 
-            return $this->getResponsableData($usuario, $responsableAreas);
+            // 5. Enviar Credenciales (Fail-Safe)
+            $this->sendCredentialsEmail($usuario, $data['password']);
+
+            return $this->repo->getById($usuario->id_usuario);
         });
     }
 
-    /**
-     * Obtiene todos los responsables de área.
-     *
-     * @return array
-     */
-    public function getAllResponsables(): array
+    public function getAll(): array
     {
-        return $this->responsableRepository->getAllResponsablesWithAreas();
+        return $this->repo->getAllResponsables()->toArray();
+    }
+
+    public function getById(int $id): ?array
+    {
+        return $this->repo->getById($id);
     }
 
     /**
-     * Obtiene un responsable específico por ID.
-     *
-     * @param int $id
-     * @return array|null
+     * Lógica para el Escenario 3 (Agregar áreas a responsable existente)
      */
-    public function getResponsableById(int $id): ?array
+    public function addAreasToResponsable(string $ci, int $idOlimpiada, array $areaIds): array
     {
-        return $this->responsableRepository->getResponsableByIdWithAreas($id);
-    }
+        return DB::transaction(function () use ($ci, $idOlimpiada, $areaIds) {
 
-    /**
-     * Obtiene responsables por área específica.
-     *
-     * @param int $areaId
-     * @return array
-     */
-    public function getResponsablesByArea(int $areaId): array
-    {
-        return $this->responsableRepository->getResponsablesByArea($areaId);
-    }
+            // Buscar usuario por CI
+            $usuario = Usuario::whereHas('persona', fn($q) => $q->where('ci', $ci))->first();
 
-    /**
-     * Obtiene responsables por olimpiada específica.
-     *
-     * @param int $olimpiadaId
-     * @return array
-     */
-    public function getResponsablesByOlimpiada(int $olimpiadaId): array
-    {
-        return $this->responsableRepository->getResponsablesByOlimpiada($olimpiadaId);
-    }
-
-    /**
-     * Obtiene las gestiones (olimpiadas) en las que ha trabajado un responsable.
-     *
-     * @param string $ci
-     * @return array
-     */
-    public function getGestionesByCi(string $ci): array
-    {
-        return $this->responsableRepository->findGestionesByCi($ci);
-    }
-
-    /**
-     * Obtiene las áreas asignadas a un responsable para una gestión específica.
-     *
-     * @param string $ci
-     * @param string $gestion
-     * @return array
-     */
-    public function getAreasByCiAndGestion(string $ci, string $gestion): array
-    {
-        return $this->responsableRepository->findAreasByCiAndGestion($ci, $gestion);
-    }
-
-    /**
-     * Actualiza un responsable existente.
-     *
-     * @param int $id
-     * @param array $data
-     * @return array
-     */
-    public function updateResponsable(int $id, array $data): array
-    {
-        return DB::transaction(function () use ($id, $data) {
-            $usuario = $this->responsableRepository->updateUsuario($id, $data);
-
-            if (isset($data['areas'])) {
-                $this->responsableRepository->updateResponsableAreaRelations($usuario, $data['areas'], $data['id_olimpiada']);
+            if (!$usuario) {
+                throw new Exception("No se encontró ningún usuario con el CI: {$ci}");
             }
 
-            return $this->getResponsableData($usuario);
+            // Asegurar rol
+            $this->repo->assignResponsableRole($usuario, $idOlimpiada);
+
+            // Agregar nuevas áreas
+            $this->repo->syncResponsableAreas($usuario, $areaIds, $idOlimpiada);
+
+            return [
+                'id_usuario' => $usuario->id_usuario,
+                'nombre'     => $usuario->persona->nombre . ' ' . $usuario->persona->apellido,
+                'mensaje'    => 'Áreas asignadas correctamente.'
+            ];
         });
     }
 
-    /**
-     * Actualiza un responsable existente por su CI.
-     *
-     * @param string $ci
-     * @param array $data
-     * @return array|null
-     */
-    public function updateResponsableByCi(string $ci, array $data): ?array
+    private function sendCredentialsEmail(Usuario $usuario, string $rawPassword): void
     {
-        $usuario = $this->responsableRepository->findUsuarioByCi($ci);
-
-        if (!$usuario) {
-            return null;
-        }
-
-        return DB::transaction(function () use ($usuario, $data) {
-            $usuarioActualizado = $this->responsableRepository->updateUsuario($usuario->id_usuario, $data);
-
-            if (isset($data['areas']) && isset($data['id_olimpiada'])) {
-                $this->responsableRepository->updateResponsableAreaRelations($usuarioActualizado, $data['areas'], $data['id_olimpiada']);
+        try {
+            if (!empty($usuario->email)) {
+                Mail::to($usuario->email)->queue(
+                    new UserCredentialsMail(
+                        $usuario->persona->nombre,
+                        $usuario->email,
+                        $rawPassword,
+                        'Responsable de Área' // Rol para el correo
+                    )
+                );
             }
-
-            return $this->getResponsableData($usuarioActualizado);
-        });
-    }
-
-    /**
-     * Añade nuevas áreas a un responsable existente por su CI.
-     *
-     * @param string $ci
-     * @param array $data
-     * @return array|null
-     */
-    public function addAreasToResponsableByCi(string $ci, array $data): ?array
-    {
-        $usuario = $this->responsableRepository->findUsuarioByCi($ci);
-
-        if (!$usuario) {
-            return null;
+        } catch (\Throwable $e) {
+            Log::error("Error enviando correo a responsable {$usuario->id_usuario}: " . $e->getMessage());
         }
-
-        return DB::transaction(function () use ($usuario, $data) {
-            $this->responsableRepository->addResponsableAreaRelations(
-                $usuario,
-                $data['areas'],
-                $data['id_olimpiada']
-            );
-            return $this->getResponsableData($usuario->fresh());
-        });
-    }
-
-    /**
-     * Elimina un responsable.
-     *
-     * @param int $id
-     * @return bool
-     */
-    public function deleteResponsable(int $id): bool
-    {
-        return DB::transaction(function () use ($id) {
-            return $this->responsableRepository->deleteResponsable($id);
-        });
-    }
-
-    /**
-     * Obtiene las áreas ocupadas por responsables en la gestión actual.
-     *
-     * @return \Illuminate\Support\Collection
-     */
-    public function getAreasOcupadasEnGestionActual()
-    {
-        $gestionActual = date('Y'); // Obtiene el año actual, ej: "2025"
-        return $this->responsableRepository->getAreasOcupadasPorGestion($gestionActual);
-    }
-
-
-    public function validateAreas(array $areaIds): void
-    {
-        $existingAreas = Area::whereIn('id_area', $areaIds)->pluck('id_area')->toArray();
-        $missingAreas = array_diff($areaIds, $existingAreas);
-
-        if (!empty($missingAreas)) {
-            throw ValidationException::withMessages([
-                'areas' => ['Las siguientes áreas no existen: ' . implode(', ', $missingAreas)]
-            ]);
-        }
-    }
-
-    /**
-     * Obtiene los datos formateados del responsable.
-     *
-     * @param Usuario $usuario
-     * @param array|null $responsableAreas
-     * @return array
-     */
-    private function getResponsableData(Usuario $usuario, ?array $responsableAreas = null): array
-    {
-        $usuario->loadMissing('responsableArea.area');
-        if ($responsableAreas === null) {
-            $responsableAreas = $usuario->responsableArea->toArray();
-        }
-
-        return [
-            'id_usuario' => $usuario->id_usuario,
-            'nombre' => $usuario->nombre,
-            'apellido' => $usuario->apellido,
-            'ci' => $usuario->ci,
-            'email' => $usuario->email,
-            'telefono' => $usuario->telefono,
-            'rol' => 'Responsable Area',
-            'areas_asignadas' => array_map(function ($ra) {
-                return [
-                    'id_area' => $ra['area']['id_area'],
-                    'nombre_area' => $ra['area']['nombre']
-                ];
-            }, $responsableAreas),
-            'created_at' => $usuario->created_at,
-            'updated_at' => $usuario->updated_at
-        ];
     }
 }

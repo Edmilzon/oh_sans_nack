@@ -9,24 +9,26 @@ use Illuminate\Support\Facades\DB;
 
 class ListaResponsableAreaRepository
 {
-    public function getNivelesByArea(int $idArea): Collection
-    {
-        $gestionActual = date('Y');
+   public function getNivelesByArea(int $idArea): Collection
+{
+    $gestionActual = date('Y');
 
-        return DB::table('area_nivel')
-            ->join('nivel', 'area_nivel.id_nivel', '=', 'nivel.id_nivel')
-            ->join('olimpiada', 'area_nivel.id_olimpiada', '=', 'olimpiada.id_olimpiada')
-            ->select(
-                'nivel.id_nivel',
-                'nivel.nombre as nombre_nivel',
-            )
-            ->where('area_nivel.id_area', $idArea)
-            ->where('olimpiada.gestion', $gestionActual)
-            ->where('area_nivel.activo', true)
-            ->orderBy('nivel.nombre')
-            ->distinct()
-            ->get();
-    }
+    return DB::table('area_nivel as an')
+        ->join('nivel as n', 'an.id_nivel', '=', 'n.id_nivel')
+        ->join('area_olimpiada as ao', 'an.id_area_olimpiada', '=', 'ao.id_area_olimpiada')
+        ->join('olimpiada as o', 'ao.id_olimpiada', '=', 'o.id_olimpiada')
+        ->select(
+            'n.id_nivel',
+            'n.nombre as nombre_nivel'
+        )
+        ->where('ao.id_area', $idArea)
+        ->where('o.gestion', $gestionActual)
+        ->where('an.es_activo', true)
+        ->distinct()
+        ->orderBy('n.nombre')
+        ->get();
+}
+
 
     public function getAreaPorResponsable(int $idResponsable): Collection
     {
@@ -206,17 +208,17 @@ class ListaResponsableAreaRepository
             return (object) $competidorArray;
         });
     }
-     public function getListaGrados(int $idNivel): Collection
+    public function getListaGradosPorAreaNivel(int $idArea, int $idNivel): Collection
     {
-        if ($idNivel <= 0) {
+        if ($idArea <= 0 || $idNivel <= 0) {
             return collect();
         }
 
-        $gestionActual = (int) date('Y');
+        $gestionActual = (string) date('Y');
 
-        // Tomamos los id_grado_escolaridad desde area_nivel (uniendo con olimpiada vía id_olimpiada)
         $gradoIds = DB::table('area_nivel')
             ->join('olimpiada', 'area_nivel.id_olimpiada', '=', 'olimpiada.id_olimpiada')
+            ->where('area_nivel.id_area', $idArea)
             ->where('area_nivel.id_nivel', $idNivel)
             ->where('area_nivel.activo', true)
             ->whereNotNull('area_nivel.id_grado_escolaridad')
@@ -224,6 +226,7 @@ class ListaResponsableAreaRepository
             ->distinct()
             ->pluck('area_nivel.id_grado_escolaridad')
             ->filter()
+            ->unique()
             ->values();
 
         if ($gradoIds->isEmpty()) {
@@ -234,6 +237,8 @@ class ListaResponsableAreaRepository
             ->orderBy('nombre')
             ->get();
     }
+
+
      public function getListaDepartamento()
 {
     return Departamento::all();

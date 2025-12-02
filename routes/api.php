@@ -63,7 +63,7 @@ Route::prefix('responsables')->group(function () {
     Route::get('/{id}', [ResponsableController::class, 'show']);
     Route::get('/ci/{ci}/gestiones', [ResponsableController::class, 'getGestionesByCi']);
     Route::put('/ci/{ci}', [ResponsableController::class, 'updateByCi']);
-    Route::post('/ci/{ci}/areas', [ResponsableController::class, 'addAreasByCi']);
+    Route::post('/ci/{ci}/areas', [ResponsableController::class, 'addAreas']);
     Route::get('/ci/{ci}/gestion/{gestion}/areas', [ResponsableController::class, 'getAreasByCiAndGestion']);
     Route::get('/areas/ocupadas/gestion/actual', [ResponsableController::class, 'getOcupadasEnGestionActual']);
 });
@@ -77,7 +77,7 @@ Route::prefix('evaluadores')->group(function () {
     Route::get('/{id}/areas-niveles', [EvaluadorController::class, 'getAreasNivelesById']);
     Route::post('/ci/{ci}/areas', [EvaluadorController::class, 'addAreasByCi']);
     Route::get('/ci/{ci}/gestiones', [EvaluadorController::class, 'getGestionesByCi']);
-    Route::post('/ci/{ci}/asignaciones', [EvaluadorController::class, 'addAsignacionesByCi']);
+    Route::post('/ci/{ci}/asignaciones', [EvaluadorController::class, 'addAsignaciones']);
     Route::get('/ci/{ci}/gestion/{gestion}/areas', [EvaluadorController::class, 'getAreasByCiAndGestion']);
 });
 
@@ -175,3 +175,4 @@ Route::post('/medallero/configuracion', [MedalleroController::class, 'guardarMed
 Route::apiResource('departamentos', DepartamentoController::class);
 Route::apiResource('grados-escolaridad', GradoEscolaridadController::class);
 Route::apiResource('instituciones', InstitucionController::class);
+Route::patch('/sub-fases/{id}/estado', [FaseController::class, 'updateEstado']);

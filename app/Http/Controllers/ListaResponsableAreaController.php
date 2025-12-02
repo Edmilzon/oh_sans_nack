@@ -69,19 +69,54 @@ class ListaResponsableAreaController extends Controller
         ], 500);
     }
 }
-    public function getListaGrados(Request $request, int $idNivel): JsonResponse
+    public function getListaGrados(Request $request, int $idArea, int $idNivel): JsonResponse
     {
+        $validated = $request->validate([
+            'id_area' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $idAreaQuery = $validated['id_area'] ?? null;
+        $finalIdArea = $idAreaQuery ?? $idArea;
+
+        if ($finalIdArea !== null && $finalIdArea <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Área inválida.'
+            ], 422);
+        }
+
+        if ($idNivel <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nivel inválido.'
+            ], 422);
+        }
+
         try {
-            $grados = $this->listaResponsableAreaService->getListaGrados((int)$idNivel);
+            $grados = $this->listaResponsableAreaService->getListaGrados($finalIdArea, $idNivel);
+
+            $data = method_exists($grados, 'toArray') ? $grados->toArray() : $grados;
 
             return response()->json([
                 'success' => true,
-                'data' => ['grados' => $grados]
+                'data' => ['grados' => $data]
             ], 200);
-        } catch (\Exception $e) {
+        } catch (ValidationException $ve) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener los grados: ' . $e->getMessage()
+                'errors' => $ve->errors()
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Error al obtener lista de grados', [
+                'id_area' => $finalIdArea,
+                'id_nivel' => $idNivel,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener los grados. Si el problema persiste contacta al administrador.'
             ], 500);
         }
     }

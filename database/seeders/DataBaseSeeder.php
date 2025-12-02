@@ -51,6 +51,8 @@ class DatabaseSeeder extends Seeder
             // TestUserSeeder::class,
             // EvaluadorTestSeeder::class,
             // FasesGestionActualSeeder::class,
+
+            Responsables2025Seeder::class,
         ]);
     }
 }

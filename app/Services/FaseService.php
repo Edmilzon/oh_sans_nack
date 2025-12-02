@@ -3,78 +3,118 @@
 namespace App\Services;
 
 use App\Repositories\FaseRepository;
-use Illuminate\Database\Eloquent\Collection;
+// CRÍTICO: Usamos Support\Collection para compatibilidad de tipos
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class FaseService
 {
-    protected $faseRepository;
+    public function __construct(
+        protected FaseRepository $repo
+    ) {}
 
-    public function __construct(FaseRepository $faseRepository)
-    {
-        $this->faseRepository = $faseRepository;
-    }
+    // ==========================================
+    // GESTIÓN GLOBAL
+    // ==========================================
 
     public function obtenerFasesGlobales(): Collection
     {
-        return $this->faseRepository->obtenerFasesGlobales();
+        return $this->repo->obtenerFasesGlobales();
     }
 
-    public function obtenerFasesPorAreaNivel(int $id_area_nivel): Collection
+    public function listarAccionesSistema(): Collection
     {
-        return $this->faseRepository->obtenerPorAreaNivel($id_area_nivel);
+        return $this->repo->listarAccionesSistema();
     }
 
-    public function crearFaseConCompetencia(array $data)
+    public function getConfiguracionAccionesPorGestion(int $idGestion): array
     {
-        return $this->faseRepository->crearConCompetencia($data);
+        return $this->repo->getConfiguracionMatriz($idGestion);
     }
 
-    public function obtenerFasePorId(int $id_fase)
+    public function guardarConfiguracionAcciones(int $idGestion, array $accionesPorFase): void
     {
-        return $this->faseRepository->obtenerPorId($id_fase);
+        DB::transaction(function () use ($accionesPorFase) {
+            $this->repo->guardarConfiguracion($accionesPorFase);
+        });
     }
 
-    public function actualizarFase(int $id_fase, array $data)
+    // ALIAS: Método requerido por el Controlador
+    public function guardarConfiguracionAccionesPorGestion(int $idGestion, array $accionesPorFase): void
     {
-        return $this->faseRepository->actualizar($id_fase, $data);
+        $this->guardarConfiguracionAcciones($idGestion, $accionesPorFase);
     }
 
-    public function eliminarFase(int $id_fase)
+    public function actualizarAccionHabilitada(int $idGestion, int $idFase, int $idAccion, bool $habilitada): void
     {
-        return $this->faseRepository->eliminar($id_fase);
+        $this->repo->actualizarAccionUnica($idFase, $idAccion, $habilitada);
     }
 
-    public function listarAccionesSistema()
+    // MÉTODO FALTANTE: Agregado para solucionar error P1013
+    public function getAccionesHabilitadas(int $idGestion, int $idFase): Collection
     {
-        return $this->faseRepository->listarAccionesSistema();
+        return $this->repo->getAccionesHabilitadas($idFase);
     }
 
-    public function getConfiguracionAccionesPorGestion(int $idGestion)
+    // ==========================================
+    // GESTIÓN ESPECÍFICA (Competencias)
+    // ==========================================
+
+    public function obtenerFasesPorAreaNivel(int $idAreaNivel): Collection
     {
-        return $this->faseRepository->getConfiguracionAccionesPorGestion($idGestion);
+        return $this->repo->obtenerPorAreaNivel($idAreaNivel);
     }
 
-    public function guardarConfiguracionAccionesPorGestion(int $idGestion, array $accionesPorFase)
+    public function crearFase(array $data, int $idAreaNivel)
     {
-        return $this->faseRepository->guardarConfiguracionAccionesPorGestion($idGestion, $accionesPorFase);
+        return DB::transaction(function () use ($data, $idAreaNivel) {
+            return $this->repo->crearCompetencia($data, $idAreaNivel);
+        });
     }
 
-    public function actualizarAccionHabilitada(int $idGestion, int $idFase, int $idAccion, bool $habilitada)
+    // ALIAS: Método requerido por el Controlador
+    public function obtenerFasePorId(int $id)
     {
-        return $this->faseRepository->actualizarAccionHabilitada($idGestion, $idFase, $idAccion, $habilitada);
-    }
-    public function getAccionesHabilitadas(int $idGestion, int $idFase)
-    {
-        return $this->faseRepository->getAccionesHabilitadas($idGestion, $idFase);
+        return $this->repo->findCompetenciaById($id);
     }
 
-    public function getFaseDetails(int $id_fase)
+    // ALIAS: Método requerido por el Controlador
+    public function getFaseDetails(int $id)
     {
-        return $this->faseRepository->getFaseDetails($id_fase);
+        return $this->repo->findCompetenciaById($id);
     }
 
-    public function getSubFasesDetails(int $id_area, int $id_nivel, int $id_olimpiada)
+    public function actualizarFase(int $idFase, array $data)
     {
-        return $this->faseRepository->getSubFasesDetails($id_area, $id_nivel, $id_olimpiada);
+        $competencia = $this->repo->findCompetenciaById($idFase);
+        if ($competencia) {
+            $this->repo->updateCompetencia($competencia, $data);
+            return $competencia->fresh();
+        }
+        return null;
+    }
+
+    public function eliminarFase(int $idFase): bool
+    {
+        $competencia = $this->repo->findCompetenciaById($idFase);
+        if ($competencia) {
+            return $this->repo->deleteCompetencia($competencia);
+        }
+        return false;
+    }
+
+    public function cambiarEstadoFase(int $idFase, string $nuevoEstado)
+    {
+        $estadoBooleano = ($nuevoEstado === 'EN_EVALUACION');
+        return $this->repo->actualizarEstadoCompetencia($idFase, $estadoBooleano);
+    }
+
+    // ==========================================
+    // REPORTES
+    // ==========================================
+
+    public function getSubFasesDetails(int $idArea, int $idNivel, int $idOlimpiada): Collection
+    {
+        return $this->repo->getSubFasesDetails($idArea, $idNivel, $idOlimpiada);
     }
 }
