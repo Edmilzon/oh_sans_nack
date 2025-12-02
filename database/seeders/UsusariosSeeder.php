@@ -54,14 +54,14 @@ class UsusariosSeeder extends Seeder
             [
                 'rol_nombre' => 'Evaluador',
                 'persona' => [
-                    'nombre' => 'María',
+                    'nombre' => 'Claudina',
                     'apellido' => 'Evaluadora',
                     'ci' => '11223344',
                     'telefono' => '70000003',
-                    'email' => 'maria.persona@test.com',
+                    'email' => 'claudipachecoch@gmail.com',
                 ],
                 'usuario' => [
-                    'email' => 'evaluador@ohsansi.com',
+                    'email' => 'claudipachecoch@gmail.com',
                     'password' => 'evaluador123'
                 ]
             ],
@@ -106,6 +106,6 @@ class UsusariosSeeder extends Seeder
         $this->command->info('✅ Usuarios de prueba creados exitosamente:');
         $this->command->info('   - Admin: admin@ohsansi.com / admin123');
         $this->command->info('   - Responsable: responsable@ohsansi.com / responsable123');
-        $this->command->info('   - Evaluador: evaluador@ohsansi.com / evaluador123');
+        $this->command->info('   - Evaluador: claudipachecoch@gmail.com / evaluador123');
     }
 }
