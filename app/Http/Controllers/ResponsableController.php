@@ -3,13 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Routing\Controller;
-
 use App\Http\Requests\Responsable\StoreResponsableRequest;
 use App\Services\ResponsableService;
 use App\Model\Usuario;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
 class ResponsableController extends Controller
@@ -19,23 +17,19 @@ class ResponsableController extends Controller
     ) {}
 
     /**
-     * GET /api/v1/responsables
-     * Buscador Avanzado (Igual que Evaluador)
+     * GET /api/responsables
      */
     public function index(Request $request): JsonResponse
     {
         try {
             $query = Usuario::query();
-
             $query->join('persona', 'usuario.id_persona', '=', 'persona.id_persona')
                   ->select('usuario.*', 'persona.nombre', 'persona.apellido', 'persona.ci', 'persona.telefono');
 
-            // Filtro por Rol Responsable
             $query->whereHas('roles', function($q) {
                 $q->where('nombre', 'Responsable Area');
             });
 
-            // Buscador
             if ($search = $request->input('search')) {
                 $query->where(function($q) use ($search) {
                     $q->where('persona.nombre', 'like', "%{$search}%")
@@ -45,7 +39,6 @@ class ResponsableController extends Controller
                 });
             }
 
-            // Filtro por Olimpiada
             if ($olimpiadaId = $request->input('olimpiada_id')) {
                 $query->whereHas('roles', function($q) use ($olimpiadaId) {
                     $q->where('nombre', 'Responsable Area')
@@ -53,7 +46,6 @@ class ResponsableController extends Controller
                 });
             }
 
-            // Ordenamiento
             $sortField = $request->input('sort_by', 'created_at');
             $sortDirection = $request->input('sort_order', 'desc');
 
@@ -67,56 +59,40 @@ class ResponsableController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Lista de responsables obtenida.',
                 'data'    => $responsables
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error index responsables: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * POST /api/v1/responsables
-     * Registro nuevo con validación estricta.
+     * POST /api/responsables
      */
     public function store(StoreResponsableRequest $request): JsonResponse
     {
         try {
-            // Validación automática inyectada
-            $data = $request->validated();
-
-            $result = $this->service->createResponsable($data);
-
+            $result = $this->service->createResponsable($request->validated());
             return response()->json([
                 'success' => true,
                 'message' => 'Responsable registrado exitosamente.',
                 'data'    => $result
-            ], Response::HTTP_CREATED);
-
+            ], 201);
         } catch (\Exception $e) {
             Log::error('Error creando responsable: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al registrar.',
-                'error'   => $e->getMessage()
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * GET /api/v1/responsables/{id}
+     * GET /api/responsables/{id}
      */
     public function show($id): JsonResponse
     {
         try {
             $responsable = $this->service->getById($id);
-
-            if (!$responsable) {
-                return response()->json(['success' => false, 'message' => 'No encontrado'], 404);
-            }
-
+            if (!$responsable) return response()->json(['success' => false, 'message' => 'No encontrado'], 404);
             return response()->json(['success' => true, 'data' => $responsable]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
@@ -124,8 +100,31 @@ class ResponsableController extends Controller
     }
 
     /**
-     * POST /api/v1/responsables/ci/{ci}/areas
-     * (Escenario 3: Agregar áreas a responsable existente)
+     * PUT /api/responsables/ci/{ci}
+     */
+    public function updateByCi(Request $request, string $ci): JsonResponse
+    {
+        // Validación simple para update
+        $request->validate([
+            'nombre' => 'sometimes|string|max:50',
+            'apellido' => 'sometimes|string|max:50',
+            // No validamos unique estricto aquí para simplificar, idealmente sí
+        ]);
+
+        try {
+            $result = $this->service->updateResponsable($ci, $request->all());
+            return response()->json([
+                'success' => true,
+                'message' => 'Responsable actualizado correctamente.',
+                'data'    => $result
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * POST /api/responsables/ci/{ci}/areas
      */
     public function addAreas(Request $request, string $ci): JsonResponse
     {
@@ -136,21 +135,57 @@ class ResponsableController extends Controller
         ]);
 
         try {
-            $result = $this->service->addAreasToResponsable(
-                $ci,
-                $request->id_olimpiada,
-                $request->areas
-            );
-
+            $result = $this->service->addAreasToResponsable($ci, $request->id_olimpiada, $request->areas);
             return response()->json([
                 'success' => true,
                 'message' => 'Áreas asignadas correctamente.',
                 'data'    => $result
             ]);
-
         } catch (\Exception $e) {
             $status = str_contains($e->getMessage(), 'no existe') ? 404 : 500;
             return response()->json(['success' => false, 'message' => $e->getMessage()], $status);
+        }
+    }
+
+    /**
+     * GET /api/responsables/ci/{ci}/gestiones
+     */
+    public function getGestionesByCi(string $ci): JsonResponse
+    {
+        try {
+            $gestiones = $this->service->getGestionesByCi($ci);
+            return response()->json($gestiones);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * GET /api/responsables/ci/{ci}/gestion/{gestion}/areas
+     */
+    public function getAreasByCiAndGestion(string $ci, string $gestion): JsonResponse
+    {
+        try {
+            $areas = $this->service->getAreasByCiAndGestion($ci, $gestion);
+            return response()->json($areas);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * GET /api/responsables/areas/ocupadas/gestion/actual
+     */
+    public function getOcupadasEnGestionActual(): JsonResponse
+    {
+        try {
+            $areas = $this->service->getAreasOcupadasEnGestionActual();
+            return response()->json([
+                'success' => true,
+                'data'    => $areas
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 }

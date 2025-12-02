@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\ResponsableRepository;
 use App\Model\Usuario;
+use App\Model\Olimpiada;
 use App\Mail\UserCredentialsMail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -16,28 +17,34 @@ class ResponsableService
         protected ResponsableRepository $repo
     ) {}
 
-    /**
-     * Crea un Responsable completo.
-     */
     public function createResponsable(array $data): array
     {
         return DB::transaction(function () use ($data) {
-
-            // 1. Gestionar Persona (Update or Create)
             $persona = $this->repo->findOrCreatePersona($data);
-
-            // 2. Crear Usuario
             $usuario = $this->repo->createUsuario($persona, $data);
 
-            // 3. Asignar Rol
             $this->repo->assignResponsableRole($usuario, $data['id_olimpiada']);
-
-            // 4. Asignar Áreas
-            // Nota: $data['areas'] es un array de IDs de área (ej: [1, 2])
             $this->repo->syncResponsableAreas($usuario, $data['areas'], $data['id_olimpiada']);
 
-            // 5. Enviar Credenciales (Fail-Safe)
             $this->sendCredentialsEmail($usuario, $data['password']);
+
+            return $this->repo->getById($usuario->id_usuario);
+        });
+    }
+
+    public function updateResponsable(string $ci, array $data): array
+    {
+        return DB::transaction(function () use ($ci, $data) {
+            $usuario = $this->repo->getByCi($ci);
+            if (!$usuario) throw new Exception("Usuario no encontrado con CI: $ci");
+
+            $this->repo->updateResponsable($usuario, $data);
+
+            // Si envían nuevas áreas o cambio de gestión, se maneja aquí
+            if (isset($data['id_olimpiada']) && isset($data['areas'])) {
+                $this->repo->assignResponsableRole($usuario, $data['id_olimpiada']);
+                $this->repo->syncResponsableAreas($usuario, $data['areas'], $data['id_olimpiada']);
+            }
 
             return $this->repo->getById($usuario->id_usuario);
         });
@@ -53,30 +60,51 @@ class ResponsableService
         return $this->repo->getById($id);
     }
 
-    /**
-     * Lógica para el Escenario 3 (Agregar áreas a responsable existente)
-     */
     public function addAreasToResponsable(string $ci, int $idOlimpiada, array $areaIds): array
     {
         return DB::transaction(function () use ($ci, $idOlimpiada, $areaIds) {
+            $usuario = $this->repo->getByCi($ci);
+            if (!$usuario) throw new Exception("No se encontró usuario con CI: {$ci}");
 
-            // Buscar usuario por CI
-            $usuario = Usuario::whereHas('persona', fn($q) => $q->where('ci', $ci))->first();
-
-            if (!$usuario) {
-                throw new Exception("No se encontró ningún usuario con el CI: {$ci}");
-            }
-
-            // Asegurar rol
             $this->repo->assignResponsableRole($usuario, $idOlimpiada);
-
-            // Agregar nuevas áreas
             $this->repo->syncResponsableAreas($usuario, $areaIds, $idOlimpiada);
 
             return [
                 'id_usuario' => $usuario->id_usuario,
-                'nombre'     => $usuario->persona->nombre . ' ' . $usuario->persona->apellido,
+                'nombre'     => $usuario->persona->nombre,
                 'mensaje'    => 'Áreas asignadas correctamente.'
+            ];
+        });
+    }
+
+    // Método para el Escenario 2/3 (Historial de Gestiones)
+    public function getGestionesByCi(string $ci)
+    {
+        $usuario = $this->repo->getByCi($ci);
+        if (!$usuario) return [];
+
+        return $this->repo->getGestionesByUsuario($usuario->id_usuario);
+    }
+
+    // Método para el Escenario 2/3 (Historial de Áreas por Gestión)
+    public function getAreasByCiAndGestion(string $ci, string $gestion)
+    {
+        $usuario = $this->repo->getByCi($ci);
+        if (!$usuario) return [];
+
+        return $this->repo->getAreasByUsuarioAndGestion($usuario->id_usuario, $gestion);
+    }
+
+    public function getAreasOcupadasEnGestionActual()
+    {
+        $olimpiadaActual = Olimpiada::where('estado', true)->latest('gestion')->first();
+        if (!$olimpiadaActual) return [];
+
+        $areas = $this->repo->getAreasOcupadasPorGestion($olimpiadaActual->id_olimpiada);
+        return $areas->map(function($area) {
+            return [
+                'id_area' => $area->id_area,
+                'nombre'  => $area->nombre
             ];
         });
     }
@@ -90,12 +118,12 @@ class ResponsableService
                         $usuario->persona->nombre,
                         $usuario->email,
                         $rawPassword,
-                        'Responsable de Área' // Rol para el correo
+                        'Responsable de Área'
                     )
                 );
             }
         } catch (\Throwable $e) {
-            Log::error("Error enviando correo a responsable {$usuario->id_usuario}: " . $e->getMessage());
+            Log::error("Error mail responsable: " . $e->getMessage());
         }
     }
 }
