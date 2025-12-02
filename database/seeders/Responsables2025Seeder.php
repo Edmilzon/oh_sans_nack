@@ -8,57 +8,96 @@ use App\Model\Rol;
 use App\Model\Usuario;
 use App\Model\UsuarioRol;
 use App\Model\ResponsableArea;
+use App\Model\Persona;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class Responsables2025Seeder extends Seeder
 {
     public function run(): void
     {
-        $this->command->info("Creando 3 responsables para gestión 2025...");
+        $this->command->info("Creando responsables con contraseñas diferentes para 2025...");
 
-        // 1. Obtener olimpiada 2025
+        // 1. Buscar olimpiada 2025
         $olimpiada = Olimpiada::where('gestion', '2025')->first();
         if (!$olimpiada) {
-            $this->command->warn("Olimpiada 2025 no encontrada.");
+            $this->command->warn("⚠ No existe la olimpiada 2025.");
             return;
         }
 
-        // 2. Obtener áreas asociadas a la olimpiada
-        $areas = $olimpiada->areas()->take(3)->get();
-        if ($areas->count() < 3) {
-            $this->command->warn("No hay al menos 3 áreas asociadas a la olimpiada 2025.");
-            return;
-        }
+        // Áreas y contraseñas
+        $responsables = [
+            'Matemáticas' => 'Math2025!',
+            'Física'      => 'Fys2025#',
+            'Química'     => 'Chem2025$'
+        ];
 
-        // 3. Crear rol Responsable si no existe
+        // Crear rol Responsable si no existe
         $rolResponsable = Rol::firstOrCreate(['nombre' => 'Responsable']);
 
-        // 4. Crear 3 usuarios responsables
-        foreach ($areas as $area) {
-            $email = strtolower($area->nombre) . '.responsable@olimpiada.com';
-            $usuario = Usuario::firstOrCreate(
-                ['email' => $email],
+        foreach ($responsables as $nombreArea => $password) {
+
+            // 2. Buscar área por nombre
+            $area = DB::table('area')->where('nombre', $nombreArea)->first();
+            if (!$area) {
+                $this->command->warn("⚠ Área '{$nombreArea}' no existe.");
+                continue;
+            }
+
+            // 3. Buscar la relación area_olimpiada
+            $areaOlimpiada = DB::table('area_olimpiada')
+                ->where('id_area', $area->id_area)
+                ->where('id_olimpiada', $olimpiada->id_olimpiada)
+                ->first();
+
+            if (!$areaOlimpiada) {
+                $this->command->warn("⚠ No existe area_olimpiada para {$nombreArea} en 2025.");
+                continue;
+            }
+
+            // 4. Crear email normalizado: minúscula, sin acentos, sin caracteres raros
+            $slugArea = strtolower($nombreArea);
+            $slugArea = iconv('UTF-8', 'ASCII//TRANSLIT', $slugArea);  // quitar acentos
+            $slugArea = preg_replace('/[^a-z0-9]/', '', $slugArea);    // limpiar
+
+            $email = $slugArea . '.responsable@olimpiada.com';
+
+            // 5. Crear persona
+            $persona = Persona::firstOrCreate(
+                ['ci' => rand(1000000, 9999999)],
                 [
-                    'id_persona' => null,
-                    'password' => Hash::make('responsable123')
+                    'nombre'   => "{$nombreArea} Responsable",
+                    'apellido' => "2025",
+                    'telefono' => '60000000',
+                    'email'    => $email
                 ]
             );
 
-            // Asociar usuario con rol y olimpiada
+            // 6. Crear usuario
+            $usuario = Usuario::firstOrCreate(
+                ['email' => $email],
+                [
+                    'id_persona' => $persona->id_persona,
+                    'password'   => Hash::make($password)
+                ]
+            );
+
+            // 7. Asociar usuario al rol y olimpiada
             UsuarioRol::firstOrCreate([
-                'id_usuario' => $usuario->id_usuario,
-                'id_rol' => $rolResponsable->id_rol,
+                'id_usuario'   => $usuario->id_usuario,
+                'id_rol'       => $rolResponsable->id_rol,
                 'id_olimpiada' => $olimpiada->id_olimpiada
             ]);
 
-            // Asociar usuario con área_olimpiada
-            $areaOlimpiadaId = $area->pivot->id_area_olimpiada;
+            // 8. Asociar usuario a área en la olimpiada
             ResponsableArea::firstOrCreate([
-                'id_usuario' => $usuario->id_usuario,
-                'id_area_olimpiada' => $areaOlimpiadaId
+                'id_usuario'        => $usuario->id_usuario,
+                'id_area_olimpiada' => $areaOlimpiada->id_area_olimpiada
             ]);
+
+            $this->command->info("✔ Responsable creado para área: {$nombreArea}");
         }
 
-        $this->command->info("✅ 3 responsables creados con contraseña 'responsable123'.");
+        $this->command->info("🎉 Responsables creados y asociados correctamente.");
     }
 }
