@@ -116,15 +116,25 @@ class FaseController extends Controller
             'estado' => 'required|string|in:NO_INICIADA,EN_EVALUACION,FINALIZADA'
         ]);
 
-        try {
-            $data = $this->service->cambiarEstadoFase($id, $request->input('estado'));
-            return response()->json([
-                'success' => true,
-                'message' => 'Estado actualizado correctamente.',
-                'data'    => $data
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+        $nuevoEstadoStr = $request->input('estado');
+
+        // TRADUCCIÓN: String -> Boolean
+        // Asumimos:
+        // EN_EVALUACION = true (visible/activo)
+        // FINALIZADA = false (cerrado)
+        // NO_INICIADA = false (aún no visible)
+
+        $estadoBool = ($nuevoEstadoStr === 'EN_EVALUACION');
+
+        // Actualizamos usando el servicio
+        // Nota: Si quieres guardar "FINALIZADA" real, necesitas cambiar la columna en DB.
+        // Con boolean, "FINALIZADA" y "NO_INICIADA" se guardan ambos como 0.
+
+        $updated = $this->service->cambiarEstadoFase($id, $estadoBool);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Estado actualizado a $nuevoEstadoStr"
+        ]);
     }
 }

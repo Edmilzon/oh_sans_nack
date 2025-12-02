@@ -153,4 +153,33 @@ class AreaNivelController extends Controller
             ], 500);
         }
     }
+
+    public function getNivelesPorAreaOlimpiada($idOlimpiada, $idArea): JsonResponse
+    {
+        // Buscamos la relación AreaOlimpiada específica
+        $areaOlimpiada = \App\Model\AreaOlimpiada::where('id_olimpiada', $idOlimpiada)
+            ->where('id_area', $idArea)
+            ->first();
+
+        if (!$areaOlimpiada) {
+            return response()->json(['success' => true, 'message' => 'No hay niveles', 'data' => []]);
+        }
+
+        // Obtenemos los niveles asociados
+        $niveles = \App\Model\AreaNivel::with('nivel')
+            ->where('id_area_olimpiada', $areaOlimpiada->id_area_olimpiada)
+            ->get()
+            ->map(function($an) {
+                return [
+                    'id_nivel' => $an->nivel->id_nivel,
+                    'nombre'   => $an->nivel->nombre
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Niveles del área obtenidos correctamente',
+            'data'    => $niveles
+        ]);
+    }
 }

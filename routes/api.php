@@ -176,3 +176,15 @@ Route::apiResource('departamentos', DepartamentoController::class);
 Route::apiResource('grados-escolaridad', GradoEscolaridadController::class);
 Route::apiResource('instituciones', InstitucionController::class);
 Route::patch('/sub-fases/{id}/estado', [FaseController::class, 'updateEstado']);
+
+// 1. Sub-fases
+Route::get('/sub-fases/area/{id_area}/nivel/{id_nivel}/olimpiada/{id_olimpiada}', [FaseController::class, 'getSubFases']);
+
+// 2. Areas Actuales (Plana)
+Route::get('/areas/actuales', [AreaController::class, 'getActualesPlanas']);
+
+// 3. Niveles por Area/Olimpiada
+Route::get('/area-nivel/olimpiada/{id_olimpiada}/area/{id_area}', [AreaNivelController::class, 'getNivelesPorAreaOlimpiada']);
+
+// 4. Cambiar estado
+Route::patch('/sub-fases/{id_subfase}/estado', [FaseController::class, 'updateEstado']);

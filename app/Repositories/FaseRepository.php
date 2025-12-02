@@ -186,42 +186,66 @@ class FaseRepository
     // REPORTES (SubFases)
     // ==========================================
 
-    public function getSubFasesDetails(int $idArea, int $idNivel, int $idOlimpiada): Collection
+    public function getSubFasesDetails(int $idArea, int $idNivel, int $idOlimpiada): \Illuminate\Support\Collection
     {
-        $areaNivel = AreaNivel::whereHas('areaOlimpiada', function($q) use ($idArea, $idOlimpiada) {
-                $q->where('id_area', $idArea)->where('id_olimpiada', $idOlimpiada);
-            })->where('id_nivel', $idNivel)->first();
+        // 1. Obtener el ID de AreaNivel correcto para esa olimpiada
+        $areaNivel = \App\Model\AreaNivel::where('id_nivel', $idNivel)
+            ->whereHas('areaOlimpiada', function($q) use ($idArea, $idOlimpiada) {
+                $q->where('id_area', $idArea)
+                ->where('id_olimpiada', $idOlimpiada);
+            })->first();
 
         if (!$areaNivel) return collect([]);
 
-        $competencias = Competencia::where('id_area_nivel', $areaNivel->id_area_nivel)
+        // 2. Obtener competencias
+        $competencias = \App\Model\Competencia::where('id_area_nivel', $areaNivel->id_area_nivel)
             ->orderBy('fecha_inicio')
             ->get();
 
-        // Este map convierte la colección Eloquent a una Support Collection
         return $competencias->map(function($comp) use ($areaNivel) {
 
-            $cantEstudiantes = DB::table('competidor')->where('id_area_nivel', $areaNivel->id_area_nivel)->count();
-            $cantEvaluadores = DB::table('evaluador_an')->where('id_area_nivel', $areaNivel->id_area_nivel)->where('estado', true)->count();
+            // A. Cálculos de contadores
+            // Estudiantes inscritos en este nivel (se podría filtrar más si hay grupos)
+            $cantEstudiantes = \App\Model\Competidor::where('id_area_nivel', $areaNivel->id_area_nivel)->count();
 
-            $evaluados = DB::table('evaluacion')
-                ->where('id_competencia', $comp->id_competencia)
-                ->distinct('id_competidor')
+            // Evaluadores activos asignados
+            $cantEvaluadores = \App\Model\EvaluadorAn::where('id_area_nivel', $areaNivel->id_area_nivel)
+                ->where('estado', true)
                 ->count();
 
-            $progreso = ($cantEstudiantes > 0) ? ($evaluados / $cantEstudiantes) * 100 : 0;
+            // Progreso: Cuántos estudiantes tienen nota en esta competencia
+            $evaluados = \App\Model\Evaluacion::where('id_competencia', $comp->id_competencia)
+                ->distinct('id_competidor') // Asegurar que sea por estudiante único
+                ->count();
 
-            $estadoStr = 'NO_INICIADA';
-            if ($comp->estado) $estadoStr = 'EN_EVALUACION';
+            $progreso = ($cantEstudiantes > 0) ? round(($evaluados / $cantEstudiantes) * 100) : 0;
+
+            // B. Lógica de Estados (Frontend: NO_INICIADA, EN_EVALUACION, FINALIZADA)
+            $hoy = now();
+            $estadoStr = "NO_INICIADA";
+
+            if ($comp->estado) {
+                // Si el flag manual 'estado' es true, forzamos EN_EVALUACION o FINALIZADA según fechas
+                if ($hoy->gt($comp->fecha_fin)) {
+                    $estadoStr = "FINALIZADA";
+                } else {
+                    $estadoStr = "EN_EVALUACION";
+                }
+            } else {
+                // Si está false, revisamos si ya pasó para marcarla finalizada o dejarla no iniciada
+                if ($hoy->gt($comp->fecha_fin)) {
+                    $estadoStr = "FINALIZADA"; // Cerrada administrativamente
+                }
+            }
 
             return [
                 'id_subfase'       => $comp->id_competencia,
                 'nombre'           => $comp->nombre_examen,
-                'orden'            => 0,
+                'orden'            => 1, // Puedes agregar una columna 'orden' a tu tabla competencia si la necesitas fija
                 'estado'           => $estadoStr,
                 'cant_estudiantes' => $cantEstudiantes,
                 'cant_evaluadores' => $cantEvaluadores,
-                'progreso'         => round($progreso)
+                'progreso'         => $progreso
             ];
         });
     }
