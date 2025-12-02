@@ -122,7 +122,7 @@ Route::put('/area-nivel/por-area/{id_area}', [AreaNivelController::class, 'updat
 // AreaNivelGradoController (CON grados - tabla area_nivel_grado)
 Route::get('/area-nivel', [AreaNivelGradoController::class, 'index']);
 Route::post('/area-nivel', [AreaNivelGradoController::class, 'store']);
-Route::get('/area-nivel/simplificado', [AreaNivelGradoController::class, 'getAreasConNivelesSimplificado']);
+Route::get('/area-nivel/sim/simplificado', [AreaNivelGradoController::class, 'getAreasConNivelesSimplificado']);
 Route::get('/area-nivel/gestion/{gestion}/area/{id_area}', [AreaNivelGradoController::class, 'getNivelesGradosByAreaAndGestion']);
 Route::post('/area-nivel/gestion/{gestion}/areas', [AreaNivelGradoController::class, 'getNivelesGradosByAreasAndGestion']);
 Route::post('/area-nivel/por-gestion', [AreaNivelGradoController::class, 'getByGestionAndAreas']);
@@ -141,10 +141,10 @@ Route::get('/parametros/{idOlimpiada}', [ParametroController::class, 'getByOlimp
 Route::post('/parametros', [ParametroController::class, 'store']);
 
 //lista de competidores
-Route::get('/responsable/{idResponsable}', [ListaResponsableAreaController::class, 'getAreaPorResponsable']);
-Route::get('/niveles/{idArea}/area', [ListaResponsableAreaController::class, 'getNivelesPorArea']);
+Route::get('/responsable/{idResponsable}', [ListaResponsableAreaController::class, 'getAreaPorResponsable']);//da
+Route::get('/niveles/{idArea}/area', [ListaResponsableAreaController::class, 'getNivelesPorArea']);//da
 //Route::get('/grado', [ListaResponsableAreaController::class, 'getGrado']);
-Route::get('/grados/nivel/{idNivel}', [App\Http\Controllers\ListaResponsableAreaController::class, 'getListaGrados']);
+Route::get('/grados/{idArea}/nivel/{idNivel}', [ListaResponsableAreaController::class, 'getListaGrados']);
 Route::get('/departamento', [ListaResponsableAreaController::class, 'getDepartamento']);
 Route::get('/generos', [ListaResponsableAreaController::class, 'getGenero']);
 Route::get('/listaCompleta/{idResponsable}/{idArea}/{idNivel}/{idGrado}/{genero?}/{departamento?}', [ListaResponsableAreaController::class, 'listarPorAreaYNivel']);
