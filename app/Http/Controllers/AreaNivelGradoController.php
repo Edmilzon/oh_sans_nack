@@ -189,7 +189,7 @@ class AreaNivelGradoController extends Controller
             $gestion = $request->input('gestion');
             $idAreas = $request->input('id_areas');
 
-            $result = $this->areaNivelGradoService->getAreaNivelByGestionAndAreas($gestion, $idAreas);
+            $result = $this->areaNivelGradoService->getByGestionAndAreas($gestion, $idAreas);
 
             return response()->json([
                 'success' => true,
