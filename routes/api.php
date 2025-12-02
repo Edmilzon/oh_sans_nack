@@ -142,8 +142,8 @@ Route::get('/parametros/{idOlimpiada}', [ParametroController::class, 'getByOlimp
 Route::post('/parametros', [ParametroController::class, 'store']);
 
 //lista de competidores
-Route::get('/responsable/{idResponsable}', [ListaResponsableAreaController::class, 'getAreaPorResponsable']);//da
-Route::get('/niveles/{idArea}/area', [ListaResponsableAreaController::class, 'getNivelesPorArea']);//da
+Route::get('/responsable/{idResponsable}', [ListaResponsableAreaController::class, 'getAreaPorResponsable']);
+Route::get('/niveles/{idArea}/area', [ListaResponsableAreaController::class, 'getNivelesPorArea']);
 //Route::get('/grado', [ListaResponsableAreaController::class, 'getGrado']);
 Route::get('/grados/{idArea}/nivel/{idNivel}', [ListaResponsableAreaController::class, 'getListaGrados']);
 Route::get('/departamento', [ListaResponsableAreaController::class, 'getDepartamento']);

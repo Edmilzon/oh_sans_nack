@@ -50,20 +50,20 @@ class ListaResponsableAreaService
     );
 }
 
-
-   public function getListaGrados(?int $idArea, int $idNivel): Collection
-    {
-        if ($idNivel <= 0) {
-            return collect();
-        }
-
-        if ($idArea !== null && $idArea > 0) {
-            return $this->listaResponsableAreaRepository->getListaGradosPorAreaNivel($idArea, $idNivel);
-        }
-
-        return $this->listaResponsableAreaRepository->getListaGradosPorNivel($idNivel);
+public function getListaGrados(?int $idArea, int $idNivel): Collection
+{
+    if ($idNivel <= 0) {
+        return collect();
     }
 
+    if ($idArea !== null && $idArea > 0) {
+        return $this->listaResponsableAreaRepository
+            ->getListaGradosPorAreaNivel($idArea, $idNivel);
+    }
+
+    return $this->listaResponsableAreaRepository
+        ->getListaGradosPorNivel($idNivel);
+}
 
    public function getListaDepartamento(){
     return $this->listaResponsableAreaRepository->getListaDepartamento();
