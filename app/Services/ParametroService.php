@@ -3,253 +3,99 @@
 namespace App\Services;
 
 use App\Repositories\ParametroRepository;
-use App\Repositories\AreaNivelRepository;
-use App\Services\OlimpiadaService;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ParametroService
 {
-    protected $parametroRepository;
-    protected $areaNivelRepository;
-    protected $olimpiadaService;
-
-    const MAXIMO_CLASIFICADOS = PHP_INT_MAX;
-
     public function __construct(
-        ParametroRepository $parametroRepository,
-        AreaNivelRepository $areaNivelRepository,
-        OlimpiadaService $olimpiadaService
-    ) {
-        $this->parametroRepository = $parametroRepository;
-        $this->areaNivelRepository = $areaNivelRepository;
-        $this->olimpiadaService = $olimpiadaService;
-    }
+        protected ParametroRepository $repo
+    ) {}
 
-    public function getAllParametros(): array
+    public function guardarParametrosMasivos(array $items): void
     {
-        $parametros = $this->parametroRepository->getAll();
-
-        $formatted = $parametros->map(function($parametro) {
-            return $this->formatParametro($parametro);
-        });
-
-        return [
-            'parametros' => $formatted,
-            'total' => $parametros->count(),
-            'message' => 'Parámetros obtenidos exitosamente'
-        ];
-    }
-
-    public function getParametrosByOlimpiada(int $idOlimpiada): array
-    {
-        $parametros = $this->parametroRepository->getByOlimpiada($idOlimpiada);
-
-        $formatted = $parametros->map(function($parametro) {
-            return $this->formatParametro($parametro);
-        });
-
-        return [
-            'parametros' => $formatted,
-            'total' => $parametros->count(),
-            'message' => "Parámetros obtenidos para la olimpiada {$idOlimpiada}"
-        ];
-    }
-
-    public function createOrUpdateParametros(array $data): array
-    {
-        $results = [];
-        $errors = [];
-
-        foreach ($data['area_niveles'] as $areaNivelData) {
-            try {
-                $areaNivel = $this->areaNivelRepository->getById($areaNivelData['id_area_nivel']);
-                
-                if (!$areaNivel) {
-                    $errors[] = "El área-nivel con ID {$areaNivelData['id_area_nivel']} no existe";
-                    continue;
-                }
-
-                $cantidadMaxApro = isset($areaNivelData['cantidad_max_apro']) 
-                    ? $areaNivelData['cantidad_max_apro'] 
-                    : null;
-
-                $parametro = $this->parametroRepository->updateOrCreateByAreaNivel(
-                    $areaNivelData['id_area_nivel'],
-                    [
-                        'nota_min_clasif' => $areaNivelData['nota_min_clasif'],
-                        'cantidad_max_apro' => $cantidadMaxApro
-                    ]
-                );
-
-                $results[] = $this->formatParametro($parametro);
-
-            } catch (\Exception $e) {
-                $errors[] = "Error procesando área-nivel {$areaNivelData['id_area_nivel']}: " . $e->getMessage();
+        DB::transaction(function () use ($items) {
+            foreach ($items as $item) {
+                $this->repo->guardarParametro($item);
             }
-        }
-
-        $response = [
-            'parametros_actualizados' => $results,
-            'total_procesados' => count($results),
-            'message' => count($results) . ' parámetros procesados exitosamente'
-        ];
-
-        if (!empty($errors)) {
-            $response['errors'] = $errors;
-            $response['message'] .= ' con ' . count($errors) . ' errores';
-        }
-
-        return $response;
+        });
     }
 
-    public function createOrUpdateParametro(array $data): array
+    public function getParametrosPorOlimpiada(int $idOlimpiada): array
     {
-        $areaNivel = $this->areaNivelRepository->getById($data['id_area_nivel']);
-        
-        if (!$areaNivel) {
-            throw new \Exception("El área-nivel con ID {$data['id_area_nivel']} no existe");
-        }
+        $parametros = $this->repo->getByOlimpiada($idOlimpiada);
 
-        $cantidadMaxApro = isset($data['cantidad_max_apro']) 
-            ? $data['cantidad_max_apro'] 
-            : null;
-        
-        $parametro = $this->parametroRepository->updateOrCreateByAreaNivel(
-            $data['id_area_nivel'],
-            [
-                'nota_min_clasif' => $data['nota_min_clasif'],
-                'cantidad_max_apro' => $cantidadMaxApro
-            ]
-        );
-
-        return [
-            'parametro' => $this->formatParametro($parametro),
-            'message' => 'Parámetro guardado exitosamente'
-        ];
-    }
-
-    public function getAllParametrosByGestiones(): array
-    {
-        $parametros = $this->parametroRepository->getAllParametrosByGestiones();
-
-        $olimpiadaActual = $this->olimpiadaService->obtenerOlimpiadaActual();
-        $gestionActual = $olimpiadaActual->gestion;
-
-        $parametrosPorGestion = $parametros->groupBy('id_olimpiada');
-
-        $resultado = [];
-
-        foreach ($parametrosPorGestion as $idOlimpiada => $parametrosGestion) {
-            $gestion = $parametrosGestion->first()->gestion;
-
-            if ($gestion == $gestionActual) {
-                continue;
-            }
-
-            $parametrosFormateados = $parametrosGestion->map(function($parametro) {
-                $cantMaxClasificados = $parametro->cant_max_clasificados ?? self::MAXIMO_CLASIFICADOS;
-
-                return [
-                    'id_area_nivel' => $parametro->id_area_nivel,
-                    'nombre_area' => $parametro->nombre_area,
-                    'nombre_nivel' => $parametro->nombre_nivel,
-                    'nota_minima' => $parametro->nota_minima,
-                    'cant_max_clasificados' => $cantMaxClasificados
-                ];
-            });
-
-            $resultado[] = [
-                'id_olimpiada' => $idOlimpiada,
-                'gestion' => $gestion,
-                'parametros' => $parametrosFormateados,
-                'total_parametros' => $parametrosFormateados->count()
+        // Formateo para el frontend
+        $data = $parametros->map(function($p) {
+            return [
+                'id_parametro' => $p->id_parametro,
+                // Navegación segura
+                'area' => $p->areaNivel->areaOlimpiada->area->nombre ?? 'N/A',
+                'nivel' => $p->areaNivel->nivel->nombre ?? 'N/A',
+                'nota_minima' => $p->nota_min_aprobacion,
+                'cupo_maximo' => $p->cantidad_maxima
             ];
-        }
-
-        usort($resultado, function($a, $b) {
-            return $b['gestion'] - $a['gestion'];
         });
 
         return [
-            'gestiones' => $resultado,
-            'total_gestiones' => count($resultado),
-            'message' => 'Parámetros de todas las gestiones obtenidos exitosamente (excluyendo la gestión actual)'
-        ];
-    }
-
-    private function formatParametro($parametro): array
-    {
-        $cantidadMaxApro = $parametro->cantidad_max_apro ?? self::MAXIMO_CLASIFICADOS;
-
-        return [
-            'id_parametro' => $parametro->id_parametro,
-            'nota_min_clasif' => $parametro->nota_min_clasif,
-            'cantidad_max_apro' => $cantidadMaxApro,
-            'area_nivel' => [
-                'id_area_nivel' => $parametro->areaNivel->id_area_nivel,
-                'area' => [
-                    'id_area' => $parametro->areaNivel->area->id_area,
-                    'nombre' => $parametro->areaNivel->area->nombre
-                ],
-                'nivel' => [
-                    'id_nivel' => $parametro->areaNivel->nivel->id_nivel,
-                    'nombre' => $parametro->areaNivel->nivel->nombre
-                ],
-                'olimpiada' => [
-                    'id_olimpiada' => $parametro->areaNivel->olimpiada->id_olimpiada,
-                    'gestion' => $parametro->areaNivel->olimpiada->gestion,
-                    'nombre' => $parametro->areaNivel->olimpiada->nombre
-                ]
-            ]
+            'parametros' => $data,
+            'total' => $data->count()
         ];
     }
 
     public function getParametrosByAreaNiveles(array $idsAreaNivel): array
     {
-        $parametros = $this->parametroRepository->getParametrosByAreaNiveles($idsAreaNivel);
+        $raw = $this->repo->getParametrosHistoricos($idsAreaNivel);
 
-        if ($parametros->isEmpty()) {
-            return [
-                'areas_nivel' => $idsAreaNivel,
-                'parametros' => [],
-                'total_areas' => 0,
-                'message' => 'No se encontraron parámetros para los áreas-nivel especificados'
+        $grouped = $raw->groupBy('id_area_nivel');
+
+        $resultado = [];
+        foreach ($grouped as $id => $items) {
+            $first = $items->first();
+            $resultado[] = [
+                'area_nivel' => [
+                    'id' => $id,
+                    'area' => $first->nombre_area,
+                    'nivel' => $first->nombre_nivel
+                ],
+                'historial' => $items->map(fn($i) => [
+                    'gestion' => $i->gestion,
+                    'nota_minima' => $i->nota_minima,
+                    'cupo' => $i->cant_max_clasificados
+                ])->values()
             ];
         }
 
-        $parametrosPorAreaNivel = $parametros->groupBy('id_area_nivel');
+        return $resultado;
+    }
+
+    public function getAllParametrosByGestiones(): array
+    {
+        $raw = $this->repo->getAllParametrosByGestiones();
+
+        $grouped = $raw->groupBy('gestion');
 
         $resultado = [];
-
-        foreach ($parametrosPorAreaNivel as $idAreaNivel => $parametrosArea) {
-            $primero = $parametrosArea->first();
-
-            $parametrosFormateados = $parametrosArea->map(function($parametro) {
-                $cantMaxClasificados = $parametro->cant_max_clasificados ?? self::MAXIMO_CLASIFICADOS;
-
-                return [
-                    'id_olimpiada' => $parametro->id_olimpiada,
-                    'gestion' => $parametro->gestion,
-                    'nota_minima' => $parametro->nota_minima,
-                    'cant_max_clasificados' => $cantMaxClasificados
-                ];
-            });
-
+        foreach ($grouped as $gestion => $items) {
             $resultado[] = [
-                'area_nivel' => [
-                    'id_area_nivel' => $idAreaNivel,
-                    'nombre_area' => $primero->nombre_area,
-                    'nombre_nivel' => $primero->nombre_nivel
-                ],
-                'parametros' => $parametrosFormateados,
-                'total_gestiones' => $parametrosArea->count()
+                'gestion' => $gestion,
+                'parametros' => $items
             ];
         }
 
         return [
-            'areas_nivel' => $resultado,
-            'total_areas' => count($resultado),
-            'message' => 'Parámetros históricos obtenidos para ' . count($idsAreaNivel) . ' áreas-nivel'
+            'gestiones' => $resultado,
+            'total_gestiones' => count($resultado)
         ];
+    }
+
+    public function getAllParametros(): array
+    {
+         $all = $this->repo->getAll();
+         return [
+             'parametros' => $all,
+             'total' => $all->count(),
+             'message' => 'Todos los parámetros recuperados.'
+         ];
     }
 }
