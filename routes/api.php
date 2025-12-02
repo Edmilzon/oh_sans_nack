@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DepartamentoController;
 use App\Http\Controllers\InstitucionController;
 use App\Http\Controllers\AreaNivelGradoController;
+use App\Http\Controllers\ReporteController;
 
 /*
 |--------------------------------------------------------------------------
@@ -188,3 +189,15 @@ Route::get('/area-nivel/olimpiada/{id_olimpiada}/area/{id_area}', [AreaNivelCont
 
 // 4. Cambiar estado
 Route::patch('/sub-fases/{id_subfase}/estado', [FaseController::class, 'updateEstado']);
+
+// ==========================================
+// NUEVO MÓDULO: REPORTES Y TRAZABILIDAD
+// ==========================================
+Route::prefix('reportes')->group(function () {
+    // 1. Historial principal
+    Route::get('/historial-calificaciones', [ReporteController::class, 'historialCalificaciones']);
+
+    // 2. Filtros auxiliares (Optimizados para combos del reporte)
+    Route::get('/areas', [ReporteController::class, 'getAreas']);
+    Route::get('/areas/{idArea}/niveles', [ReporteController::class, 'getNivelesPorArea']);
+});
