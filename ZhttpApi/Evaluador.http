@@ -2,6 +2,25 @@
 @api_prefix = /api
 @token = 
 
-###AreanivelDisponibles
+### Obtener Areas y Niveles disponibles para la olimpiada actual
 GET {{hostname}}{{api_prefix}}/area-nivel/actuales
 Accept: application/json
+
+### Registrar un nuevo Evaluador
+POST {{hostname}}{{api_prefix}}/evaluadores
+Content-Type: application/json
+Accept: application/json
+
+{
+    "nombre": "Eva",
+    "apellido": "Luator",
+    "ci": "8765432",
+    "telefono": "77754321",
+    "email": "eva.luator@example.com",
+    "password": "password123",
+    "id_olimpiada": 1,
+    "area_nivel_ids": [
+        1,
+        2
+    ]
+}

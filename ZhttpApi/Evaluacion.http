@@ -26,7 +26,7 @@ Accept: application/json
 
 {
     "id_competidor": 250,
-    "id_evaluadorAN": 37
+    "id_evaluador_an": 37
 }
 
 ### PASO 2: CALIFICAR EVALUACIÓN (Estado: Pendiente -> Calificado)

@@ -28,7 +28,7 @@ class EvaluacionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_competidor' => 'required|exists:competidor,id_competidor',
-            'id_evaluadorAN' => 'required|exists:evaluador_an,id_evaluador_an',
+            'id_evaluador_an' => 'required|exists:evaluador_an,id_evaluador_an',
         ]);
 
         if ($validator->fails()) {
@@ -36,8 +36,14 @@ class EvaluacionController extends Controller
         }
 
         try {
-            $evaluacion = $this->evaluacionService->crearEvaluacion($request->all(), $id_competencia);
-            $evaluacion->load('inscripcion.competidor.persona', 'competencia', 'evaluadorAn.usuario');
+            // Mapeo de claves por si el frontend envía camelCase (id_evaluadorAN)
+            $data = [
+                'id_competidor' => $request->input('id_competidor'),
+                'id_evaluador_an' => $request->input('id_evaluador_an') ?: $request->input('id_evaluadorAN'),
+            ];
+
+            $evaluacion = $this->evaluacionService->crearEvaluacion($data, $id_competencia);
+            $evaluacion->load('competidor.persona', 'competencia', 'evaluadorAn.usuario.persona');
 
             return response()->json($evaluacion->toArray(), 201);
         } catch (\Exception $e) {
@@ -58,9 +64,9 @@ class EvaluacionController extends Controller
     public function update(Request $request, int $id_evaluacion): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'nota_evalu' => 'sometimes|required|numeric|min:0|max:100',
-            'observacion_evalu' => 'nullable|string',
-            'estado_competidor_eva' => 'sometimes|required|string|in:PENDIENTE,EN PROCESO,CALIFICADO,DESCALIFICADO',
+            'nota' => 'sometimes|required|numeric|min:0|max:100',
+            'observacion' => 'nullable|string',
+            'estado_competidor' => 'sometimes|required|string|in:PENDIENTE,EN PROCESO,CALIFICADO,DESCALIFICADO',
         ]);
 
         if ($validator->fails()) {
@@ -68,11 +74,10 @@ class EvaluacionController extends Controller
         }
 
         try {
-            $datosEvaluacion = $request->only(['nota_evalu', 'observacion_evalu', 'estado_competidor_eva']);
-            $datosEvaluacion['fecha_evalu'] = now();
-
+            $datosEvaluacion = $request->only(['nota', 'observacion', 'estado_competidor']);
+            
             $evaluacion = $this->evaluacionService->actualizarEvaluacion($id_evaluacion, $datosEvaluacion);
-            $evaluacion->load('inscripcion.competidor.persona', 'competencia', 'evaluadorAn.usuario');
+            $evaluacion->load('competidor.persona', 'competencia', 'evaluadorAn.usuario.persona');
 
             return response()->json($evaluacion->toArray());
         } catch (\Exception $e) {
@@ -90,8 +95,8 @@ class EvaluacionController extends Controller
     public function finalizarCalificacion(Request $request, int $id_evaluacion): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'nota' => 'required|numeric|min:0', // La nota máxima se valida en otro lado si es necesario
-            'observaciones' => 'nullable|string',
+            'nota' => 'required|numeric|min:0',
+            'observaciones' => 'nullable|string', // 'observaciones' en plural como en el service
         ]);
 
         if ($validator->fails()) {
@@ -101,7 +106,7 @@ class EvaluacionController extends Controller
         try {
             $datosFinales = $request->only(['nota', 'observaciones']);
             $evaluacion = $this->evaluacionService->finalizarCalificacion($id_evaluacion, $datosFinales);
-            $evaluacion->load('inscripcion.competidor.persona', 'competencia', 'evaluadorAn.usuario');
+            $evaluacion->load('competidor.persona', 'competencia', 'evaluadorAn.usuario.persona');
 
             return response()->json($evaluacion->toArray());
         } catch (\Exception $e) {

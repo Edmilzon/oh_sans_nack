@@ -1,0 +1,20 @@
+@host = http://localhost:8000
+@api_prefix = /api
+
+POST {{host}}/api/responsables
+Content-Type: application/json
+Accept: application/json
+
+{
+    "nombre": "Juan",
+    "apellido": "Perez",
+    "ci": "1234567",
+    "telefono": "77712345",
+    "email": "juan.perez@example.com",
+    "password": "password123",
+    "id_olimpiada": 1,
+    "areas": [
+        1,
+        2
+    ]
+}

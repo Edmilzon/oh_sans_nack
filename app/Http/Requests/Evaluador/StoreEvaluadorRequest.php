@@ -5,6 +5,7 @@ namespace App\Http\Requests\Evaluador;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\DB;
 
 class StoreEvaluadorRequest extends FormRequest
 {
@@ -28,7 +29,22 @@ class StoreEvaluadorRequest extends FormRequest
             'password' => ['required', 'string', 'min:8'],
             'id_olimpiada'   => ['required', 'integer', 'exists:olimpiada,id_olimpiada'],
             'area_nivel_ids' => ['required', 'array', 'min:1'],
-            'area_nivel_ids.*' => ['integer', 'exists:area_nivel,id_area_nivel'],
+            'area_nivel_ids.*' => [
+                'integer',
+                'exists:area_nivel,id_area_nivel',
+                // Validación Cruzada: El area_nivel_id debe pertenecer a la olimpiada
+                function ($attribute, $value, $fail) {
+                    $exists = DB::table('area_nivel')
+                        ->join('area_olimpiada', 'area_nivel.id_area_olimpiada', '=', 'area_olimpiada.id_area_olimpiada')
+                        ->where('area_nivel.id_area_nivel', $value)
+                        ->where('area_olimpiada.id_olimpiada', $this->id_olimpiada)
+                        ->exists();
+
+                    if (!$exists) {
+                        $fail("El área-nivel ID {$value} no es válido para la olimpiada seleccionada.");
+                    }
+                }
+            ],
         ];
     }
 
