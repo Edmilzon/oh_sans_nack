@@ -2,156 +2,129 @@
 
 namespace App\Http\Controllers;
 
-// Usamos el namespace base del framework por seguridad
+// Usamos la clase base del framework para evitar conflictos de Intelephense
 use Illuminate\Routing\Controller;
-
-use App\Http\Requests\Responsable\StoreResponsableRequest;
-use App\Services\ResponsableService;
-use App\Model\Usuario;
+use App\Services\FaseService;
+use App\Http\Requests\Fase\StoreFaseRequest;
+use App\Http\Requests\Fase\UpdateConfiguracionRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
-class ResponsableController extends Controller
+class FaseController extends Controller
 {
     public function __construct(
-        protected ResponsableService $service
+        protected FaseService $service
     ) {}
 
-    /**
-     * GET /api/v1/responsables
-     * Buscador Avanzado (Igual que Evaluador)
-     */
-    public function index(Request $request): JsonResponse
+    // --- CONFIGURACIÓN GLOBAL ---
+
+    public function indexGlobales(): JsonResponse
+    {
+        return response()->json($this->service->obtenerFasesGlobales());
+    }
+
+    public function listarAccionesSistema(): JsonResponse
+    {
+        return response()->json($this->service->listarAccionesSistema());
+    }
+
+    public function getConfiguracionAccionesPorGestion(int $idGestion): JsonResponse
+    {
+        return response()->json($this->service->getConfiguracionAccionesPorGestion($idGestion));
+    }
+
+    public function guardarConfiguracionAccionesPorGestion(UpdateConfiguracionRequest $request, int $idGestion): JsonResponse
+    {
+        $this->service->guardarConfiguracionAccionesPorGestion(
+            $idGestion,
+            $request->validated()['accionesPorFase']
+        );
+        return response()->json(['message' => 'Configuración guardada exitosamente.']);
+    }
+
+    public function actualizarAccionEnFase(Request $request, int $idGestion, int $idFase, int $idAccion): JsonResponse
+    {
+        $request->validate(['habilitada' => 'required|boolean']);
+        $this->service->actualizarAccionHabilitada($idGestion, $idFase, $idAccion, $request->input('habilitada'));
+        return response()->json(['message' => 'El estado de la acción ha sido actualizado.']);
+    }
+
+    public function getAccionesHabilitadas(int $idGestion, int $idFase): JsonResponse
+    {
+        return response()->json($this->service->getAccionesHabilitadas($idGestion, $idFase));
+    }
+
+    // --- FASES ESPECÍFICAS (COMPETENCIAS) ---
+
+    public function index(int $id_area_nivel): JsonResponse
+    {
+        return response()->json($this->service->obtenerFasesPorAreaNivel($id_area_nivel));
+    }
+
+    public function store(StoreFaseRequest $request, int $id_area_nivel): JsonResponse
     {
         try {
-            $query = Usuario::query();
-
-            $query->join('persona', 'usuario.id_persona', '=', 'persona.id_persona')
-                  ->select('usuario.*', 'persona.nombre', 'persona.apellido', 'persona.ci', 'persona.telefono');
-
-            // Filtro por Rol Responsable
-            $query->whereHas('roles', function($q) {
-                $q->where('nombre', 'Responsable Area');
-            });
-
-            // Buscador
-            if ($search = $request->input('search')) {
-                $query->where(function($q) use ($search) {
-                    $q->where('persona.nombre', 'like', "%{$search}%")
-                      ->orWhere('persona.apellido', 'like', "%{$search}%")
-                      ->orWhere('persona.ci', 'like', "%{$search}%")
-                      ->orWhere('usuario.email', 'like', "%{$search}%");
-                });
-            }
-
-            // Filtro por Olimpiada
-            if ($olimpiadaId = $request->input('olimpiada_id')) {
-                $query->whereHas('roles', function($q) use ($olimpiadaId) {
-                    $q->where('nombre', 'Responsable Area')
-                      ->where('usuario_rol.id_olimpiada', $olimpiadaId);
-                });
-            }
-
-            // Ordenamiento
-            $sortField = $request->input('sort_by', 'created_at');
-            $sortDirection = $request->input('sort_order', 'desc');
-
-            if (in_array($sortField, ['nombre', 'apellido', 'ci'])) {
-                $query->orderBy("persona.$sortField", $sortDirection);
-            } else {
-                $query->orderBy("usuario.$sortField", $sortDirection);
-            }
-
-            $responsables = $query->paginate($request->input('per_page', 15));
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Lista de responsables obtenida.',
-                'data'    => $responsables
-            ]);
-
+            $fase = $this->service->crearFase($request->validated(), $id_area_nivel);
+            return response()->json($fase, 201);
         } catch (\Exception $e) {
-            Log::error('Error index responsables: ' . $e->getMessage());
+            Log::error("Error creando fase: " . $e->getMessage());
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function show(int $id): JsonResponse
+    {
+        $fase = $this->service->obtenerFasePorId($id);
+        return $fase ? response()->json($fase) : response()->json(['message' => 'Fase no encontrada'], 404);
+    }
+
+    public function getFaseDetails(int $id): JsonResponse
+    {
+        $detalles = $this->service->getFaseDetails($id);
+        return $detalles ? response()->json($detalles) : response()->json(['message' => 'Fase no encontrada'], 404);
+    }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $request->validate(['nombre' => 'sometimes|string|max:255']);
+        $fase = $this->service->actualizarFase($id, $request->all());
+        return $fase ? response()->json($fase) : response()->json(['message' => 'Fase no encontrada'], 404);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        return $this->service->eliminarFase($id)
+            ? response()->json(['message' => 'Fase eliminada'], 200)
+            : response()->json(['message' => 'Fase no encontrada'], 404);
+    }
+
+    public function getSubFases(int $id_area, int $id_nivel, int $id_olimpiada): JsonResponse
+    {
+        try {
+            $data = $this->service->getSubFasesDetails($id_area, $id_nivel, $id_olimpiada);
+            return response()->json(['success' => true, 'data' => $data]);
+        } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * POST /api/v1/responsables
-     * Registro nuevo con validación estricta.
-     */
-    public function store(StoreResponsableRequest $request): JsonResponse
-    {
-        try {
-            // Validación automática inyectada
-            $data = $request->validated();
-
-            $result = $this->service->createResponsable($data);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Responsable registrado exitosamente.',
-                'data'    => $result
-            ], Response::HTTP_CREATED);
-
-        } catch (\Exception $e) {
-            Log::error('Error creando responsable: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al registrar.',
-                'error'   => $e->getMessage()
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * GET /api/v1/responsables/{id}
-     */
-    public function show($id): JsonResponse
-    {
-        try {
-            $responsable = $this->service->getById($id);
-
-            if (!$responsable) {
-                return response()->json(['success' => false, 'message' => 'No encontrado'], 404);
-            }
-
-            return response()->json(['success' => true, 'data' => $responsable]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * POST /api/v1/responsables/ci/{ci}/areas
-     * (Escenario 3: Agregar áreas a responsable existente)
-     */
-    public function addAreas(Request $request, string $ci): JsonResponse
+    public function updateEstado(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'id_olimpiada' => 'required|integer|exists:olimpiada,id_olimpiada',
-            'areas'        => 'required|array|min:1',
-            'areas.*'      => 'integer|exists:area,id_area'
+            'estado' => 'required|string|in:NO_INICIADA,EN_EVALUACION,FINALIZADA'
         ]);
 
         try {
-            $result = $this->service->addAreasToResponsable(
-                $ci,
-                $request->id_olimpiada,
-                $request->areas
-            );
-
+            $data = $this->service->cambiarEstadoFase($id, $request->input('estado'));
             return response()->json([
                 'success' => true,
-                'message' => 'Áreas asignadas correctamente.',
-                'data'    => $result
+                'message' => 'Estado actualizado correctamente.',
+                'data'    => $data
             ]);
-
         } catch (\Exception $e) {
-            $status = str_contains($e->getMessage(), 'no existe') ? 404 : 500;
-            return response()->json(['success' => false, 'message' => $e->getMessage()], $status);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 }

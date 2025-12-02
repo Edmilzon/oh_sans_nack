@@ -2,100 +2,119 @@
 
 namespace App\Services;
 
-use App\Repositories\ResponsableRepository;
-use App\Model\Usuario;
-use App\Mail\UserCredentialsMail;
+use App\Repositories\FaseRepository;
+// CRÍTICO: Usamos Support\Collection para compatibilidad de tipos
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
-use Exception;
 
-class ResponsableService
+class FaseService
 {
     public function __construct(
-        protected ResponsableRepository $repo
+        protected FaseRepository $repo
     ) {}
 
-    /**
-     * Crea un Responsable completo.
-     */
-    public function createResponsable(array $data): array
+    // ==========================================
+    // GESTIÓN GLOBAL
+    // ==========================================
+
+    public function obtenerFasesGlobales(): Collection
     {
-        return DB::transaction(function () use ($data) {
+        return $this->repo->obtenerFasesGlobales();
+    }
 
-            // 1. Gestionar Persona (Update or Create)
-            $persona = $this->repo->findOrCreatePersona($data);
+    public function listarAccionesSistema(): Collection
+    {
+        return $this->repo->listarAccionesSistema();
+    }
 
-            // 2. Crear Usuario
-            $usuario = $this->repo->createUsuario($persona, $data);
+    public function getConfiguracionAccionesPorGestion(int $idGestion): array
+    {
+        return $this->repo->getConfiguracionMatriz($idGestion);
+    }
 
-            // 3. Asignar Rol
-            $this->repo->assignResponsableRole($usuario, $data['id_olimpiada']);
-
-            // 4. Asignar Áreas
-            // Nota: $data['areas'] es un array de IDs de área (ej: [1, 2])
-            $this->repo->syncResponsableAreas($usuario, $data['areas'], $data['id_olimpiada']);
-
-            // 5. Enviar Credenciales (Fail-Safe)
-            $this->sendCredentialsEmail($usuario, $data['password']);
-
-            return $this->repo->getById($usuario->id_usuario);
+    public function guardarConfiguracionAcciones(int $idGestion, array $accionesPorFase): void
+    {
+        DB::transaction(function () use ($accionesPorFase) {
+            $this->repo->guardarConfiguracion($accionesPorFase);
         });
     }
 
-    public function getAll(): array
+    // ALIAS: Método requerido por el Controlador
+    public function guardarConfiguracionAccionesPorGestion(int $idGestion, array $accionesPorFase): void
     {
-        return $this->repo->getAllResponsables()->toArray();
+        $this->guardarConfiguracionAcciones($idGestion, $accionesPorFase);
     }
 
-    public function getById(int $id): ?array
+    public function actualizarAccionHabilitada(int $idGestion, int $idFase, int $idAccion, bool $habilitada): void
     {
-        return $this->repo->getById($id);
+        $this->repo->actualizarAccionUnica($idFase, $idAccion, $habilitada);
     }
 
-    /**
-     * Lógica para el Escenario 3 (Agregar áreas a responsable existente)
-     */
-    public function addAreasToResponsable(string $ci, int $idOlimpiada, array $areaIds): array
+    // MÉTODO FALTANTE: Agregado para solucionar error P1013
+    public function getAccionesHabilitadas(int $idGestion, int $idFase): Collection
     {
-        return DB::transaction(function () use ($ci, $idOlimpiada, $areaIds) {
+        return $this->repo->getAccionesHabilitadas($idFase);
+    }
 
-            // Buscar usuario por CI
-            $usuario = Usuario::whereHas('persona', fn($q) => $q->where('ci', $ci))->first();
+    // ==========================================
+    // GESTIÓN ESPECÍFICA (Competencias)
+    // ==========================================
 
-            if (!$usuario) {
-                throw new Exception("No se encontró ningún usuario con el CI: {$ci}");
-            }
+    public function obtenerFasesPorAreaNivel(int $idAreaNivel): Collection
+    {
+        return $this->repo->obtenerPorAreaNivel($idAreaNivel);
+    }
 
-            // Asegurar rol
-            $this->repo->assignResponsableRole($usuario, $idOlimpiada);
-
-            // Agregar nuevas áreas
-            $this->repo->syncResponsableAreas($usuario, $areaIds, $idOlimpiada);
-
-            return [
-                'id_usuario' => $usuario->id_usuario,
-                'nombre'     => $usuario->persona->nombre . ' ' . $usuario->persona->apellido,
-                'mensaje'    => 'Áreas asignadas correctamente.'
-            ];
+    public function crearFase(array $data, int $idAreaNivel)
+    {
+        return DB::transaction(function () use ($data, $idAreaNivel) {
+            return $this->repo->crearCompetencia($data, $idAreaNivel);
         });
     }
 
-    private function sendCredentialsEmail(Usuario $usuario, string $rawPassword): void
+    // ALIAS: Método requerido por el Controlador
+    public function obtenerFasePorId(int $id)
     {
-        try {
-            if (!empty($usuario->email)) {
-                Mail::to($usuario->email)->queue(
-                    new UserCredentialsMail(
-                        $usuario->persona->nombre,
-                        $usuario->email,
-                        $rawPassword,
-                        'Responsable de Área'
-                    )
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error("Error enviando correo a responsable {$usuario->id_usuario}: " . $e->getMessage());
+        return $this->repo->findCompetenciaById($id);
+    }
+
+    // ALIAS: Método requerido por el Controlador
+    public function getFaseDetails(int $id)
+    {
+        return $this->repo->findCompetenciaById($id);
+    }
+
+    public function actualizarFase(int $idFase, array $data)
+    {
+        $competencia = $this->repo->findCompetenciaById($idFase);
+        if ($competencia) {
+            $this->repo->updateCompetencia($competencia, $data);
+            return $competencia->fresh();
         }
+        return null;
+    }
+
+    public function eliminarFase(int $idFase): bool
+    {
+        $competencia = $this->repo->findCompetenciaById($idFase);
+        if ($competencia) {
+            return $this->repo->deleteCompetencia($competencia);
+        }
+        return false;
+    }
+
+    public function cambiarEstadoFase(int $idFase, string $nuevoEstado)
+    {
+        $estadoBooleano = ($nuevoEstado === 'EN_EVALUACION');
+        return $this->repo->actualizarEstadoCompetencia($idFase, $estadoBooleano);
+    }
+
+    // ==========================================
+    // REPORTES
+    // ==========================================
+
+    public function getSubFasesDetails(int $idArea, int $idNivel, int $idOlimpiada): Collection
+    {
+        return $this->repo->getSubFasesDetails($idArea, $idNivel, $idOlimpiada);
     }
 }
