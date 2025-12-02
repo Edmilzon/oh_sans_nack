@@ -24,6 +24,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DepartamentoController;
 use App\Http\Controllers\InstitucionController;
+use App\Http\Controllers\AreaNivelGradoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -108,42 +109,25 @@ Route::get('/grados-escolaridad/{id_grado_escolaridad}', [GradoEscolaridadContro
 //Importar csv
 Route::post('importar/{gestion}',[ImportarcsvController::class,'importar']);
 
-// Rutas comentadas temporalmente hasta que se creen los controladores
-/*
-// Rutas para la gestión de productos
-Route::apiResource('products', ProductController::class)->only(['index', 'store']);
-
-
-// Rutas para la gestión de evaluadores
-Route::prefix('v1')->group(function () {
-    Route::apiResource('evaluadores', EvaluadorController::class)->only(['store']);
-});
-
-//area mostrar y insertar
-Route::get('/areas/{gestion}', [AreaController::class, 'getAreasPorGestion']);
-
-//responsable de area mostrar y insertar
-Route::get('/responsableArea', [ResponsableController::class, 'index']);
-Route::post('/responsableArea', [ResponsableController::class, 'store']);
-Route::get('/usuarios/roles/{ci}', [ResponsableController::class, 'showRolesByCi']);
-
-// Competidores por Responsable de Área
-Route::get('/responsables/{id_persona}/competidores', [ResponsableCompetidorController::class, 'index']);
-
-
 //Rutas asociacion area - nivel
-/*Route::apiResource('nivel',NivelController::class)->only(['index']);*/
-Route::post('area-niveles', [AreaNivelController::class, 'store']);
-Route::post('/area-nivel/por-gestion', [AreaNivelController::class, 'getByGestionAndAreas']);
-Route::post('/area-nivel/gestion/{gestion}/areas', [AreaNivelController::class, 'getNivelesGradosByAreasAndGestion']);
-Route::get('/area-nivel/detalle', [AreaNivelController::class, 'getAllWithDetails']);
+Route::get('/area-nivel/show/{id}', [AreaNivelController::class, 'show']);
 Route::get('/area-nivel/actuales', [AreaNivelController::class, 'getActuales']);
-Route::get('area-niveles/{id_area}', [AreaNivelController::class, 'getByAreaAll']);
-Route::get('/areas-con-niveles', [AreaNivelController::class, 'getAreasConNiveles']);
-Route::get('/area-nivel', [AreaNivelController::class, 'getAreasConNivelesSimplificado']);
-Route::get('/area-nivel/gestion/{gestion}/area/{id_area}', [AreaNivelController::class, 'getNivelesGradosByAreaAndGestion']);
+Route::get('/area-nivel/detalle', [AreaNivelController::class, 'getAllWithDetails']);
+Route::get('/area-nivel/por-area/{id_area}', [AreaNivelController::class, 'getByArea']);
 Route::get('/area-nivel/{id_olimpiada}', [AreaNivelController::class, 'getAreasConNivelesPorOlimpiada']);
 Route::get('/area-nivel/gestion/{gestion}', [AreaNivelController::class, 'getAreasConNivelesPorGestion']);
+Route::put('/area-nivel/{id}', [AreaNivelController::class, 'update']);
+Route::put('/area-nivel/por-area/{id_area}', [AreaNivelController::class, 'updateByArea']);
+
+// AreaNivelGradoController (CON grados - tabla area_nivel_grado)
+Route::get('/area-nivel', [AreaNivelGradoController::class, 'index']);
+Route::post('/area-nivel', [AreaNivelGradoController::class, 'store']);
+Route::get('/area-nivel/simplificado', [AreaNivelGradoController::class, 'getAreasConNivelesSimplificado']);
+Route::get('/area-nivel/gestion/{gestion}/area/{id_area}', [AreaNivelGradoController::class, 'getNivelesGradosByAreaAndGestion']);
+Route::post('/area-nivel/gestion/{gestion}/areas', [AreaNivelGradoController::class, 'getNivelesGradosByAreasAndGestion']);
+Route::post('/area-nivel/por-gestion', [AreaNivelGradoController::class, 'getByGestionAndAreas']);
+Route::get('/area-niveles/{id_area}', [AreaNivelGradoController::class, 'getByAreaAll']);
+Route::get('/areas-con-niveles', [AreaNivelGradoController::class, 'getAreasConNiveles']);
 
 
 //Rutas Parametros de clasificación

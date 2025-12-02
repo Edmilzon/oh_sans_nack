@@ -17,10 +17,6 @@ class Area extends Model
         'nombre',
     ];
 
-    // Relación a través de area_olimpiada -> area_nivel -> nivel
-    // Esta relación es compleja y depende de cómo quieras acceder a los niveles.
-    // Lo más directo es a través de AreaOlimpiada.
-
     public function olimpiadas()
     {
         return $this->belongsToMany(Olimpiada::class, 'area_olimpiada', 'id_area', 'id_olimpiada')
