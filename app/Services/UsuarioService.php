@@ -54,93 +54,84 @@ class UsuarioService
             return null;
         }
 
-        // Acceso correcto a datos personales
-        $nombre = $usuario->persona->nombre;
-        $apellido = $usuario->persona->apellido;
-        $telefono = $usuario->persona->telefono;
-        $ci_persona = $usuario->persona->ci;
-
-        // Agrupar por el id_olimpiada del pivote
+        // Agrupación por gestión (ID Olimpiada)
         $rolesPorGestion = $usuario->roles->groupBy(function ($rol) {
             return $rol->pivot->id_olimpiada;
         })->map(function ($roles, $idOlimpiada) use ($usuario) {
 
-            // Buscar la gestión (Olimpiada) para obtener el nombre
+            // Obtener nombre de la gestión
             $gestionNombre = "Desconocida";
-            $olimpiada = Olimpiada::find($idOlimpiada);
+            $olimpiada = Olimpiada::find($idOlimpiada); // O usar cache si es frecuente
             if ($olimpiada) {
-                $gestionNombre = $olimpiada->gestion;
+                $gestionNombre = $olimpiada->gestion; // Ej: "2025"
             }
+
+            // Mapear Roles dentro de esa gestión
+            $rolesFormatted = $roles->map(function ($rol) use ($usuario, $idOlimpiada) {
+                $detalles = null;
+                $rolName = $rol->nombre; // Ej: "Evaluador"
+
+                // CASO 1: RESPONSABLE DE ÁREA
+                if ($rolName === 'Responsable Area' || $rolName === 'Responsable de area') {
+                    $areas = $usuario->responsableAreas
+                        ->filter(fn ($ra) => $ra->areaOlimpiada && $ra->areaOlimpiada->id_olimpiada == $idOlimpiada)
+                        ->map(fn ($ra) => [
+                            'id_area' => $ra->areaOlimpiada->area->id_area,
+                            'nombre_area' => $ra->areaOlimpiada->area->nombre,
+                        ])->values();
+
+                    if ($areas->isNotEmpty()) {
+                        $detalles = ['areas_responsable' => $areas];
+                    }
+                }
+
+                // CASO 2: EVALUADOR (Ajustado a tu JSON)
+                elseif ($rolName === 'Evaluador') {
+                    $asignaciones = $usuario->evaluadoresAn
+                        ->filter(fn ($ea) =>
+                            $ea->areaNivel &&
+                            $ea->areaNivel->areaOlimpiada &&
+                            $ea->areaNivel->areaOlimpiada->id_olimpiada == $idOlimpiada
+                        )
+                        ->map(function ($ea) {
+                            // Tu JSON muestra "nombre_grado" en singular.
+                            // Si hay varios grados, los unimos por comas.
+                            $nombresGrados = $ea->areaNivel->gradosEscolaridad->pluck('nombre')->join(', ');
+
+                            return [
+                                'id_area_nivel' => $ea->areaNivel->id_area_nivel,
+                                'nombre_area'   => $ea->areaNivel->areaOlimpiada->area->nombre,
+                                'nombre_nivel'  => $ea->areaNivel->nivel->nombre,
+                                'nombre_grado'  => $nombresGrados ?: 'Sin grado específico'
+                            ];
+                        })->values();
+
+                    $detalles = ['asignaciones_evaluador' => $asignaciones];
+                }
+
+                return [
+                    'rol' => $rolName,
+                    'detalles' => $detalles
+                ];
+            })->values();
 
             return [
                 'id_olimpiada' => $idOlimpiada,
-                'gestion' => $gestionNombre,
-                'roles' => $roles->map(function ($rol) use ($usuario, $idOlimpiada) {
-
-                    $detalles = null;
-                    $rolName = $rol->nombre;
-
-                    // Lógica para Responsable de Área
-                    if ($rolName === 'Responsable de area' || $rolName === 'Responsable Area') {
-                        // CORREGIDO: Usamos la relación PLURAL 'responsableAreas' del modelo Usuario
-                        $areas = $usuario->responsableAreas
-                            // Filtramos las áreas de esta gestión usando la relación cargada
-                            ->filter(fn ($ra) => $ra->areaOlimpiada && $ra->areaOlimpiada->id_olimpiada == $idOlimpiada)
-                            ->map(function ($ra) {
-                                return [
-                                    'id_area' => $ra->areaOlimpiada->area->id_area,
-                                    'nombre_area' => $ra->areaOlimpiada->area->nombre,
-                                ];
-                            })->values();
-
-                        // Devolvemos la estructura de detalles solo si hay áreas asignadas
-                        if ($areas->isNotEmpty()) {
-                            $detalles = ['areas_responsable' => $areas];
-                        }
-                    }
-                    // Lógica para Evaluador
-                    elseif ($rolName === 'Evaluador') {
-                        $asignaciones = $usuario->evaluadoresAn
-                            // Filtramos las asignaciones que pertenecen a esta olimpiada
-                            ->filter(function ($ea) use ($idOlimpiada) {
-                                return $ea->areaNivel
-                                    && $ea->areaNivel->areaOlimpiada
-                                    && $ea->areaNivel->areaOlimpiada->id_olimpiada == $idOlimpiada;
-                            })
-                            ->map(function ($ea) {
-                                // Concatenar grados (Many-to-Many)
-                                $nombresGrados = $ea->areaNivel->gradosEscolaridad->pluck('nombre')->join(', ');
-
-                                return [
-                                    'id_area_nivel' => $ea->areaNivel->id_area_nivel,
-                                    'nombre_area' => $ea->areaNivel->areaOlimpiada->area->nombre,
-                                    'nombre_nivel' => $ea->areaNivel->nivel->nombre,
-                                    'nombre_grado' => $nombresGrados ?: 'N/A',
-                                ];
-                            })->values();
-
-                        $detalles = ['asignaciones_evaluador' => $asignaciones];
-                    }
-
-                    return [
-                        'rol' => $rolName,
-                        'detalles' => $detalles,
-                    ];
-                })->values()
+                'gestion'      => $gestionNombre,
+                'roles'        => $rolesFormatted
             ];
-        })->values();
+        })->values(); // Resetear índices del array para que sea JSON Array []
 
-        // Estructura EXACTA del JSON que espera el frontend
         return [
             'id_usuario' => $usuario->id_usuario,
-            'nombre' => $nombre,
-            'apellido' => $apellido,
-            'ci' => $ci_persona,
-            'email' => $usuario->email,
-            'telefono' => $telefono,
+            'nombre'     => $usuario->persona->nombre,
+            'apellido'   => $usuario->persona->apellido,
+            'ci'         => $usuario->persona->ci,
+            'email'      => $usuario->email,
+            'telefono'   => $usuario->persona->telefono,
             'created_at' => $usuario->created_at,
             'updated_at' => $usuario->updated_at,
-            'roles_por_gestion' => $rolesPorGestion,
+            'roles_por_gestion' => $rolesPorGestion
         ];
     }
 }

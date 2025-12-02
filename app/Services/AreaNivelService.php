@@ -24,7 +24,7 @@ class AreaNivelService
     {
         $gestionActual = date('Y');
         $nombreOlimpiada = "Olimpiada Científica Estudiantil $gestionActual";
-        
+
         return Olimpiada::firstOrCreate(
             ['gestion' => "$gestionActual"],
             ['nombre' => $nombreOlimpiada]
@@ -45,7 +45,7 @@ class AreaNivelService
     public function getAreaNivelById(int $id): ?array
     {
         $areaNivel = $this->areaNivelRepository->getById($id);
-        
+
         if (!$areaNivel) {
             return null;
         }
@@ -60,7 +60,7 @@ class AreaNivelService
     {
         try {
             $olimpiadaActual = $this->obtenerOlimpiadaActual();
-            
+
             // Verificar si existe el área-olimpiada
             $areaOlimpiada = AreaOlimpiada::where('id_area', $data['id_area'])
                 ->where('id_olimpiada', $olimpiadaActual->id_olimpiada)
@@ -101,7 +101,7 @@ class AreaNivelService
     public function updateAreaNivel(int $id, array $data): array
     {
         $areaNivel = AreaNivel::find($id);
-        
+
         if (!$areaNivel) {
             throw new \Exception('Relación área-nivel no encontrada');
         }
@@ -117,7 +117,7 @@ class AreaNivelService
     public function deleteAreaNivel(int $id): array
     {
         $areaNivel = AreaNivel::find($id);
-        
+
         if (!$areaNivel) {
             throw new \Exception('Relación área-nivel no encontrada');
         }
@@ -131,24 +131,41 @@ class AreaNivelService
 
     public function getAreaNivelActuales(): array
     {
-        $olimpiadaActual = $this->obtenerOlimpiadaActual();
-        
-        $areaNiveles = AreaNivel::whereHas('areaOlimpiada', function($query) use ($olimpiadaActual) {
-                $query->where('id_olimpiada', $olimpiadaActual->id_olimpiada);
-            })
-            ->with(['areaOlimpiada.area', 'nivel'])
-            ->where('es_activo', true)
+        // 1. Obtener la última olimpiada (o la activa)
+        $olimpiadaActual = Olimpiada::latest('id_olimpiada')->first();
+
+        if (!$olimpiadaActual) {
+            return [];
+        }
+
+        // 2. Traer las Áreas asociadas a esta olimpiada con sus Niveles
+        // Usamos 'AreaOlimpiada' como pivote principal para filtrar por gestión
+        $areaOlimpiadas = AreaOlimpiada::with(['area', 'areaNiveles.nivel'])
+            ->where('id_olimpiada', $olimpiadaActual->id_olimpiada)
             ->get();
 
-        $resultado = $areaNiveles->map(function($areaNivel) {
-            return [
-                'id_area_nivel' => $areaNivel->id_area_nivel,
-                'area' => $areaNivel->areaOlimpiada->area->nombre,
-                'nivel' => $areaNivel->nivel->nombre
-            ];
-        });
+        // 3. Mapeo exacto al JSON solicitado
+        return $areaOlimpiadas->map(function (AreaOlimpiada $ao) {
 
-        return $resultado->values()->all();
+            // Mapear los niveles dentro de esta área
+            $niveles = $ao->areaNiveles->map(function ($an) {
+                return [
+                    'id_area_nivel' => (string) $an->id_area_nivel,
+                    'id_nivel'      => (string) $an->id_nivel, // CORREGIDO: id_nivel
+                    // Aquí tomamos el nombre del Nivel.
+                    // Nota: Si en tu DB el nombre es "Nivel 1" pero quieres "1ro de Sec",
+                    // asegúrate que el modelo Nivel tenga ese texto o usa la relación con Grado.
+                    'nombre'        => $an->nivel->nombre
+                ];
+            })->values(); // Resetear índices para que sea array [] y no objeto {}
+
+            return [
+                'id_area' => (string) $ao->area->id_area, // CORREGIDO: id_area
+                'area'    => $ao->area->nombre,
+                'niveles' => $niveles
+            ];
+
+        })->values()->toArray();
     }
 
     public function getByAreaOlimpiada(int $id_area_olimpiada): Collection
@@ -253,7 +270,7 @@ public function updateAreaNivelByArea(int $id_area, array $niveles): array
 public function getByGestionAndAreas(string $gestion, array $idAreas): array
     {
     $olimpiada = Olimpiada::where('gestion', $gestion)->firstOrFail();
-    
+
     $areaNiveles = AreaNivel::whereHas('areaOlimpiada', function($query) use ($idAreas, $olimpiada) {
             $query->whereIn('id_area', $idAreas)
                   ->where('id_olimpiada', $olimpiada->id_olimpiada);

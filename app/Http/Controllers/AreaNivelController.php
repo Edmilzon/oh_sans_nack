@@ -17,12 +17,12 @@ class AreaNivelController extends Controller
     }
 
     // ✅ MÉTODOS que SOLO trabajan con area_nivel (sin grados)
-    
+
     public function show($id): JsonResponse
     {
         try {
             $result = $this->areaNivelService->getAreaNivelById($id);
-            
+
             if (!$result) {
                 return response()->json([
                     'success' => false,
@@ -47,7 +47,7 @@ class AreaNivelController extends Controller
     {
         try {
             $existeFase = \App\Model\Fase::exists();
-        
+
             if ($existeFase) {
                 return response()->json([
                     'success' => false,
@@ -56,7 +56,7 @@ class AreaNivelController extends Controller
             }
 
             $result = $this->areaNivelService->deleteAreaNivel($id);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => $result['message']
@@ -69,14 +69,18 @@ class AreaNivelController extends Controller
         }
     }
 
+    // GET /api/area-nivel/actuales
     public function getActuales(): JsonResponse
     {
         try {
-            $result = $this->areaNivelService->getAreaNivelActuales();
-            return response()->json($result);
+            $data = $this->areaNivelService->getAreaNivelActuales();
+
+            return response()->json($data);
+
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error al obtener las relaciones área-nivel actuales: ' . $e->getMessage()
+                'message' => 'Error al obtener áreas y niveles actuales.',
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
