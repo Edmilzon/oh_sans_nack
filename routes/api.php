@@ -122,7 +122,7 @@ Route::put('/area-nivel/por-area/{id_area}', [AreaNivelController::class, 'updat
 // AreaNivelGradoController (CON grados - tabla area_nivel_grado)
 Route::get('/area-nivel', [AreaNivelGradoController::class, 'index']);
 Route::post('/area-nivel', [AreaNivelGradoController::class, 'store']);
-Route::get('/area-nivel/simplificado', [AreaNivelGradoController::class, 'getAreasConNivelesSimplificado']);
+Route::get('/area-nivel/sim/simplificado', [AreaNivelGradoController::class, 'getAreasConNivelesSimplificado']);
 Route::get('/area-nivel/gestion/{gestion}/area/{id_area}', [AreaNivelGradoController::class, 'getNivelesGradosByAreaAndGestion']);
 Route::post('/area-nivel/gestion/{gestion}/areas', [AreaNivelGradoController::class, 'getNivelesGradosByAreasAndGestion']);
 Route::post('/area-nivel/por-gestion', [AreaNivelGradoController::class, 'getByGestionAndAreas']);
