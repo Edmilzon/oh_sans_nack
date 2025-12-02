@@ -14,20 +14,22 @@ class StoreParametroRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'area_niveles' => 'required|array|min:1',
-            'area_niveles.*.id_area_nivel' => 'required|integer|exists:area_nivel,id_area_nivel',
-            'area_niveles.*.nota_min_clasif' => 'required|numeric|min:0',
-            'area_niveles.*.cantidad_max_apro' => 'nullable|integer|min:0',
+            'area_niveles' => ['required', 'array', 'min:1'],
+            'area_niveles.*.id_area_nivel' => ['required', 'integer', 'exists:area_nivel,id_area_nivel'],
+            // Ajustado a tus nombres de columnas reales
+            'area_niveles.*.nota_min_aprobacion' => ['required', 'numeric', 'min:0', 'max:100'],
+            'area_niveles.*.cantidad_maxima' => ['nullable', 'integer', 'min:0'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'area_niveles.required' => 'Debe seleccionar al menos un área-nivel',
-            'area_niveles.*.id_area_nivel.required' => 'El ID del área-nivel es requerido',
-            'area_niveles.*.id_area_nivel.exists' => 'El área-nivel seleccionado no existe',
-            'area_niveles.*.nota_min_clasif.required' => 'La nota mínima de clasificación es requerida',
+            'area_niveles.required' => 'Debe enviar al menos una configuración de parámetros.',
+            'area_niveles.*.id_area_nivel.exists' => 'El Área-Nivel seleccionado no es válido.',
+            'area_niveles.*.nota_min_aprobacion.required' => 'La nota mínima es obligatoria.',
+            'area_niveles.*.nota_min_aprobacion.min' => 'La nota mínima no puede ser negativa.',
+            'area_niveles.*.cantidad_maxima.min' => 'La cantidad máxima no puede ser negativa.',
         ];
     }
 }
