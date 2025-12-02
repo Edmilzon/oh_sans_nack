@@ -89,7 +89,7 @@ class AreaNivelGradoController extends Controller
     public function getAreasConNiveles(): JsonResponse
     {
         try {
-            $result = $this->areaNivelGradoService->getAreasConNivelesAsignadosAll();
+            $result = $this->areaNivelGradoService->getAreasConNiveles();
             return response()->json([
                 'success' => true,
                 'data' => $result['areas'],
