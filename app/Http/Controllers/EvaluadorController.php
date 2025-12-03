@@ -205,4 +205,40 @@ class EvaluadorController extends Controller
             ], $status);
         }
     }
+
+    /**
+     * GET /api/evaluadores/{id}/areas-niveles
+     * Obtiene solo las áreas y niveles asignados a un evaluador para la gestión actual.
+     */
+    public function getAreasNivelesById($id): JsonResponse
+    {
+        try {
+            $evaluador = $this->service->getEvaluadorById($id);
+
+            if (!$evaluador) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Evaluador no encontrado.'
+                ], Response::HTTP_NOT_FOUND);
+            }
+
+            // La lógica de negocio ya formatea esto en el repositorio.
+            // Solo extraemos la parte que nos interesa.
+            $areasAsignadas = $evaluador['areas_asignadas'] ?? [];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Áreas y niveles del evaluador obtenidos exitosamente.',
+                'data'    => $areasAsignadas
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error obteniendo áreas y niveles para evaluador ID $id: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener las áreas y niveles del evaluador.',
+                'error'   => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 }

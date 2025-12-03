@@ -74,13 +74,15 @@ class EvaluacionService
             if (isset($data['estado_competidor'])) {
                 $competencia = Competencia::findOrFail($evaluacion->id_competencia);
                 $totalEvaluaciones = Evaluacion::where('id_competencia', $evaluacion->id_competencia)->count();
-                $evaluacionesCalificadas = Evaluacion::where('id_competencia', $evaluacion->id_competencia)->where('estado_competidor', 'CALIFICADO')->count();
+                $evaluacionesCalificadas = Evaluacion::where('id_competencia', $evaluacion->id_competencia)
+                    ->where('estado_competidor', 'CALIFICADO')
+                    ->count();
 
-                // Asumiendo que la competencia tiene un campo 'estado_comp'
+                // La columna en la BBDD es 'estado' y es booleana.
                 if ($totalEvaluaciones > 0 && $totalEvaluaciones === $evaluacionesCalificadas) {
-                    $competencia->estado_comp = 'Calificado'; 
+                    $competencia->estado = true; // Finalizado
                 } else {
-                    $competencia->estado_comp = 'En Calificación';
+                    $competencia->estado = false; // Pendiente o en progreso
                 }
                 $competencia->save();
             }
