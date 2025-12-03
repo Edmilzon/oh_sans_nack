@@ -35,6 +35,7 @@ use App\Http\Controllers\CronogramaFaseController;
 use App\Http\Controllers\FaseGlobalController;
 use App\Http\Controllers\ExamenController;
 use App\Http\Controllers\CompetenciaController;
+use App\Http\Controllers\CompetidorController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -157,7 +158,7 @@ Route::get('/grados/{idArea}/nivel/{idNivel}', [ListaResponsableAreaController::
 Route::get('/departamento', [ListaResponsableAreaController::class, 'getDepartamento']);
 Route::get('/generos', [ListaResponsableAreaController::class, 'getGenero']);
 Route::get('/listaCompleta/{idResponsable}/{idArea}/{idNivel}/{idGrado}/{genero?}/{departamento?}', [ListaResponsableAreaController::class, 'listarPorAreaYNivel']);
-Route::get('/competidores/area/{idArea}/nivel/{idNivel}', [ListaResponsableAreaController::class, 'getCompetidoresPorAreaYNivel']);
+Route::get('/competencias/{id_competencia}/area/{idArea}/nivel/{idNivel}/competidores', [ListaResponsableAreaController::class, 'getCompetidoresPorAreaYNivel']);
 
 //Rutas para la calificación
 Route::get('/fases-globales', [FaseController::class, 'indexGlobales']);
@@ -179,6 +180,8 @@ Route::get('/competencias/{id_competencia}/calificados', [EvaluacionController::
 Route::get('/competidores/{id_competidor}/evaluacion', [EvaluacionController::class, 'getUltimaPorCompetidor']);
 Route::put('/evaluaciones/{id_evaluacion}', [EvaluacionController::class, 'update']);
 Route::post('/evaluaciones/{id_evaluacion}/finalizar', [EvaluacionController::class, 'finalizarCalificacion']);
+Route::post('/competidores/{id_competidor}/descalificar', [CompetidorController::class, 'descalificar']);
+Route::post('/evaluaciones/{id_evaluacion}/descalificar', [EvaluacionController::class, 'descalificar']);
 
 //Rutas para parametrizacion
 Route::get('/responsableGestion/{idResponsable}', [MedalleroController::class, 'getAreaPorResponsable']);

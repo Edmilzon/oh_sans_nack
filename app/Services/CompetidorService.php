@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 use Exception;
+use App\Model\Competidor;
 
 class CompetidorService
 {
@@ -214,5 +215,28 @@ class CompetidorService
             'duplicados' => $duplicados,
             'errores' => $errores,
         ];
+    }
+
+    /**
+     * Descalifica a un competidor a nivel de competencia.
+     *
+     * @param int $id_competidor
+     * @param string $observaciones
+     * @return Competidor
+     * @throws Exception
+     */
+    public function descalificarCompetidor(int $id_competidor, string $observaciones): Competidor
+    {
+        return DB::transaction(function () use ($id_competidor, $observaciones) {
+            $competidor = Competidor::findOrFail($id_competidor);
+
+            if ($competidor->estado_evaluacion === 'DESCALIFICADO') {
+                throw new Exception("Este competidor ya ha sido descalificado.");
+            }
+            $competidor->estado_evaluacion = 'DESCALIFICADO';
+            $competidor->save();
+            $this->competidorRepository->registrarDescalificacionAdministrativa($id_competidor, $observaciones);
+            return $competidor;
+        });
     }
 }

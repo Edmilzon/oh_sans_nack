@@ -3,19 +3,6 @@
 @token = 
 
 
-###Evaluador con sus areas y niveles actuales
-##10, 11, 12, 13, 14
-GET {{hostname}}{{api_prefix}}/evaluadores/11/areas-niveles
-Accept: application/json
-
-###lISTAR COMPETIDORES POR AREA Y NIVEL
-##/area/1/nivel/9
-##/area/1/nivel/10
-##/area/1/nivel/11
-##/area/2/nivel/9
-GET {{hostname}}{{api_prefix}}/competidores/area/1/nivel/1
-Accept: application/json
-
 ### ================= CREAR COMPETENCIA =================
 
 POST {{hostname}}{{api_prefix}}/competencias
@@ -30,7 +17,7 @@ Accept: application/json
 
 ### ================= AÑADIR EXAMEN A COMPETENCIA =================
 
-@id_competencia_creada = 1
+@id_competencia_creada = 3
 POST {{hostname}}{{api_prefix}}/competencias/{{id_competencia_creada}}/examenes
 Content-Type: application/json
 Accept: application/json
@@ -57,9 +44,20 @@ GET {{hostname}}{{api_prefix}}/competencias/{{id_competencia_creada}}/examenes
 Accept: application/json
 
 ### ================= OBTENER UN EXAMEN =================
-@id_examen = 1
+@id_examen = 2
 GET {{hostname}}{{api_prefix}}/examenes/{{id_examen}}
 Accept: application/json
+
+###Evaluador con sus areas y niveles actuales
+##10, 11, 12, 13, 14
+GET {{hostname}}{{api_prefix}}/evaluadores/11/areas-niveles
+Accept: application/json
+
+### LISTAR COMPETIDORES POR AREA, NIVEL Y COMPETENCIA
+@id_competencia = 3
+GET {{hostname}}{{api_prefix}}/competencias/{{id_competencia_creada}}/area/1/nivel/1/competidores
+Accept: application/json
+
 
 ### ================= FLUJO DE CALIFICACIÓN =================
 
@@ -86,6 +84,30 @@ Accept: application/json
 {
     "nota": 100,
     "observaciones": "Bueno"
+}
+
+### PASO 2 (Alternativo): DESCALIFICAR EVALUACIÓN (Estado: En Proceso -> Descalificado)
+# El evaluador descalifica al competidor, estableciendo la nota a 0 y guardando el motivo.
+@id_evaluacion_a_descalificar = 1
+POST {{hostname}}{{api_prefix}}/evaluaciones/{{id_evaluacion_a_descalificar}}/descalificar
+Content-Type: application/json
+Accept: application/json
+
+{
+    "observaciones": "Se detectó uso de material no autorizado durante el examen."
+}
+
+### ================= DESCALIFICAR COMPETIDOR (ADMINISTRATIVO) =================
+
+# Descalifica a un competidor en cualquier momento, sin necesidad de una evaluación en curso.
+# Esto actualiza el estado del competidor a 'DESCALIFICADO' y crea un registro de auditoría.
+@id_competidor_a_descalificar = 1
+POST {{hostname}}{{api_prefix}}/competidores/{{id_competidor_a_descalificar}}/descalificar
+Content-Type: application/json
+Accept: application/json
+
+{
+    "observaciones": "Incumplimiento del reglamento general de la olimpiada (Artículo 5)."
 }
 
 ### ACTUALIZAR UNA EVALUACIÓN

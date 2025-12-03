@@ -73,9 +73,9 @@ public function getListaGrados(?int $idArea, int $idNivel): Collection
     return $this->listaResponsableAreaRepository->getListaGeneros();
 }
 
-    public function getCompetidoresPorAreaYNivel(int $idArea, int $idNivel): Collection
+    public function getCompetidoresPorAreaYNivel(int $id_competencia, int $idArea, int $idNivel): Collection
     {
-        return $this->listaResponsableAreaRepository->getCompetidoresPorAreaYNivel($idArea, $idNivel);
+        return $this->listaResponsableAreaRepository->getCompetidoresPorAreaYNivel($id_competencia, $idArea, $idNivel);
     }
 
 }

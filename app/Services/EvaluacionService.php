@@ -127,6 +127,36 @@ class EvaluacionService
     }
 
     /**
+     * Descalifica a un competidor, guarda el motivo y cambia el estado a 'DESCALIFICADO'.
+     *
+     * @param int $id_evaluacion
+     * @param array $data
+     * @return \App\Model\Evaluacion
+     * @throws \Exception
+     */
+    public function descalificarCompetidor(int $id_evaluacion, array $data): \App\Model\Evaluacion
+    {
+        $evaluacion = Evaluacion::findOrFail($id_evaluacion);
+        if ($evaluacion->estado_competidor !== 'EN PROCESO') {
+            throw new \Exception("Solo se puede descalificar una evaluación que está 'EN PROCESO'.");
+        }
+
+        $datosDescalificacion = [
+            'nota' => 0,
+            'observacion' => $data['observaciones'],
+            'estado_competidor' => 'DESCALIFICADO',
+            'fecha' => now(),
+            'estado' => true, // La tarea de evaluación se considera finalizada.
+        ];
+
+        $evaluacionActualizada = $this->actualizarEvaluacion($id_evaluacion, $datosDescalificacion);
+
+        broadcast(new CompetidorLiberado($evaluacionActualizada->id_competidor, $evaluacionActualizada->examen->id_competencia))->toOthers();
+
+        return $evaluacionActualizada;
+    }
+
+    /**
      * Obtiene todas las evaluaciones calificadas para una competencia.
      *
      * @param int $id_competencia

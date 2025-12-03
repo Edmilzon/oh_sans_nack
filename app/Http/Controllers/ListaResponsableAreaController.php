@@ -148,10 +148,10 @@ class ListaResponsableAreaController extends Controller
     }
 }
 
-    public function getCompetidoresPorAreaYNivel(Request $request, int $idArea, int $idNivel): JsonResponse
+    public function getCompetidoresPorAreaYNivel(Request $request, int $id_competencia, int $idArea, int $idNivel): JsonResponse
     {
         try {
-            $competidores = $this->listaResponsableAreaService->getCompetidoresPorAreaYNivel($idArea, $idNivel);
+            $competidores = $this->listaResponsableAreaService->getCompetidoresPorAreaYNivel($id_competencia, $idArea, $idNivel);
 
             if ($competidores->isEmpty()) {
                 return response()->json([

@@ -115,6 +115,34 @@ class EvaluacionController extends Controller
     }
 
     /**
+     * Descalifica a un competidor en una evaluación específica.
+     *
+     * @param Request $request
+     * @param int $id_evaluacion
+     * @return JsonResponse
+     */
+    public function descalificar(Request $request, int $id_evaluacion): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'observaciones' => 'required|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        try {
+            $datosDescalificacion = $request->only(['observaciones']);
+            $evaluacion = $this->evaluacionService->descalificarCompetidor($id_evaluacion, $datosDescalificacion);
+            $evaluacion->load('competidor.persona', 'examen.competencia', 'evaluadorAn.usuario.persona');
+
+            return response()->json($evaluacion->toArray());
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error al descalificar al competidor.', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Obtiene todas las evaluaciones calificadas para una competencia.
      *
      * @param int $id_competencia

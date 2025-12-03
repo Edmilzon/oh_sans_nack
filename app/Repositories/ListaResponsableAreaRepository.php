@@ -136,7 +136,7 @@ class ListaResponsableAreaRepository
         ->orderBy('persona.nombre')
         ->get();
 }
-    public function getCompetidoresPorAreaYNivel(int $idArea, int $idNivel): Collection
+    public function getCompetidoresPorAreaYNivel(int $id_competencia, int $idArea, int $idNivel): Collection
     {
         $gestionActual = date('Y');
 
@@ -190,16 +190,17 @@ class ListaResponsableAreaRepository
 
         // Segundo, obtenemos las evaluaciones para esos competidores
         $evaluaciones = DB::table('evaluacion')
+            ->join('examen_conf', 'evaluacion.id_examen_conf', '=', 'examen_conf.id_examen_conf')
             ->whereIn('id_competidor', $competidorIds)
+            ->where('examen_conf.id_competencia', $id_competencia)
             ->select(
                 'id_evaluacion',
-                'nota',
-                'observacion', // Nombre de columna corregido
-                'fecha',       // Nombre de columna corregido
-                'estado',
-                'id_competidor',
-                'id_competencia',
-                'id_evaluador_an' // Nombre de columna corregido
+                'evaluacion.nota',
+                'evaluacion.observacion',
+                'evaluacion.fecha',
+                'evaluacion.estado',
+                'evaluacion.id_competidor',
+                'evaluacion.id_evaluador_an'
             )
             ->get()
             ->groupBy('id_competidor');
