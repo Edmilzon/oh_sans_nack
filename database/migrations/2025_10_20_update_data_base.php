@@ -234,17 +234,31 @@ return new class extends Migration
         Schema::create('competencia', function (Blueprint $table) {
             $table->id('id_competencia');
             $table->unsignedBigInteger('id_fase_global')->nullable();
-            $table->unsignedBigInteger('id_area_nivel')->nullable();
+            $table->unsignedBigInteger('id_area_nivel');
+            $table->unsignedBigInteger('id_persona')->nullable();
+            $table->string('nombre_examen', 255);
             $table->date('fecha_inicio');
             $table->date('fecha_fin');
-            $table->boolean('es_avalado')->nullable();
-            $table->boolean('estado');
+            $table->decimal('ponderacion', 8, 2)->nullable();
+            $table->decimal('maxima_nota', 8, 2)->nullable();
+            $table->string('estado', 20)->default('No_iniciada');
+            $table->boolean('es_avalado')->default(false);
+            $table->unsignedBigInteger('avalado_por')->nullable();
+            $table->timestamp('fecha_aval')->nullable();
             $table->timestamps();
 
-            $table->foreign('id_fase_global')->references('id_fase_global')->on('fase_global')
-                  ->restrictOnDelete()->restrictOnUpdate();
-            $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')
-                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_fase_global')
+                ->references('id_fase_global')->on('fase_global')
+                ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_area_nivel')
+                ->references('id_area_nivel')->on('area_nivel')
+                ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_persona')
+                ->references('id_persona')->on('persona')
+                ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('avalado_por')
+                ->references('id_usuario')->on('usuario')
+                ->restrictOnDelete()->restrictOnUpdate();
         });
 
         Schema::create('competidor', function (Blueprint $table) {
@@ -338,20 +352,20 @@ return new class extends Migration
         Schema::create('examen_conf', function (Blueprint $table) {
             $table->id('id_examen_conf');
             $table->unsignedBigInteger('id_competencia')->nullable();
-            $table->string('nombre'); 
-            $table->decimal('ponderacion', 8, 2); 
+            $table->string('nombre');
+            $table->decimal('ponderacion', 8, 2);
             $table->decimal('maxima_nota', 8, 2);
             $table->timestamps();
 
             $table->foreign('id_competencia')->references('id_competencia')->on('competencia')
                   ->restrictOnDelete()->restrictOnUpdate();
         });
-        
+
         Schema::create('evaluacion', function (Blueprint $table) {
             $table->id('id_evaluacion');
             $table->unsignedBigInteger('id_competidor')->nullable();
             $table->unsignedBigInteger('id_evaluador_an')->nullable();
-            $table->unsignedBigInteger('id_examen_conf')->nullable();
+            $table->unsignedBigInteger('id_competencia')->nullable();
             $table->decimal('nota', 8, 2);
             $table->string('estado_competidor', 25)->nullable();
             $table->text('observacion')->nullable();
@@ -363,7 +377,7 @@ return new class extends Migration
                   ->restrictOnDelete()->restrictOnUpdate();
             $table->foreign('id_evaluador_an')->references('id_evaluador_an')->on('evaluador_an')
                   ->restrictOnDelete()->restrictOnUpdate();
-            $table->foreign('id_examen_conf')->references('id_examen_conf')->on('examen_conf')
+            $table->foreign('id_competencia')->references('id_competencia')->on('competencia')
                   ->restrictOnDelete()->restrictOnUpdate();
         });
 
