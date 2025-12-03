@@ -45,4 +45,12 @@ class OlimpiadaRepository
                           ->orderBy('gestion', 'desc')
                           ->get();
     }
+
+    public function obtenerMasReciente(): ?Olimpiada
+    {
+        // Busca la olimpiada del año actual (o la última creada)
+        return Olimpiada::orderBy('gestion', 'desc') // Asumiendo campo 'gestion' como año
+                        ->orderBy('id_olimpiada', 'desc')
+                        ->first();
+    }
 }

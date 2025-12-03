@@ -27,6 +27,12 @@ use App\Http\Controllers\InstitucionController;
 use App\Http\Controllers\AreaNivelGradoController;
 use App\Http\Controllers\ReporteController;
 
+use App\Http\Controllers\RolAccionController;
+use App\Http\Controllers\AccionDisponibilidadController;
+use App\Http\Controllers\SistemaEstadoController;
+use App\Http\Controllers\UsuarioAccionesController;
+use App\Http\Controllers\CronogramaFaseController;
+use App\Http\Controllers\FaseGlobalController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -178,26 +184,38 @@ Route::apiResource('grados-escolaridad', GradoEscolaridadController::class);
 Route::apiResource('instituciones', InstitucionController::class);
 Route::patch('/sub-fases/{id}/estado', [FaseController::class, 'updateEstado']);
 
-// 1. Sub-fases
+//Sub-fases
 Route::get('/sub-fases/area/{id_area}/nivel/{id_nivel}/olimpiada/{id_olimpiada}', [FaseController::class, 'getSubFases']);
-
-// 2. Areas Actuales (Plana)
 Route::get('/areas/actuales', [AreaController::class, 'getActualesPlanas']);
-
-// 3. Niveles por Area/Olimpiada
 Route::get('/area-nivel/olimpiada/{id_olimpiada}/area/{id_area}', [AreaNivelController::class, 'getNivelesPorAreaOlimpiada']);
-
-// 4. Cambiar estado
 Route::patch('/sub-fases/{id_subfase}/estado', [FaseController::class, 'updateEstado']);
 
-// ==========================================
-// NUEVO MÓDULO: REPORTES Y TRAZABILIDAD
-// ==========================================
+// REPORTES Y TRAZABILIDAD
 Route::prefix('reportes')->group(function () {
-    // 1. Historial principal
     Route::get('/historial-calificaciones', [ReporteController::class, 'historialCalificaciones']);
-
-    // 2. Filtros auxiliares (Optimizados para combos del reporte)
     Route::get('/areas', [ReporteController::class, 'getAreas']);
     Route::get('/areas/{idArea}/niveles', [ReporteController::class, 'getNivelesPorArea']);
 });
+
+//wilian
+Route::prefix('roles/{idRol}/acciones')->group(function () {
+    Route::get('/', [RolAccionController::class, 'index']);
+    Route::post('/', [RolAccionController::class, 'store']);
+    Route::delete('/{idAccion}', [RolAccionController::class, 'destroy']);
+});
+
+Route::get(
+    'rol/{id_rol}/fase-global/{id_fase_global}/gestion/{id_gestion}',
+    [AccionDisponibilidadController::class, 'index']
+);
+
+Route::get('/sistema/estado', [SistemaEstadoController::class, 'index']);
+
+Route::get(
+    'usuario/{id_usuario}/fase-global/{id_fase_global}/gestion/{id_gestion}/acciones',
+    [UsuarioAccionesController::class, 'index']
+);
+
+Route::get('cronograma-fases/actuales', [CronogramaFaseController::class, 'listarActuales']);
+Route::get('fases-globales/actuales', [FaseGlobalController::class, 'listarActuales']);
+Route::apiResource('cronograma-fases', CronogramaFaseController::class);

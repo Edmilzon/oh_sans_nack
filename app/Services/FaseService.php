@@ -6,11 +6,14 @@ use App\Repositories\FaseRepository;
 // CRÍTICO: Usamos Support\Collection para compatibilidad de tipos
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Repositories\OlimpiadaRepository;
 
 class FaseService
 {
     public function __construct(
-        protected FaseRepository $repo
+        protected FaseRepository $repo,
+        protected FaseRepository $faseRepository,
+        protected OlimpiadaRepository $olimpiadaRepository
     ) {}
 
     // ==========================================
@@ -116,5 +119,18 @@ class FaseService
     public function getSubFasesDetails(int $idArea, int $idNivel, int $idOlimpiada): Collection
     {
         return $this->repo->getSubFasesDetails($idArea, $idNivel, $idOlimpiada);
+    }
+
+    public function listarFasesDeOlimpiadaActual(): Collection
+    {
+        // 1. Obtener la olimpiada más reciente
+        $olimpiada = $this->olimpiadaRepository->obtenerMasReciente();
+
+        if (!$olimpiada) {
+            return new Collection();
+        }
+
+        // 2. Devolver sus fases ordenadas
+        return $this->faseRepository->getByOlimpiadaId($olimpiada->id_olimpiada);
     }
 }

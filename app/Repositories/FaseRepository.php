@@ -249,4 +249,11 @@ class FaseRepository
             ];
         });
     }
+
+    public function getByOlimpiadaId(int $idOlimpiada): Collection
+    {
+        return FaseGlobal::where('id_olimpiada', $idOlimpiada)
+            ->orderBy('orden', 'asc') // Vital para el frontend (1ra etapa, 2da etapa...)
+            ->get();
+    }
 }
