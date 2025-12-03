@@ -4,8 +4,8 @@
 
 
 ###Evaluador con sus areas y niveles actuales
-##9, 28, 46, 47, 48, 49, 50
-GET {{hostname}}{{api_prefix}}/evaluadores/9/areas-niveles
+##10, 11, 12, 13, 14
+GET {{hostname}}{{api_prefix}}/evaluadores/11/areas-niveles
 Accept: application/json
 
 ###lISTAR COMPETIDORES POR AREA Y NIVEL
