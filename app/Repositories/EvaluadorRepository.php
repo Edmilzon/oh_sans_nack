@@ -158,16 +158,22 @@ class EvaluadorRepository
             // Detalle de áreas asignadas (Simplificado)
             'areas_asignadas' => $usuario->evaluadoresAn->map(function($ean) {
 
-                // Navegación segura para obtener nombres
-                $nombreArea = $ean->areaNivel->areaOlimpiada->area->nombre ?? 'Sin Área';
-                $nombreNivel = $ean->areaNivel->nivel->nombre ?? 'Sin Nivel';
+                // Navegación segura para obtener nombres y IDs relacionados
+                $areaNivel      = $ean->areaNivel;
+                $areaOlimpiada  = $areaNivel->areaOlimpiada ?? null;
+                $nivel          = $areaNivel->nivel ?? null;
+
+                $nombreArea     = $areaOlimpiada->area->nombre ?? 'Sin Área';
+                $nombreNivel    = $nivel->nombre ?? 'Sin Nivel';
 
                 return [
-                    'id_evaluador_an' => $ean->id_evaluador_an,
-                    'id_area_nivel'   => $ean->id_area_nivel,
-                    'area'            => $nombreArea,
-                    'nivel'           => $nombreNivel,
-                    'gestion'         => $ean->areaNivel->areaOlimpiada->olimpiada->gestion ?? null
+                    'id_evaluador_an'  => $ean->id_evaluador_an,
+                    'id_area_olimpiada'=> $areaNivel->id_area_olimpiada ?? null,
+                    'id_area_nivel'    => $ean->id_area_nivel,
+                    'id_nivel'         => $areaNivel->id_nivel ?? null,
+                    'area'             => $nombreArea,
+                    'nivel'            => $nombreNivel,
+                    'gestion'          => $areaOlimpiada->olimpiada->gestion ?? null
                 ];
             })->values()->toArray()
         ];

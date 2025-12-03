@@ -350,7 +350,7 @@ return new class extends Migration
             $table->unsignedBigInteger('id_evaluador_an')->nullable();
             $table->decimal('nota', 8, 2);
             $table->string('estado_competidor', 25)->nullable();
-            $table->text('observacion');
+            $table->text('observacion')->nullable();
             $table->timestamp('fecha');
             $table->boolean('estado');
             $table->timestamps();
