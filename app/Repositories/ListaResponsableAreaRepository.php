@@ -152,6 +152,7 @@ class ListaResponsableAreaRepository
             ->join('area', 'area_olimpiada.id_area', '=', 'area.id_area')
             ->join('olimpiada', 'area_olimpiada.id_olimpiada', '=', 'olimpiada.id_olimpiada')
             ->where('area.id_area', $idArea)
+            ->leftJoin('descalificacion_administrativa as da', 'competidor.id_competidor', '=', 'da.id_competidor')
             ->where('nivel.id_nivel', $idNivel)
             ->where('olimpiada.gestion', $gestionActual)
             ->where('area_nivel.es_activo', true)
@@ -172,7 +173,12 @@ class ListaResponsableAreaRepository
                 'grado_escolaridad.nombre as grado',
                 'area.nombre as area',
                 'nivel.nombre as nivel',
-                'competidor.id_persona',
+                DB::raw("CASE 
+                            WHEN da.id_descalificacion IS NOT NULL THEN 'descalificado'
+                            ELSE 'disponible para calificar'
+                        END AS estado_competidor"),
+                'da.observaciones as observaciones_descalificacion',
+                 'competidor.id_persona',
                 'competidor.id_area_nivel',
                 'competidor.id_grado_escolaridad',
                 'competidor.id_institucion',

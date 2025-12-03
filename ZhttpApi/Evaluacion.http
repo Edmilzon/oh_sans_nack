@@ -54,7 +54,6 @@ GET {{hostname}}{{api_prefix}}/evaluadores/11/areas-niveles
 Accept: application/json
 
 ### LISTAR COMPETIDORES POR AREA, NIVEL Y COMPETENCIA
-@id_competencia = 3
 GET {{hostname}}{{api_prefix}}/competencias/{{id_competencia_creada}}/area/1/nivel/1/competidores
 Accept: application/json
 
@@ -64,19 +63,19 @@ Accept: application/json
 ### PASO 1: CREAR/ASIGNAR EVALUACIÓN (Estado: EN PROCESO)
 # Se crea una evaluación para un competidor en un examen específico.
 # Esto representa la "tarea" de calificar para un evaluador.
-@id_examen = 1
+@id_examen = 2
 POST {{hostname}}{{api_prefix}}/examenes/{{id_examen}}/evaluaciones
 Content-Type: application/json
 Accept: application/json
 
 {
-    "id_competidor": 16,
+    "id_competidor": 34,
     "id_evaluador_an": 4
 }
 
 ### PASO 2: CALIFICAR EVALUACIÓN (Estado: Pendiente -> Calificado)
 # El evaluador envía la nota y las observaciones para finalizar la calificación.
-@id_evaluacion_creada = 15
+@id_evaluacion_creada = 4
 POST {{hostname}}{{api_prefix}}/evaluaciones/{{id_evaluacion_creada}}/finalizar
 Content-Type: application/json
 Accept: application/json
@@ -86,22 +85,12 @@ Accept: application/json
     "observaciones": "Bueno"
 }
 
-### PASO 2 (Alternativo): DESCALIFICAR EVALUACIÓN (Estado: En Proceso -> Descalificado)
-# El evaluador descalifica al competidor, estableciendo la nota a 0 y guardando el motivo.
-@id_evaluacion_a_descalificar = 1
-POST {{hostname}}{{api_prefix}}/evaluaciones/{{id_evaluacion_a_descalificar}}/descalificar
-Content-Type: application/json
-Accept: application/json
-
-{
-    "observaciones": "Se detectó uso de material no autorizado durante el examen."
-}
 
 ### ================= DESCALIFICAR COMPETIDOR (ADMINISTRATIVO) =================
 
 # Descalifica a un competidor en cualquier momento, sin necesidad de una evaluación en curso.
 # Esto actualiza el estado del competidor a 'DESCALIFICADO' y crea un registro de auditoría.
-@id_competidor_a_descalificar = 1
+@id_competidor_a_descalificar = 35
 POST {{hostname}}{{api_prefix}}/competidores/{{id_competidor_a_descalificar}}/descalificar
 Content-Type: application/json
 Accept: application/json

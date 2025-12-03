@@ -9,6 +9,7 @@ use App\Model\Departamento;
 use App\Model\GradoEscolaridad;
 use App\Model\Area;
 use App\Model\Nivel;
+use App\Model\DescalificacionAdministrativa;
 use App\Model\AreaOlimpiada;
 use App\Model\AreaNivel;
 use Illuminate\Database\Eloquent\Collection;
@@ -62,5 +63,13 @@ class CompetidorRepository
         return AreaNivel::whereIn('id_area_olimpiada', $areaOlimpiadaIds)
             ->with(['areaOlimpiada', 'nivel']) // Eager loading para macheo rápido
             ->get();
+    }
+
+    public function registrarDescalificacionAdministrativa(int $id_competidor, string $observaciones): void
+    {
+        DescalificacionAdministrativa::create([
+            'id_competidor' => $id_competidor,
+            'observaciones' => $observaciones,
+        ]);
     }
 }

@@ -11,7 +11,7 @@ return new class extends Migration
         'accion_sistema', 'archivo_csv', 'area', 'departamento', 'fase_global',
         'grado_escolaridad', 'grupo', 'institucion', 'nivel', 'olimpiada', 'persona',
         'personal_access_tokens', 'rol', 'usuario', 'area_olimpiada', 'area_nivel',
-        'competencia', 'cronograma_fase', 'responsable_area', 'usuario_rol',
+        'competencia', 'cronograma_fase', 'responsable_area', 'usuario_rol', 'descalificacion_administrativa',
         'competidor', 'evaluador_an', 'parametro', 'param_medallero',
         'configuracion_accion', 'rol_accion', 'area_nivel_grado', 'grupo_competidor',
         'examen_conf', 'evaluacion', 'log_cambio_nota', 'medallero',
@@ -390,6 +390,19 @@ return new class extends Migration
                   ->restrictOnDelete()->restrictOnUpdate();
             $table->foreign('id_competencia')->references('id_competencia')->on('competencia')
                   ->restrictOnDelete()->restrictOnUpdate();
+        });
+
+        Schema::create('descalificacion_administrativa', function (Blueprint $table) {
+            $table->id('id_descalificacion');
+            $table->unsignedBigInteger('id_competidor');
+            $table->text('observaciones');
+            $table->timestamp('fecha_descalificacion')->useCurrent();
+            $table->timestamps();
+
+            $table->foreign('id_competidor')
+                  ->references('id_competidor')
+                  ->on('competidor')
+                  ->onDelete('cascade');
         });
 
         // Reactivamos FKs
