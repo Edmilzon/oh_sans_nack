@@ -16,11 +16,58 @@ Accept: application/json
 GET {{hostname}}{{api_prefix}}/competidores/area/1/nivel/1
 Accept: application/json
 
+### ================= CREAR COMPETENCIA =================
+
+POST {{hostname}}{{api_prefix}}/competencias
+Content-Type: application/json
+Accept: application/json
+
+{
+    "id_area_nivel": 1,
+    "fecha_inicio": "2025-12-10",
+    "fecha_fin": "2025-12-15"
+}
+
+### ================= AÑADIR EXAMEN A COMPETENCIA =================
+
+@id_competencia_creada = 1
+POST {{hostname}}{{api_prefix}}/competencias/{{id_competencia_creada}}/examenes
+Content-Type: application/json
+Accept: application/json
+
+{
+    "nombre": "Examen Teórico",
+    "ponderacion": 60,
+    "maxima_nota": 100
+}
+
+### ================= LISTAR COMPETENCIAS =================
+
+GET {{hostname}}{{api_prefix}}/competencias
+Accept: application/json
+
+### ================= OBTENER UNA COMPETENCIA =================
+
+GET {{hostname}}{{api_prefix}}/competencias/{{id_competencia_creada}}
+Accept: application/json
+
+### ================= LISTAR EXÁMENES DE UNA COMPETENCIA =================
+
+GET {{hostname}}{{api_prefix}}/competencias/{{id_competencia_creada}}/examenes
+Accept: application/json
+
+### ================= OBTENER UN EXAMEN =================
+@id_examen = 1
+GET {{hostname}}{{api_prefix}}/examenes/{{id_examen}}
+Accept: application/json
+
 ### ================= FLUJO DE CALIFICACIÓN =================
 
-### PASO 1: CREAR EVALUACIÓN (Estado por defecto: Pendiente)
-# Se crea una evaluación para un competidor. Esta es la "tarea" de calificar.
-POST {{hostname}}{{api_prefix}}/competencias/1/evaluacion
+### PASO 1: CREAR/ASIGNAR EVALUACIÓN (Estado: EN PROCESO)
+# Se crea una evaluación para un competidor en un examen específico.
+# Esto representa la "tarea" de calificar para un evaluador.
+@id_examen = 1
+POST {{hostname}}{{api_prefix}}/examenes/{{id_examen}}/evaluaciones
 Content-Type: application/json
 Accept: application/json
 

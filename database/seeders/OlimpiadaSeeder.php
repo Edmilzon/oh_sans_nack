@@ -24,20 +24,7 @@ class OlimpiadaSeeder extends Seeder
                 'nombre'  => "Olimpiada Científica $anioActual (Gestión Actual)",
                 'gestion' => (string) $anioActual,
                 'estado'  => true,
-            ],
-            [
-                'nombre'  => "Olimpiada Científica $anioPasado (Histórico)",
-                'gestion' => (string) $anioPasado,
-                'estado'  => false,
-            ],
-            // Puedes agregar un futuro si quieres pruebas
-            /*
-            [
-                'nombre'  => "Olimpiada Científica " . ($anioActual + 1),
-                'gestion' => (string) ($anioActual + 1),
-                'estado'  => false,
-            ],
-            */
+            ]
         ];
 
         foreach ($olimpiadas as $data) {

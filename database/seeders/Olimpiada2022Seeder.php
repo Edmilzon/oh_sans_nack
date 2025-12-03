@@ -22,6 +22,7 @@ use App\Model\Competidor;
 use App\Model\Evaluacion;
 use App\Model\Grupo;
 use App\Model\Competencia;
+use App\Model\ExamenConf;
 use App\Model\Medallero;
 use App\Model\Departamento;
 
@@ -179,25 +180,33 @@ class Olimpiada2022Seeder extends Seeder
 
             // Crear Competencia
             $competencia = null;
+            $examen = null;
             if ($anRobotica) {
                 $competencia = Competencia::create([
-                    'nombre_examen' => 'Presentación Proyectos Robótica 2022',
                     'fecha_inicio' => '2022-10-20',
                     'fecha_fin' => '2022-10-21',
                     'estado' => false,
                     'id_fase_global' => $faseFinal->id_fase_global,
                     'id_area_nivel' => $anRobotica->id_area_nivel,
-                    'id_persona' => $pResp->id_persona
+                    // 'id_persona' => $pResp->id_persona // Esta columna ya no existe en 'competencia'
+                ]);
+
+                $examen = ExamenConf::create([
+                    'id_competencia' => $competencia->id_competencia,
+                    'nombre' => 'Presentación Proyectos Robótica 2022',
+                    'ponderacion' => 100,
+                    'maxima_nota' => 100,
                 ]);
             }
 
             // Evaluaciones
-            if ($competencia && $evaluadorAn) {
+            if ($competencia && $examen && $evaluadorAn) {
                 $notas = [98.50, 99.00, 85.00];
                 foreach ($competidoresCreados as $idx => $comp) {
                     Evaluacion::create([
                         'id_competidor' => $comp->id_competidor,
-                        'id_competencia' => $competencia->id_competencia,
+                        // 'id_competencia' ya no está en la tabla 'evaluacion'
+                        'id_examen_conf' => $examen->id_examen_conf,
                         'id_evaluador_an' => $evaluadorAn->id_evaluador_an,
                         'nota' => $notas[$idx] ?? 0,
                         'fecha' => '2022-10-20 14:00:00',

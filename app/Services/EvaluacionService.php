@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\EvaluacionRepository;
 use App\Model\Competidor;
+use App\Model\ExamenConf;
 use App\Model\Evaluacion;
 use App\Model\Competencia;
 use App\Events\CompetidorBloqueado;
@@ -23,18 +24,19 @@ class EvaluacionService
      * Crea una evaluación y la marca como "En Proceso".
      *
      * @param array $data Los datos para la evaluación.
-     * @param int $id_competencia El ID de la competencia asociada.
+     * @param int $id_examen_conf El ID de la configuración del examen asociada.
      * @return \App\Model\Evaluacion
      * @throws \Exception
      */
-    public function crearEvaluacion(array $data, int $id_competencia): \App\Model\Evaluacion
+    public function crearEvaluacion(array $data, int $id_examen_conf): \App\Model\Evaluacion
     {
-        return DB::transaction(function () use ($data, $id_competencia) {
+        return DB::transaction(function () use ($data, $id_examen_conf) {
             // Se busca el competidor directamente.
             $id_competidor = $data['id_competidor'];
             Competidor::findOrFail($id_competidor); // Asegura que el competidor exista.
+            $examen = ExamenConf::findOrFail($id_examen_conf); // Asegura que el examen exista.
 
-            $evaluacionExistente = $this->evaluacionRepository->buscarPorCompetidorYCompetencia($id_competidor, $id_competencia);
+            $evaluacionExistente = $this->evaluacionRepository->buscarPorCompetidorYExamen($id_competidor, $id_examen_conf);
 
             if ($evaluacionExistente && $evaluacionExistente->estado_competidor === 'EN PROCESO') {
                 throw new \Exception("Este competidor ya está siendo evaluado por otra persona.");
@@ -42,7 +44,7 @@ class EvaluacionService
 
             $datosEvaluacion = [
                 'id_competidor' => $id_competidor,
-                'id_competencia' => $id_competencia,
+                'id_examen_conf' => $id_examen_conf,
                 'id_evaluador_an' => $data['id_evaluador_an'],
                 'nota' => 0,
                 'estado_competidor' => 'EN PROCESO',
@@ -52,7 +54,7 @@ class EvaluacionService
 
             $evaluacion = $this->evaluacionRepository->crearOActualizar($datosEvaluacion, optional($evaluacionExistente)->id_evaluacion);
             
-            broadcast(new CompetidorBloqueado($id_competidor, $evaluacion->id_evaluador_an, $id_competencia))->toOthers();
+            broadcast(new CompetidorBloqueado($id_competidor, $evaluacion->id_evaluador_an, $examen->id_competencia))->toOthers();
 
             return $evaluacion;
         });
@@ -70,12 +72,14 @@ class EvaluacionService
         return DB::transaction(function () use ($id_evaluacion, $data) {
             $evaluacion = $this->evaluacionRepository->crearOActualizar($data, $id_evaluacion);
 
-            // Lógica para actualizar estado de la competencia
+            // Lógica para actualizar estado de la competencia si todas sus evaluaciones están calificadas
             if (isset($data['estado_competidor'])) {
-                $competencia = Competencia::findOrFail($evaluacion->id_competencia);
-                $totalEvaluaciones = Evaluacion::where('id_competencia', $evaluacion->id_competencia)->count();
-                $evaluacionesCalificadas = Evaluacion::where('id_competencia', $evaluacion->id_competencia)
-                    ->where('estado_competidor', 'CALIFICADO')
+                $competencia = $evaluacion->examen->competencia;
+                $ids_examenes = $competencia->examenes()->pluck('id_examen_conf');
+
+                $totalEvaluaciones = Evaluacion::whereIn('id_examen_conf', $ids_examenes)->count();
+                $evaluacionesCalificadas = Evaluacion::whereIn('id_examen_conf', $ids_examenes)
+                    ->where('estado_competidor', 'CALIFICADO') // Asumiendo que 'CALIFICADO' es el estado final
                     ->count();
 
                 // La columna en la BBDD es 'estado' y es booleana.
@@ -117,7 +121,7 @@ class EvaluacionService
 
         $id_competidor = $evaluacionActualizada->id_competidor;
         
-        broadcast(new CompetidorLiberado($id_competidor, $evaluacionActualizada->id_competencia))->toOthers();
+        broadcast(new CompetidorLiberado($id_competidor, $evaluacionActualizada->examen->id_competencia))->toOthers();
 
         return $evaluacionActualizada;
     }

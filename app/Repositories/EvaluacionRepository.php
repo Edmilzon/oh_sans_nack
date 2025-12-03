@@ -19,7 +19,7 @@ class EvaluacionRepository
     {
         $attributes = $id_evaluacion 
             ? ['id_evaluacion' => $id_evaluacion] 
-            : ['id_competidor' => $data['id_competidor'], 'id_competencia' => $data['id_competencia']];
+            : ['id_competidor' => $data['id_competidor'], 'id_examen_conf' => $data['id_examen_conf']];
             
         return Evaluacion::updateOrCreate($attributes, $data);
     }
@@ -32,9 +32,11 @@ class EvaluacionRepository
      */
     public function getCalificadosPorCompetencia(int $id_competencia): Collection
     {
-        return Evaluacion::where('id_competencia', $id_competencia)
-            ->where('estado_competidor', 'CALIFICADO')
-            ->with(['competidor.persona', 'competidor.institucion'])
+        return Evaluacion::whereHas('examen.competencia', function ($query) use ($id_competencia) {
+                $query->where('id_competencia', $id_competencia);
+            })
+            ->where('estado_competidor', 'CALIFICADO') // O el estado que uses para finalizado
+            ->with(['competidor.persona', 'competidor.institucion', 'examen'])
             ->get();
     }
 
@@ -51,10 +53,10 @@ class EvaluacionRepository
             ->first();
     }
 
-    public function buscarPorCompetidorYCompetencia(int $id_competidor, int $id_competencia): ?Evaluacion
+    public function buscarPorCompetidorYExamen(int $id_competidor, int $id_examen_conf): ?Evaluacion
     {
         return Evaluacion::where('id_competidor', $id_competidor)
-            ->where('id_competencia', $id_competencia)
+            ->where('id_examen_conf', $id_examen_conf)
             ->first();
     }
 }

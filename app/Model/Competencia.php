@@ -16,12 +16,8 @@ class Competencia extends Model
     protected $fillable = [
         'id_fase_global',
         'id_area_nivel',
-        'id_persona',
-        'nombre_examen',
         'fecha_inicio',
         'fecha_fin',
-        'ponderacion',
-        'maxima_nota',
         'es_avalado',
         'estado',
     ];
@@ -43,14 +39,15 @@ class Competencia extends Model
         return $this->belongsTo(AreaNivel::class, 'id_area_nivel', 'id_area_nivel');
     }
 
-    public function responsable()
+    public function examenes()
     {
-        return $this->belongsTo(Persona::class, 'id_persona', 'id_persona');
+        return $this->hasMany(ExamenConf::class, 'id_competencia', 'id_competencia');
     }
 
     public function evaluaciones()
     {
-        return $this->hasMany(Evaluacion::class, 'id_competencia', 'id_competencia');
+        // Relación a través de ExamenConf para obtener todas las evaluaciones de una competencia
+        return $this->hasManyThrough(Evaluacion::class, ExamenConf::class, 'id_competencia', 'id_examen_conf', 'id_competencia', 'id_examen_conf');
     }
 
     public function medallero()

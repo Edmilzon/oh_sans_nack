@@ -33,6 +33,8 @@ use App\Http\Controllers\SistemaEstadoController;
 use App\Http\Controllers\UsuarioAccionesController;
 use App\Http\Controllers\CronogramaFaseController;
 use App\Http\Controllers\FaseGlobalController;
+use App\Http\Controllers\ExamenController;
+use App\Http\Controllers\CompetenciaController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -167,7 +169,12 @@ Route::get('/gestiones/{idGestion}/fases/{idFase}/acciones-habilitadas', [FaseCo
 Route::get('/fases/{id}/details', [FaseController::class, 'getFaseDetails']);
 Route::get('/sub-fases/area/{id_area}/nivel/{id_nivel}/olimpiada/{id_olimpiada}', [FaseController::class, 'getSubFases']);
 Route::apiResource('area-niveles.fases', FaseController::class)->shallow();
-Route::post('/competencias/{id_competencia}/evaluacion', [EvaluacionController::class, 'store']);
+
+Route::apiResource('competencias', CompetenciaController::class)->only(['index', 'show', 'store']);
+Route::apiResource('competencias.examenes', ExamenController::class)->shallow()->only(['index', 'store']);
+Route::apiResource('examenes', ExamenController::class)->only(['show']);
+
+Route::post('/examenes/{id_examen_conf}/evaluaciones', [EvaluacionController::class, 'store']);
 Route::get('/competencias/{id_competencia}/calificados', [EvaluacionController::class, 'getCalificados']);
 Route::get('/competidores/{id_competidor}/evaluacion', [EvaluacionController::class, 'getUltimaPorCompetidor']);
 Route::put('/evaluaciones/{id_evaluacion}', [EvaluacionController::class, 'update']);

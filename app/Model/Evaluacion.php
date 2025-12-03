@@ -15,7 +15,7 @@ class Evaluacion extends Model
 
     protected $fillable = [
         'id_competidor',
-        'id_competencia',
+        'id_examen_conf',
         'id_evaluador_an',
         'nota',
         'estado_competidor',
@@ -30,9 +30,9 @@ class Evaluacion extends Model
         'estado' => 'boolean',
     ];
 
-    public function competencia()
+    public function examen()
     {
-        return $this->belongsTo(Competencia::class, 'id_competencia', 'id_competencia');
+        return $this->belongsTo(ExamenConf::class, 'id_examen_conf', 'id_examen_conf');
     }
 
     public function competidor()

@@ -28,12 +28,10 @@ class DatabaseSeeder extends Seeder
             // 3. Usuarios y Accesos
             UsusariosSeeder::class, // Crea Admin, Responsable, Evaluador base
 
-            // 4. Datos Históricos (Opcional, útil para pruebas)
+            // 4. Datos Históricos 
             Olimpiada2021Seeder::class,
             Olimpiada2022Seeder::class,
             Olimpiada2023Seeder::class,
-
-            // 5. Datos de la Gestión Actual (Olimpiadas2024Seeder es un buen ejemplo completo)
             Olimpiadas2024Seeder::class,
 
             // 6. Configuración Operativa
@@ -46,11 +44,6 @@ class DatabaseSeeder extends Seeder
             CompetidorSeeder::class,       // Genera competidores masivos para pruebas de carga
             EvaluadorSeeder::class,        // Genera evaluadores extra para pruebas de carga
             ParametroSeeder::class,        // Configura notas mínimas para todos los niveles activos
-
-            // Seeders desactivados o de desarrollo
-            // TestUserSeeder::class,
-            // EvaluadorTestSeeder::class,
-            // FasesGestionActualSeeder::class,
 
             Responsables2025Seeder::class,
             AsignarAreasResponsable2Seeder::class,

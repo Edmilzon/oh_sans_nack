@@ -20,11 +20,11 @@ class EvaluacionController extends Controller
     /**
      * Almacena una nueva evaluación para un competidor en una competencia específica.
      *
-     * @param Request $request
-     * @param int $id_competencia
+     * @param Request $request La petición HTTP.
+     * @param int $id_examen_conf El ID de la configuración del examen.
      * @return JsonResponse
      */
-    public function store(Request $request, int $id_competencia): JsonResponse
+    public function store(Request $request, int $id_examen_conf): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'id_competidor' => 'required|exists:competidor,id_competidor',
@@ -42,8 +42,8 @@ class EvaluacionController extends Controller
                 'id_evaluador_an' => $request->input('id_evaluador_an') ?: $request->input('id_evaluadorAN'),
             ];
 
-            $evaluacion = $this->evaluacionService->crearEvaluacion($data, $id_competencia);
-            $evaluacion->load('competidor.persona', 'competencia', 'evaluadorAn.usuario.persona');
+            $evaluacion = $this->evaluacionService->crearEvaluacion($data, $id_examen_conf);
+            $evaluacion->load('competidor.persona', 'examen.competencia', 'evaluadorAn.usuario.persona');
 
             return response()->json($evaluacion->toArray(), 201);
         } catch (\Exception $e) {
@@ -77,7 +77,7 @@ class EvaluacionController extends Controller
             $datosEvaluacion = $request->only(['nota', 'observacion', 'estado_competidor']);
             
             $evaluacion = $this->evaluacionService->actualizarEvaluacion($id_evaluacion, $datosEvaluacion);
-            $evaluacion->load('competidor.persona', 'competencia', 'evaluadorAn.usuario.persona');
+            $evaluacion->load('competidor.persona', 'examen.competencia', 'evaluadorAn.usuario.persona');
 
             return response()->json($evaluacion->toArray());
         } catch (\Exception $e) {
@@ -106,7 +106,7 @@ class EvaluacionController extends Controller
         try {
             $datosFinales = $request->only(['nota', 'observaciones']);
             $evaluacion = $this->evaluacionService->finalizarCalificacion($id_evaluacion, $datosFinales);
-            $evaluacion->load('competidor.persona', 'competencia', 'evaluadorAn.usuario.persona');
+            $evaluacion->load('competidor.persona', 'examen.competencia', 'evaluadorAn.usuario.persona');
 
             return response()->json($evaluacion->toArray());
         } catch (\Exception $e) {

@@ -9,22 +9,20 @@ return new class extends Migration
 {
     private array $tablas = [
         'accion_sistema', 'archivo_csv', 'area', 'departamento', 'fase_global',
-        'grado_escolaridad', 'grupo', 'institucion', 'nivel', 'olimpiada',
-        'persona', 'personal_access_tokens', 'rol', 'usuario', 'area_olimpiada',
-        'area_nivel', 'competencia', 'cronograma_fase', 'responsable_area',
-        'usuario_rol', 'competidor', 'evaluador_an', 'parametro', 'param_medallero',
-        'configuracion_accion', 'rol_accion', 'area_nivel_grado',
-        'grupo_competidor', 'evaluacion', 'log_cambio_nota', 'medallero',
+        'grado_escolaridad', 'grupo', 'institucion', 'nivel', 'olimpiada', 'persona',
+        'personal_access_tokens', 'rol', 'usuario', 'area_olimpiada', 'area_nivel',
+        'competencia', 'cronograma_fase', 'responsable_area', 'usuario_rol',
+        'competidor', 'evaluador_an', 'parametro', 'param_medallero',
+        'configuracion_accion', 'rol_accion', 'area_nivel_grado', 'grupo_competidor',
+        'examen_conf', 'evaluacion', 'log_cambio_nota', 'medallero',
     ];
 
     public function up(): void
     {
-        // Desactivamos FKs de forma segura para MySQL
-        Schema::disableForeignKeyConstraints();
-
-        foreach (array_reverse($this->tablas) as $tabla) {
-            Schema::dropIfExists($tabla);
-        }
+        // ADVERTENCIA: Esta migración es destructiva.
+        // Si solo quieres reiniciar la base de datos, es mejor usar:
+        // php artisan migrate:fresh
+        $this->down();
 
         // ==========================================
         // 1. TABLAS BASE
@@ -54,6 +52,14 @@ return new class extends Migration
         Schema::create('departamento', function (Blueprint $table) {
             $table->id('id_departamento');
             $table->string('nombre', 20);
+            $table->timestamps();
+        });
+
+        Schema::create('olimpiada', function (Blueprint $table) {
+            $table->id('id_olimpiada');
+            $table->string('nombre', 100)->nullable();
+            $table->char('gestion', 10);
+            $table->boolean('estado');
             $table->timestamps();
         });
 
@@ -93,14 +99,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('olimpiada', function (Blueprint $table) {
-            $table->id('id_olimpiada');
-            $table->string('nombre', 100)->nullable();
-            $table->char('gestion', 10);
-            $table->boolean('estado');
-            $table->timestamps();
-        });
-
         Schema::create('persona', function (Blueprint $table) {
             $table->id('id_persona');
             $table->string('nombre', 255);
@@ -136,8 +134,8 @@ return new class extends Migration
         Schema::create('usuario', function (Blueprint $table) {
             $table->id('id_usuario');
             $table->unsignedBigInteger('id_persona')->nullable();
-            $table->text('email');
-            $table->text('password');
+            $table->string('email')->unique();
+            $table->string('password');
             $table->timestamps();
 
             $table->foreign('id_persona')->references('id_persona')->on('persona')
@@ -237,12 +235,8 @@ return new class extends Migration
             $table->id('id_competencia');
             $table->unsignedBigInteger('id_fase_global')->nullable();
             $table->unsignedBigInteger('id_area_nivel')->nullable();
-            $table->unsignedBigInteger('id_persona')->nullable();
-            $table->string('nombre_examen', 255)->nullable();
             $table->date('fecha_inicio');
             $table->date('fecha_fin');
-            $table->decimal('ponderacion', 8, 2)->nullable();
-            $table->decimal('maxima_nota', 8, 2)->nullable();
             $table->boolean('es_avalado')->nullable();
             $table->boolean('estado');
             $table->timestamps();
@@ -250,8 +244,6 @@ return new class extends Migration
             $table->foreign('id_fase_global')->references('id_fase_global')->on('fase_global')
                   ->restrictOnDelete()->restrictOnUpdate();
             $table->foreign('id_area_nivel')->references('id_area_nivel')->on('area_nivel')
-                  ->restrictOnDelete()->restrictOnUpdate();
-            $table->foreign('id_persona')->references('id_persona')->on('persona')
                   ->restrictOnDelete()->restrictOnUpdate();
         });
 
@@ -343,11 +335,23 @@ return new class extends Migration
                   ->restrictOnDelete()->restrictOnUpdate();
         });
 
+        Schema::create('examen_conf', function (Blueprint $table) {
+            $table->id('id_examen_conf');
+            $table->unsignedBigInteger('id_competencia')->nullable();
+            $table->string('nombre'); 
+            $table->decimal('ponderacion', 8, 2); 
+            $table->decimal('maxima_nota', 8, 2);
+            $table->timestamps();
+
+            $table->foreign('id_competencia')->references('id_competencia')->on('competencia')
+                  ->restrictOnDelete()->restrictOnUpdate();
+        });
+        
         Schema::create('evaluacion', function (Blueprint $table) {
             $table->id('id_evaluacion');
             $table->unsignedBigInteger('id_competidor')->nullable();
-            $table->unsignedBigInteger('id_competencia')->nullable();
             $table->unsignedBigInteger('id_evaluador_an')->nullable();
+            $table->unsignedBigInteger('id_examen_conf')->nullable();
             $table->decimal('nota', 8, 2);
             $table->string('estado_competidor', 25)->nullable();
             $table->text('observacion')->nullable();
@@ -357,9 +361,9 @@ return new class extends Migration
 
             $table->foreign('id_competidor')->references('id_competidor')->on('competidor')
                   ->restrictOnDelete()->restrictOnUpdate();
-            $table->foreign('id_competencia')->references('id_competencia')->on('competencia')
-                  ->restrictOnDelete()->restrictOnUpdate();
             $table->foreign('id_evaluador_an')->references('id_evaluador_an')->on('evaluador_an')
+                  ->restrictOnDelete()->restrictOnUpdate();
+            $table->foreign('id_examen_conf')->references('id_examen_conf')->on('examen_conf')
                   ->restrictOnDelete()->restrictOnUpdate();
         });
 
@@ -394,7 +398,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::disableForeignKeyConstraints();
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         foreach (array_reverse($this->tablas) as $tabla) {
             Schema::dropIfExists($tabla);
         }
