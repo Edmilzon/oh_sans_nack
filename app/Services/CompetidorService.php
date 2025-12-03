@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\CompetidorRepository;
 use App\Model\Institucion;
+use App\Model\Grupo;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -18,9 +19,14 @@ class CompetidorService
         $this->competidorRepository = $competidorRepository;
     }
 
+    private function normalizarTexto(?string $texto): string
+    {
+        if (is_null($texto)) return '';
+        return Str::upper(Str::ascii(trim($texto)));
+    }
+
     public function procesarImportacion(array $competidoresData, int $olimpiadaId, int $archivoCsvId): array
     {
-        // Aumentar tiempo y memoria para 3000+ registros
         set_time_limit(300);
         ini_set('memory_limit', '512M');
 
@@ -28,53 +34,66 @@ class CompetidorService
         $duplicados = [];
         $errores = [];
 
-        // =========================================================
-        // FASE 1: PREPARACIÓN MASIVA (Batch Loading)
-        // =========================================================
-
-        // 1.1 Recolectar claves únicas del CSV
         $cis = [];
-        $nombresInstituciones = [];
+        $nombresInstitucionesOriginales = [];
+        $nombresGruposOriginales = [];
 
         foreach ($competidoresData as $item) {
             $cis[] = $item['persona']['ci'];
-            $nombresInstituciones[] = Str::upper($item['institucion']['nombre']);
-        }
-        $nombresInstituciones = array_unique($nombresInstituciones);
 
-        // 1.2 Cargar Catálogos a Memoria (Mapas asociativos por Nombre en Mayúscula)
-        // Esto evita miles de consultas individuales "SELECT * FROM departamento WHERE nombre = ..."
-        $deptosMap = $this->competidorRepository->getAllDepartamentos()->keyBy(fn($i) => Str::upper($i->nombre));
-        $gradosMap = $this->competidorRepository->getAllGrados()->keyBy(fn($i) => Str::upper($i->nombre));
-        $areasMap = $this->competidorRepository->getAllAreas()->keyBy(fn($i) => Str::upper($i->nombre));
-        $nivelesMap = $this->competidorRepository->getAllNiveles()->keyBy(fn($i) => Str::upper($i->nombre));
+            $instNombre = $item['institucion']['nombre'] ?? '';
+            $instKey = $this->normalizarTexto($instNombre);
+            if ($instKey) {
+                $nombresInstitucionesOriginales[$instKey] = trim($instNombre);
+            }
 
-        // 1.3 Cargar Estructura de la Olimpiada (Áreas y Niveles habilitados)
-        $areaOlimpiadas = $this->competidorRepository->getAreaOlimpiadas($olimpiadaId);
-        $areaOlimpiadaMap = $areaOlimpiadas->keyBy('id_area'); // Mapa [id_area => AreaOlimpiada]
-
-        // Lista plana de AreaNiveles disponibles en esta olimpiada
-        $areaNivelesDisponibles = $this->competidorRepository->getAreaNiveles($areaOlimpiadas->pluck('id_area_olimpiada')->toArray());
-
-        // 1.4 Cargar Personas ya existentes (con sus inscripciones previas)
-        $personasExistentes = $this->competidorRepository->getPersonasConCompetidores($cis);
-        $mapaPersonas = $personasExistentes->keyBy('ci');
-
-        // 1.5 Gestión de Instituciones (Crear las que faltan en bloque)
-        $institucionesExistentes = $this->competidorRepository->getInstitucionesByNombres($nombresInstituciones);
-        $institucionesMap = $institucionesExistentes->keyBy(fn($i) => Str::upper($i->nombre));
-
-        foreach ($nombresInstituciones as $nombreInst) {
-            if (!$institucionesMap->has($nombreInst)) {
-                // REGLA: Si institución no existe, se crea.
-                $nuevaInst = Institucion::create(['nombre' => $nombreInst]);
-                $institucionesMap->put($nombreInst, $nuevaInst);
+            $grupoNombre = $item['competidor']['grupo'] ?? null;
+            if ($grupoNombre) {
+                $grupoKey = $this->normalizarTexto($grupoNombre);
+                $nombresGruposOriginales[$grupoKey] = trim($grupoNombre);
             }
         }
 
-        // =========================================================
-        // FASE 2: PROCESAMIENTO TRANSACCIONAL
-        // =========================================================
+        $deptosMap = $this->competidorRepository->getAllDepartamentos()
+            ->keyBy(fn($i) => $this->normalizarTexto($i->nombre));
+
+        $gradosMap = $this->competidorRepository->getAllGrados()
+            ->keyBy(fn($i) => $this->normalizarTexto($i->nombre));
+
+        $areasMap = $this->competidorRepository->getAllAreas()
+            ->keyBy(fn($i) => $this->normalizarTexto($i->nombre));
+
+        $nivelesMap = $this->competidorRepository->getAllNiveles()
+            ->keyBy(fn($i) => $this->normalizarTexto($i->nombre));
+
+        $institucionesExistentes = $this->competidorRepository->getInstitucionesByNombres(array_values($nombresInstitucionesOriginales));
+
+        $institucionesMap = $institucionesExistentes->keyBy(fn($i) => $this->normalizarTexto($i->nombre));
+
+        foreach ($nombresInstitucionesOriginales as $keyNormalizada => $nombreOriginal) {
+            if (!$institucionesMap->has($keyNormalizada)) {
+                $nuevaInst = Institucion::create(['nombre' => $nombreOriginal]);
+                $institucionesMap->put($keyNormalizada, $nuevaInst);
+            }
+        }
+
+        $gruposExistentes = Grupo::whereIn('nombre', array_values($nombresGruposOriginales))->get();
+        $gruposMap = $gruposExistentes->keyBy(fn($g) => $this->normalizarTexto($g->nombre));
+
+        foreach ($nombresGruposOriginales as $keyNormalizada => $nombreOriginal) {
+            if (!$gruposMap->has($keyNormalizada)) {
+                $nuevoGrupo = Grupo::create(['nombre' => $nombreOriginal]);
+                $gruposMap->put($keyNormalizada, $nuevoGrupo);
+            }
+        }
+
+        $areaOlimpiadas = $this->competidorRepository->getAreaOlimpiadas($olimpiadaId);
+        $areaOlimpiadaMap = $areaOlimpiadas->keyBy('id_area');
+
+        $areaNivelesDisponibles = $this->competidorRepository->getAreaNiveles($areaOlimpiadas->pluck('id_area_olimpiada')->toArray());
+
+        $personasExistentes = $this->competidorRepository->getPersonasConCompetidores($cis);
+        $mapaPersonas = $personasExistentes->keyBy('ci');
 
         DB::beginTransaction();
 
@@ -85,32 +104,32 @@ class CompetidorService
                 try {
                     $personaData = $item['persona'];
                     $compData = $item['competidor'];
+                    $deptoNombre = $this->normalizarTexto($compData['departamento']);
+                    $gradoNombre = $this->normalizarTexto($compData['grado_escolar']);
+                    $areaNombre = $this->normalizarTexto($item['area']['nombre']);
+                    $nivelNombre = $this->normalizarTexto($item['nivel']['nombre']);
+                    $instNombre = $this->normalizarTexto($item['institucion']['nombre']);
+                    $grupoNombre = isset($compData['grupo']) ? $this->normalizarTexto($compData['grupo']) : null;
+                    if (!$deptosMap->has($deptoNombre)) throw new Exception("Departamento '{$compData['departamento']}' no existe.");
+                    if (!$gradosMap->has($gradoNombre)) throw new Exception("Grado '{$compData['grado_escolar']}' no existe.");
+                    if (!$areasMap->has($areaNombre)) throw new Exception("Área '{$item['area']['nombre']}' no existe.");
+                    if (!$nivelesMap->has($nivelNombre)) throw new Exception("Nivel '{$item['nivel']['nombre']}' no existe.");
 
-                    // A. Validación Estricta de Catálogos (BD vs CSV)
-                    $deptoNombre = Str::upper($compData['departamento']);
-                    $gradoNombre = Str::upper($compData['grado_escolar']);
-                    $areaNombre = Str::upper($item['area']['nombre']);
-                    $nivelNombre = Str::upper($item['nivel']['nombre']);
-
-                    if (!$deptosMap->has($deptoNombre)) throw new Exception("Departamento '$deptoNombre' no existe.");
-                    if (!$gradosMap->has($gradoNombre)) throw new Exception("Grado '$gradoNombre' no existe.");
-                    if (!$areasMap->has($areaNombre)) throw new Exception("Área '$areaNombre' no existe.");
-                    if (!$nivelesMap->has($nivelNombre)) throw new Exception("Nivel '$nivelNombre' no existe.");
-
-                    // Objetos resueltos desde memoria
                     $departamento = $deptosMap->get($deptoNombre);
                     $grado = $gradosMap->get($gradoNombre);
                     $area = $areasMap->get($areaNombre);
                     $nivel = $nivelesMap->get($nivelNombre);
-                    $institucion = $institucionesMap->get(Str::upper($item['institucion']['nombre']));
+                    $institucion = $institucionesMap->get($instNombre);
 
-                    // B. Resolver AreaNivel (La "Clase" específica)
+                    $idGrupo = null;
+                    if ($grupoNombre && $gruposMap->has($grupoNombre)) {
+                        $idGrupo = $gruposMap->get($grupoNombre)->id_grupo;
+                    }
                     if (!$areaOlimpiadaMap->has($area->id_area)) {
                         throw new Exception("El área '{$area->nombre}' no está habilitada en esta gestión.");
                     }
                     $areaOlimpiada = $areaOlimpiadaMap->get($area->id_area);
 
-                    // Buscamos en la colección en memoria
                     $areaNivel = $areaNivelesDisponibles->first(function($an) use ($areaOlimpiada, $nivel) {
                         return $an->id_area_olimpiada == $areaOlimpiada->id_area_olimpiada && $an->id_nivel == $nivel->id_nivel;
                     });
@@ -119,34 +138,26 @@ class CompetidorService
                         throw new Exception("La combinación Área '{$area->nombre}' - Nivel '{$nivel->nombre}' no está configurada.");
                     }
 
-                    // C. Lógica de Negocio: Registro vs Asignación vs Duplicado
                     $persona = $mapaPersonas->get($personaData['ci']);
                     $tipoAccion = '';
                     $idPersonaUsar = null;
 
                     if ($persona) {
-                        // C.1 La persona existe. ¿Ya tiene esta materia?
                         $yaInscrito = $persona->competidores->first(function($comp) use ($areaNivel) {
                             return $comp->id_area_nivel == $areaNivel->id_area_nivel;
                         });
 
                         if ($yaInscrito) {
-                            // CASO DUPLICADO: Mismo estudiante, misma materia.
-                            $origen = $yaInscrito->archivoCsv->nombre ?? 'Registro manual previo';
+                            $origen = $yaInscrito->archivoCsv->nombre ?? 'Registro previo';
                             $item['origen_duplicado'] = $origen;
                             $duplicados[] = $item;
-                            continue; // Saltamos este registro
+                            continue;
                         }
 
-                        // CASO ASIGNACIÓN: Estudiante conocido, materia nueva.
                         $idPersonaUsar = $persona->id_persona;
                         $tipoAccion = 'ASIGNADO';
-
                     } else {
-                        // CASO REGISTRO: Estudiante nuevo.
                         $nuevaPersona = $this->competidorRepository->createPersona($personaData);
-
-                        // Actualizamos mapa local para detectar duplicados dentro del mismo CSV actual
                         $nuevaPersona->setRelation('competidores', collect([]));
                         $mapaPersonas->put($nuevaPersona->ci, $nuevaPersona);
 
@@ -155,22 +166,20 @@ class CompetidorService
                         $tipoAccion = 'REGISTRADO';
                     }
 
-                    // D. Persistencia (Crear Competidor)
                     $nuevoCompetidor = $this->competidorRepository->createCompetidor([
                         'id_persona' => $idPersonaUsar,
                         'id_institucion' => $institucion->id_institucion,
                         'id_departamento' => $departamento->id_departamento,
                         'id_area_nivel' => $areaNivel->id_area_nivel,
                         'id_grado_escolaridad' => $grado->id_grado_escolaridad,
+                        'id_grupo' => $idGrupo,
                         'id_archivo_csv' => $archivoCsvId,
                         'contacto_tutor' => $compData['contacto_tutor'] ?? null,
                         'genero' => $personaData['genero'],
                         'estado_evaluacion' => 'disponible',
                     ]);
 
-                    // Actualizar relaciones en memoria para validaciones futuras en este loop
-                    // Mockeamos la relación para que el reporte funcione
-                    $nuevoCompetidor->setRelation('archivoCsv', (object)['nombre' => 'Este Archivo Actual']);
+                    $nuevoCompetidor->setRelation('archivoCsv', (object)['nombre' => 'Este Archivo']);
                     $persona->competidores->push($nuevoCompetidor);
 
                     $registrados[] = [
@@ -181,6 +190,11 @@ class CompetidorService
                         'institucion' => $institucion->nombre
                     ];
 
+                    if ($linea % 500 === 0) {
+                        DB::commit();
+                        DB::beginTransaction();
+                    }
+
                 } catch (Throwable $e) {
                     $item['error_message'] = $e->getMessage();
                     $item['linea'] = $linea;
@@ -188,7 +202,7 @@ class CompetidorService
                 }
             }
 
-            DB::commit(); // Confirmar bloque de 3000 insertos
+            DB::commit();
 
         } catch (Throwable $e) {
             DB::rollBack();
