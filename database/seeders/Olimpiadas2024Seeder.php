@@ -25,7 +25,7 @@ class Olimpiadas2024Seeder extends Seeder
         DB::transaction(function () {
             $this->command->info('🚀 Iniciando seeder para la Olimpiada 2024...');
 
-            $olimpiada = Olimpiada::firstOrCreate(['gestion' => '2024'], ['nombre' => 'Olimpiada 2024', 'estado' => true]);
+            $olimpiada = Olimpiada::firstOrCreate(['gestion' => '2024'], ['nombre' => 'Olimpiada 2024', 'estado' => false]);
             $area = Area::firstOrCreate(['nombre' => 'Química']);
             $nivel = Nivel::firstOrCreate(['nombre' => 'Nivel 1']);
             $grado = GradoEscolaridad::firstOrCreate(['nombre' => '1ro de Secundaria']);
