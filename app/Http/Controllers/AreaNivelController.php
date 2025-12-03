@@ -73,7 +73,7 @@ class AreaNivelController extends Controller
     public function getActuales(): JsonResponse
     {
         try {
-            $data = $this->areaNivelService->getAreaNivelActuales();
+            $data = $this->areaNivelService->getAreasNivelesGestionActual();
 
             return response()->json($data);
 

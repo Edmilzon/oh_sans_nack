@@ -267,21 +267,83 @@ public function updateAreaNivelByArea(int $id_area, array $niveles): array
     ];
     }
 
-public function getByGestionAndAreas(string $gestion, array $idAreas): array
+    public function getByGestionAndAreas(string $gestion, array $idAreas): array
     {
-    $olimpiada = Olimpiada::where('gestion', $gestion)->firstOrFail();
+        $olimpiada = Olimpiada::where('gestion', $gestion)->firstOrFail();
 
-    $areaNiveles = AreaNivel::whereHas('areaOlimpiada', function($query) use ($idAreas, $olimpiada) {
-            $query->whereIn('id_area', $idAreas)
-                  ->where('id_olimpiada', $olimpiada->id_olimpiada);
-        })
-        ->with(['areaOlimpiada.area', 'nivel'])
-        ->get();
+        $areaNiveles = AreaNivel::whereHas('areaOlimpiada', function($query) use ($idAreas, $olimpiada) {
+                $query->whereIn('id_area', $idAreas)
+                    ->where('id_olimpiada', $olimpiada->id_olimpiada);
+            })
+            ->with(['areaOlimpiada.area', 'nivel'])
+            ->get();
 
-    return [
-        'area_niveles' => $areaNiveles,
-        'olimpiada' => $olimpiada->gestion,
-        'message' => "Relaciones área-nivel obtenidas para la gestión {$gestion}"
-    ];
+        return [
+            'area_niveles' => $areaNiveles,
+            'olimpiada' => $olimpiada->gestion,
+            'message' => "Relaciones área-nivel obtenidas para la gestión {$gestion}"
+        ];
+    }
+
+    /**
+     * Obtiene las áreas agrupadas con sus niveles activos SOLO para la olimpiada actual.
+     */
+    public function getAreasNivelesGestionActual(): array
+    {
+        // 1. Obtiene la olimpiada de la gestión actual
+        $olimpiadaActual = $this->obtenerOlimpiadaActual();
+
+        // 2. Consulta principal: Obtener AreaOlimpiada para la olimpiada actual.
+        // Se mantiene el filtro estricto por id_olimpiada.
+        $areaOlimpiadas = AreaOlimpiada::where('id_olimpiada', $olimpiadaActual->id_olimpiada)
+            ->with([
+                'area',
+                'areaNiveles' => function ($query) {
+                    // Carga solo los AreaNivel activos y sus relaciones Nivel
+                    $query->where('es_activo', true)->with('nivel');
+                }
+            ])
+            ->get();
+
+        // 3. Mapeo y agrupación por Área (Ajustando el formato)
+        $areasAgrupadas = [];
+        foreach ($areaOlimpiadas as $areaOlimpiada) {
+
+            // Verificación de relaciones
+            if (!$areaOlimpiada->area || $areaOlimpiada->areaNiveles->isEmpty()) {
+                continue;
+            }
+
+            $areaId = (string) $areaOlimpiada->area->id_area; // Conversión a string para coincidir con el JSON de ejemplo
+            $areaNombre = $areaOlimpiada->area->nombre;
+
+            // Inicializa la estructura del área con las claves deseadas
+            if (!isset($areasAgrupadas[$areaId])) {
+                $areasAgrupadas[$areaId] = [
+                    'id_area' => $areaId,
+                    'area' => $areaNombre, // <--- CAMBIO: 'area' en lugar de 'nombre_area'
+                    'niveles' => []
+                ];
+            }
+
+            // Mapeamos los niveles relacionados
+            foreach ($areaOlimpiada->areaNiveles as $areaNivel) {
+                 if (!$areaNivel->nivel) {
+                    continue;
+                }
+
+                // Añade el nivel, con las claves exactas solicitadas
+                $areasAgrupadas[$areaId]['niveles'][] = [
+                    'id_area_nivel' => (string) $areaNivel->id_area_nivel,
+                    'id_nivel' => (string) $areaNivel->nivel->id_nivel,
+                    'nombre' => $areaNivel->nivel->nombre // <--- CAMBIO: 'nombre' en lugar de 'nombre_nivel'
+                ];
+            }
+        }
+
+        // 4. Retorna solo el array de áreas (el Controller puede manejar los metadatos)
+        return [
+            'areas' => array_values($areasAgrupadas),
+        ];
     }
 }

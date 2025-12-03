@@ -15,7 +15,7 @@ class GetHistorialRequest extends FormRequest
     {
         return [
             'page' => ['required', 'integer', 'min:1'],
-            'limit' => ['required', 'integer', 'min:1', 'max:100'],
+            'limit' => ['required', 'integer', 'min:1', 'max:100000'],
             'id_area' => ['nullable', 'integer', 'exists:area,id_area'],
             'ids_niveles' => ['nullable', 'string'],
             'search' => ['nullable', 'string', 'max:100'],
