@@ -84,6 +84,7 @@ class ListaResponsableAreaRepository
         ->join('nivel', 'area_nivel.id_nivel', '=', 'nivel.id_nivel')
         ->join('grado_escolaridad', 'competidor.id_grado_escolaridad', '=', 'grado_escolaridad.id_grado_escolaridad')
         ->join('institucion', 'competidor.id_institucion', '=', 'institucion.id_institucion')
+        ->join('departamento', 'competidor.id_departamento', '=', 'departamento.id_departamento')
         ->join('olimpiada', 'area_olimpiada.id_olimpiada', '=', 'olimpiada.id_olimpiada')
         ->whereIn('area.id_area', $areasDelResponsable);
 
@@ -105,7 +106,15 @@ class ListaResponsableAreaRepository
         }
     }
 
-    // ❌ SE ELIMINA FILTRO POR DEPARTAMENTO porque la tabla NO existe
+    // Filtro por departamento (acepta id o nombre parcial, case-insensitive)
+    if ($departamento) {
+        if (is_numeric($departamento)) {
+            $query->where('departamento.id_departamento', (int)$departamento);
+        } else {
+            // filtro por nombre parcial (insensible a mayúsculas)
+            $query->whereRaw('LOWER(departamento.nombre) LIKE ?', ['%' . mb_strtolower($departamento) . '%']);
+        }
+    }
 
     return $query->select(
             'persona.apellido',
@@ -117,6 +126,7 @@ class ListaResponsableAreaRepository
                     END AS genero"),
             'persona.ci',
             'institucion.nombre as colegio',
+            'departamento.nombre as departamento',
             'area.nombre as area',
             'nivel.nombre as nivel',
             'grado_escolaridad.nombre as grado',
@@ -240,6 +250,4 @@ public function getListaGeneros(): array
         ['id' => 'F', 'nombre' => 'Femenino']
     ];
 }
-
-
 }
