@@ -26,23 +26,23 @@ class ParametroService
 
     public function getParametrosPorOlimpiada(int $idOlimpiada): array
     {
-        $parametros = $this->repo->getByOlimpiada($idOlimpiada);
+    $parametros = $this->repo->getByOlimpiada($idOlimpiada);
 
-        $data = $parametros->map(function($p) {
-            return [
-                'id_parametro' => $p->id_parametro,
-                'id_area_nivel' => $p->id_area_nivel,
-                'area' => $p->areaNivel->areaOlimpiada->area->nombre ?? 'N/A',
-                'nivel' => $p->areaNivel->nivel->nombre ?? 'N/A',
-                'nota_minima' => $p->nota_min_aprobacion,
-                'cupo_maximo' => $p->cantidad_maxima
-            ];
-        });
-
+    $data = $parametros->map(function($p) {
         return [
-            'parametros' => $data,
-            'total' => $data->count()
+            'id_parametro' => $p->id_parametro,
+            'id_area_nivel' => $p->id_area_nivel,
+            'area' => $p->areaNivel->areaOlimpiada->area->nombre ?? 'N/A',
+            'nivel' => $p->areaNivel->nivel->nombre ?? 'N/A',
+            'nota_minima' => $p->nota_min_aprobacion,
+            'cupo_maximo' => $p->cantidad_maxima
         ];
+    });
+
+    return [
+        'parametros' => $data->toArray(),
+        'total' => $data->count()
+    ];
     }
 
     public function getParametrosByAreaNiveles(array $idsAreaNivel): array

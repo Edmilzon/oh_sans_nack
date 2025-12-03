@@ -109,21 +109,30 @@ class ParametroController extends Controller
     }
 
     public function getParametrosGestionActual(): JsonResponse
-    {
-        try {
-            $olimpiadaActual = Olimpiada::where('estado', true)->first();
-            
-            if (!$olimpiadaActual) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No hay olimpiada activa en este momento.'
-                ], 404);
-            }
-            
-            $result = $this->service->getParametrosPorOlimpiada($olimpiadaActual->id_olimpiada);
-            return response()->json(['success' => true, 'data' => $result]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+{
+    try {
+        $olimpiadaActual = Olimpiada::where('estado', true)->first();
+        
+        if (!$olimpiadaActual) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay olimpiada activa en este momento.',
+                'data' => []
+            ], 404);
         }
+        
+        $result = $this->service->getParametrosPorOlimpiada($olimpiadaActual->id_olimpiada);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $result
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+            'data' => [] 
+        ], 500);
     }
+}
 }

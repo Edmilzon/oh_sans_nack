@@ -144,24 +144,37 @@ class AreaNivelGradoService
         }
     }
 
-    public function getNivelesGradosByAreaAndGestion(int $id_area, string $gestion): array
+     public function getNivelesGradosByAreaAndGestion(int $id_area, string $gestion): array
     {
         try {
+            Log::info('[SERVICE] Obteniendo niveles y grados por área y gestión', [
+                'id_area' => $id_area,
+                'gestion' => $gestion
+            ]);
+
             $olimpiada = Olimpiada::where('gestion', $gestion)->first();
 
             if (!$olimpiada) {
+                Log::warning('[SERVICE] Olimpiada no encontrada', ['gestion' => $gestion]);
                 return [
                     'success' => false,
-                    'data' => [],
+                    'data' => [
+                        'niveles_con_grados_agrupados' => [],
+                        'niveles_individuales' => []
+                    ],
                     'message' => "No se encontró la olimpiada con gestión: {$gestion}"
                 ];
             }
 
             $area = Area::find($id_area);
             if (!$area) {
+                Log::warning('[SERVICE] Área no encontrada', ['id_area' => $id_area]);
                 return [
                     'success' => false,
-                    'data' => [],
+                    'data' => [
+                        'niveles_con_grados_agrupados' => [],
+                        'niveles_individuales' => []
+                    ],
                     'message' => "No se encontró el área con ID: {$id_area}"
                 ];
             }
@@ -171,13 +184,21 @@ class AreaNivelGradoService
                 ->first();
 
             if (!$areaOlimpiada) {
+                Log::warning('[SERVICE] Relación área-olimpiada no encontrada', [
+                    'id_area' => $id_area,
+                    'id_olimpiada' => $olimpiada->id_olimpiada
+                ]);
                 return [
                     'success' => false,
-                    'data' => [],
+                    'data' => [
+                        'niveles_con_grados_agrupados' => [],
+                        'niveles_individuales' => []
+                    ],
                     'message' => "El área no está asignada a la olimpiada de gestión {$gestion}"
                 ];
             }
 
+            // Obtener los area_niveles activos para esta área-olimpiada
             $areaNiveles = AreaNivel::with([
                 'nivel:id_nivel,nombre',
                 'gradosEscolaridad:id_grado_escolaridad,nombre'
@@ -186,53 +207,83 @@ class AreaNivelGradoService
             ->where('es_activo', true)
             ->get();
 
-            $nivelesAgrupados = $areaNiveles->map(function($areaNivel) {
+            Log::info('[SERVICE] AreaNiveles encontrados', [
+                'count' => $areaNiveles->count(),
+                'ids' => $areaNiveles->pluck('id_area_nivel')->toArray()
+            ]);
+
+            // 1. Agrupar niveles con sus grados (por id_nivel)
+            $nivelesMap = [];
+            
+            foreach ($areaNiveles as $areaNivel) {
+                $idNivel = $areaNivel->nivel->id_nivel;
+                
+                if (!isset($nivelesMap[$idNivel])) {
+                    $nivelesMap[$idNivel] = [
+                        'id_nivel' => $idNivel,
+                        'nombre_nivel' => $areaNivel->nivel->nombre,
+                        'grados' => []
+                    ];
+                }
+                
+                // Agregar grados de este area_nivel
+                foreach ($areaNivel->gradosEscolaridad as $grado) {
+                    $nivelesMap[$idNivel]['grados'][] = [
+                        'id_grado_escolaridad' => $grado->id_grado_escolaridad,
+                        'nombre' => $grado->nombre
+                    ];
+                }
+            }
+
+            // Eliminar duplicados en grados
+            foreach ($nivelesMap as &$nivelData) {
+                $nivelData['grados'] = collect($nivelData['grados'])
+                    ->unique('id_grado_escolaridad')
+                    ->values()
+                    ->toArray();
+            }
+
+            // 2. Crear array de niveles individuales (cada area_nivel como registro separado)
+            $nivelesIndividuales = $areaNiveles->map(function($areaNivel) {
                 return [
                     'id_area_nivel' => $areaNivel->id_area_nivel,
                     'nivel' => [
                         'id_nivel' => $areaNivel->nivel->id_nivel,
                         'nombre' => $areaNivel->nivel->nombre
-                    ],
-                    'grados' => $areaNivel->gradosEscolaridad->map(function($grado) {
-                        return [
-                            'id_grado_escolaridad' => $grado->id_grado_escolaridad,
-                            'nombre' => $grado->nombre
-                        ];
-                    })
+                    ]
                 ];
-            });
+            })->values();
 
-            return [
+            // Formatear respuesta según el JSON solicitado
+            $response = [
                 'success' => true,
                 'data' => [
-                    'area' => [
-                        'id_area' => $area->id_area,
-                        'nombre' => $area->nombre
-                    ],
-                    'olimpiada' => [
-                        'id_olimpiada' => $olimpiada->id_olimpiada,
-                        'gestion' => $olimpiada->gestion,
-                        'nombre' => $olimpiada->nombre
-                    ],
-                    'niveles_con_grados' => $nivelesAgrupados,
-                    'total_niveles' => $areaNiveles->count(),
-                    'total_relaciones' => $areaNiveles->sum(function($areaNivel) {
-                        return $areaNivel->gradosEscolaridad->count();
-                    })
-                ],
-                'message' => "Niveles y grados obtenidos exitosamente para el área {$area->nombre} en la gestión {$gestion}"
+                    'niveles_con_grados_agrupados' => array_values($nivelesMap),
+                    'niveles_individuales' => $nivelesIndividuales->toArray()
+                ]
             ];
+
+            Log::info('[SERVICE] Respuesta formateada', [
+                'niveles_agrupados_count' => count($nivelesMap),
+                'niveles_individuales_count' => $nivelesIndividuales->count()
+            ]);
+
+            return $response;
 
         } catch (\Exception $e) {
             Log::error('[SERVICE] Error al obtener niveles y grados por área y gestión:', [
                 'id_area' => $id_area,
                 'gestion' => $gestion,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return [
                 'success' => false,
-                'data' => [],
+                'data' => [
+                    'niveles_con_grados_agrupados' => [],
+                    'niveles_individuales' => []
+                ],
                 'message' => 'Error al obtener los niveles y grados: ' . $e->getMessage()
             ];
         }
