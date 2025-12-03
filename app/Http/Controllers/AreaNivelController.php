@@ -16,8 +16,6 @@ class AreaNivelController extends Controller
         $this->areaNivelService = $areaNivelService;
     }
 
-    // ✅ MÉTODOS que SOLO trabajan con area_nivel (sin grados)
-
     public function show($id): JsonResponse
     {
         try {
@@ -69,7 +67,6 @@ class AreaNivelController extends Controller
         }
     }
 
-    // GET /api/area-nivel/actuales
     public function getActuales(): JsonResponse
     {
         try {
@@ -156,7 +153,6 @@ class AreaNivelController extends Controller
 
     public function getNivelesPorAreaOlimpiada($idOlimpiada, $idArea): JsonResponse
     {
-        // Buscamos la relación AreaOlimpiada específica
         $areaOlimpiada = \App\Model\AreaOlimpiada::where('id_olimpiada', $idOlimpiada)
             ->where('id_area', $idArea)
             ->first();
@@ -165,7 +161,6 @@ class AreaNivelController extends Controller
             return response()->json(['success' => true, 'message' => 'No hay niveles', 'data' => []]);
         }
 
-        // Obtenemos los niveles asociados
         $niveles = \App\Model\AreaNivel::with('nivel')
             ->where('id_area_olimpiada', $areaOlimpiada->id_area_olimpiada)
             ->get()

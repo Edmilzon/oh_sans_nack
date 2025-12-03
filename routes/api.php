@@ -120,7 +120,7 @@ Route::get('/area-nivel/gestion/{gestion}', [AreaNivelController::class, 'getAre
 Route::put('/area-nivel/{id}', [AreaNivelController::class, 'update']);
 Route::put('/area-nivel/por-area/{id_area}', [AreaNivelController::class, 'updateByArea']);
 
-// AreaNivelGradoController (CON grados - tabla area_nivel_grado)
+// AreaNivelGrado
 Route::get('/area-nivel', [AreaNivelGradoController::class, 'index']);
 Route::post('/area-nivel', [AreaNivelGradoController::class, 'store']);
 Route::get('/area-nivel/sim/simplificado', [AreaNivelGradoController::class, 'getAreasConNivelesSimplificado']);
