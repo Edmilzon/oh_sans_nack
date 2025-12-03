@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Repositories\ParametroRepository;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ParametroService
@@ -12,24 +11,27 @@ class ParametroService
         protected ParametroRepository $repo
     ) {}
 
-    public function guardarParametrosMasivos(array $items): void
+    public function guardarParametrosMasivos(array $items): array
     {
-        DB::transaction(function () use ($items) {
+        $guardados = [];
+        
+        DB::transaction(function () use ($items, &$guardados) {
             foreach ($items as $item) {
-                $this->repo->guardarParametro($item);
+                $guardados[] = $this->repo->guardarParametro($item);
             }
         });
+        
+        return $guardados;
     }
 
     public function getParametrosPorOlimpiada(int $idOlimpiada): array
     {
         $parametros = $this->repo->getByOlimpiada($idOlimpiada);
 
-        // Formateo para el frontend
         $data = $parametros->map(function($p) {
             return [
                 'id_parametro' => $p->id_parametro,
-                // Navegación segura
+                'id_area_nivel' => $p->id_area_nivel,
                 'area' => $p->areaNivel->areaOlimpiada->area->nombre ?? 'N/A',
                 'nivel' => $p->areaNivel->nivel->nombre ?? 'N/A',
                 'nota_minima' => $p->nota_min_aprobacion,
@@ -59,9 +61,10 @@ class ParametroService
                     'nivel' => $first->nombre_nivel
                 ],
                 'historial' => $items->map(fn($i) => [
+                    'id_olimpiada' => $i->id_olimpiada,
                     'gestion' => $i->gestion,
-                    'nota_minima' => $i->nota_minima,
-                    'cupo' => $i->cant_max_clasificados
+                    'nota_minima' => $i->nota_min_aprobacion,
+                    'cupo' => $i->cantidad_maxima
                 ])->values()
             ];
         }
@@ -79,7 +82,15 @@ class ParametroService
         foreach ($grouped as $gestion => $items) {
             $resultado[] = [
                 'gestion' => $gestion,
-                'parametros' => $items
+                'parametros' => $items->map(function($item) {
+                    return [
+                        'id_area_nivel' => $item->id_area_nivel,
+                        'area' => $item->nombre_area,
+                        'nivel' => $item->nombre_nivel,
+                        'nota_minima' => $item->nota_min_aprobacion,
+                        'cupo_maximo' => $item->cantidad_maxima
+                    ];
+                })
             ];
         }
 
@@ -91,11 +102,24 @@ class ParametroService
 
     public function getAllParametros(): array
     {
-         $all = $this->repo->getAll();
-         return [
-             'parametros' => $all,
-             'total' => $all->count(),
-             'message' => 'Todos los parámetros recuperados.'
-         ];
+        $all = $this->repo->getAll();
+        
+        $parametros = $all->map(function($p) {
+            return [
+                'id_parametro' => $p->id_parametro,
+                'id_area_nivel' => $p->id_area_nivel,
+                'nota_minima' => $p->nota_min_aprobacion,
+                'cupo_maximo' => $p->cantidad_maxima,
+                'area' => $p->areaNivel->areaOlimpiada->area->nombre ?? 'N/A',
+                'nivel' => $p->areaNivel->nivel->nombre ?? 'N/A',
+                'gestion' => $p->areaNivel->areaOlimpiada->olimpiada->gestion ?? 'N/A'
+            ];
+        });
+        
+        return [
+            'parametros' => $parametros,
+            'total' => $parametros->count(),
+            'message' => 'Todos los parámetros recuperados.'
+        ];
     }
 }

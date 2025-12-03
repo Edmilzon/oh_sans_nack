@@ -137,7 +137,7 @@ Route::get('/areas-gestion', [AreaOlimpiadaController::class, 'getAreasGestionAc
 Route::get('/areas-nombres', [AreaOlimpiadaController::class, 'getNombresAreasGestionActual']);
 Route::get('/parametros/gestion-actual', [ParametroController::class, 'getParametrosGestionActual']);
 Route::get('/parametros/gestiones', [ParametroController::class, 'getAllParametrosByGestiones']);
-Route::get('/parametros/area-niveles', [ParametroController::class, 'getParametrosByAreaNiveles']);
+Route::get('/parametros/an/area-niveles', [ParametroController::class, 'getParametrosByAreaNiveles']);
 Route::get('/parametros/{idOlimpiada}', [ParametroController::class, 'getByOlimpiada']);
 Route::post('/parametros', [ParametroController::class, 'store']);
 

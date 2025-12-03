@@ -16,7 +16,6 @@ class StoreParametroRequest extends FormRequest
         return [
             'area_niveles' => ['required', 'array', 'min:1'],
             'area_niveles.*.id_area_nivel' => ['required', 'integer', 'exists:area_nivel,id_area_nivel'],
-            // Ajustado a tus nombres de columnas reales
             'area_niveles.*.nota_min_aprobacion' => ['required', 'numeric', 'min:0', 'max:100'],
             'area_niveles.*.cantidad_maxima' => ['nullable', 'integer', 'min:0'],
         ];
@@ -29,6 +28,7 @@ class StoreParametroRequest extends FormRequest
             'area_niveles.*.id_area_nivel.exists' => 'El Área-Nivel seleccionado no es válido.',
             'area_niveles.*.nota_min_aprobacion.required' => 'La nota mínima es obligatoria.',
             'area_niveles.*.nota_min_aprobacion.min' => 'La nota mínima no puede ser negativa.',
+            'area_niveles.*.nota_min_aprobacion.max' => 'La nota mínima no puede ser mayor a 100.',
             'area_niveles.*.cantidad_maxima.min' => 'La cantidad máxima no puede ser negativa.',
         ];
     }
