@@ -76,7 +76,11 @@ Route::prefix('responsables')->group(function () {
     Route::post('/ci/{ci}/areas', [ResponsableController::class, 'addAreas']);
     Route::get('/ci/{ci}/gestion/{gestion}/areas', [ResponsableController::class, 'getAreasByCiAndGestion']);
     Route::get('/areas/ocupadas/gestion/actual', [ResponsableController::class, 'getOcupadasEnGestionActual']);
+    //para clau
+    Route::get('/{id_usuario}/areas-con-niveles/olimpiada-actual', [ResponsableController::class, 'areasConNivelesPorOlimpiadaActual']);
 });
+
+
 
 // Rutas para evaluadores
 Route::prefix('evaluadores')->group(function () {

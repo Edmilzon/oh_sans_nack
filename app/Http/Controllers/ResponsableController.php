@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 class ResponsableController extends Controller
 {
     public function __construct(
-        protected ResponsableService $service
+        protected ResponsableService $service,
     ) {}
 
     /**
@@ -187,5 +187,13 @@ class ResponsableController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function areasConNivelesPorOlimpiadaActual(int $idUsuario): JsonResponse
+    {
+        // Delegamos toda la lógica al servicio
+        $data = $this->service->obtenerAreasConNiveles($idUsuario);
+
+        return response()->json($data);
     }
 }

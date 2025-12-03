@@ -53,4 +53,11 @@ class OlimpiadaRepository
                         ->orderBy('id_olimpiada', 'desc')
                         ->first();
     }
+
+    public function findActive(): ?Olimpiada
+    {
+        return Olimpiada::where('estado', true)
+            ->orderBy('id_olimpiada', 'desc')
+            ->first();
+    }
 }

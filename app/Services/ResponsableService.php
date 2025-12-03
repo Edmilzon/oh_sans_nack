@@ -10,11 +10,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use App\Repositories\OlimpiadaRepository;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ResponsableService
 {
     public function __construct(
-        protected ResponsableRepository $repo
+        protected ResponsableRepository $repo,
+        private readonly ResponsableRepository $responsableRepository,
+        private readonly OlimpiadaRepository $olimpiadaRepository
     ) {}
 
     public function createResponsable(array $data): array
@@ -125,5 +129,39 @@ class ResponsableService
         } catch (\Throwable $e) {
             Log::error("Error mail responsable: " . $e->getMessage());
         }
+    }
+
+    public function obtenerAreasConNiveles(int $usuarioId): array
+    {
+        $olimpiadaActual = $this->olimpiadaRepository->findActive();
+        if (!$olimpiadaActual) {
+            throw new NotFoundHttpException('No hay una olimpiada activa.');
+        }
+
+        $asignaciones = $this->responsableRepository->getByUsuarioAndOlimpiada(
+            $usuarioId,
+            $olimpiadaActual->id_olimpiada
+        );
+
+        $areasFormateadas = $asignaciones->map(function ($asignacion) {
+            $areaOlimpiada = $asignacion->areaOlimpiada;
+            if (!$areaOlimpiada || !$areaOlimpiada->area) return null;
+
+            return [
+                'id_area' => (string) $areaOlimpiada->area->id_area,
+                'area'    => $areaOlimpiada->area->nombre,
+                'niveles' => $areaOlimpiada->areaNiveles->map(function ($areaNivel) {
+                    return [
+                        'id_area_nivel' => (string) $areaNivel->id_area_nivel,
+                        'id_nivel'      => (string) $areaNivel->id_nivel,
+                        'nombre'        => $areaNivel->nivel->nombre ?? 'Sin Nombre',
+                    ];
+                })->values()->toArray(),
+            ];
+        })->filter()->values()->toArray();
+
+        return [
+            'areas' => $areasFormateadas
+        ];
     }
 }

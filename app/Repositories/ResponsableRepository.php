@@ -205,4 +205,22 @@ class ResponsableRepository
             })->values()->toArray()
         ];
     }
+
+    /**
+     * Obtiene las asignaciones filtrando por usuario y la olimpiada activa
+     * a través de la relación AreaOlimpiada.
+     */
+    public function getByUsuarioAndOlimpiada(int $usuarioId, int $olimpiadaId): Collection
+    {
+        return ResponsableArea::query()
+            ->where('id_usuario', $usuarioId)
+            ->whereHas('areaOlimpiada', function ($query) use ($olimpiadaId) {
+                $query->where('id_olimpiada', $olimpiadaId);
+            })
+            ->with([
+                'areaOlimpiada.area',
+                'areaOlimpiada.areaNiveles.nivel'
+            ])
+            ->get();
+    }
 }
