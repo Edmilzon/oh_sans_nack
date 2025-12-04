@@ -69,13 +69,13 @@ Content-Type: application/json
 Accept: application/json
 
 {
-    "id_competidor": 34,
+    "id_competidor": 21,
     "id_evaluador_an": 4
 }
 
 ### PASO 2: CALIFICAR EVALUACIÓN (Estado: Pendiente -> Calificado)
 # El evaluador envía la nota y las observaciones para finalizar la calificación.
-@id_evaluacion_creada = 4
+@id_evaluacion_creada = 5
 POST {{hostname}}{{api_prefix}}/evaluaciones/{{id_evaluacion_creada}}/finalizar
 Content-Type: application/json
 Accept: application/json
@@ -90,7 +90,7 @@ Accept: application/json
 
 # Descalifica a un competidor en cualquier momento, sin necesidad de una evaluación en curso.
 # Esto actualiza el estado del competidor a 'DESCALIFICADO' y crea un registro de auditoría.
-@id_competidor_a_descalificar = 35
+@id_competidor_a_descalificar = 53
 POST {{hostname}}{{api_prefix}}/competidores/{{id_competidor_a_descalificar}}/descalificar
 Content-Type: application/json
 Accept: application/json
