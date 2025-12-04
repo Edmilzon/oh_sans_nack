@@ -24,7 +24,6 @@ class DepartamentoSeeder extends Seeder
         $this->command->info('Verificando departamentos...');
 
         foreach ($departamentos as $nombre) {
-            // firstOrCreate verifica si existe por nombre; si no, lo crea.
             Departamento::firstOrCreate([
                 'nombre' => $nombre
             ]);

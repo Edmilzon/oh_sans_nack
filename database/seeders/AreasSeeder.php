@@ -30,7 +30,7 @@ class AreasSeeder extends Seeder
         $this->command->info('Áreas base listas.');
 
         $olimpiada = Olimpiada::where('gestion', date('Y'))->first()
-                     ?? Olimpiada::latest('id_olimpiada')->first();
+                    ?? Olimpiada::latest('id_olimpiada')->first();
 
         if (!$olimpiada) {
             $this->command->warn('⚠️ No se encontraron olimpiadas. Ejecuta OlimpiadaSeeder primero.');
@@ -38,9 +38,7 @@ class AreasSeeder extends Seeder
         }
 
         $this->command->info("Asociando todas las áreas a: {$olimpiada->nombre}");
-
         $areasIds = Area::pluck('id_area');
-
         $olimpiada->areas()->syncWithoutDetaching($areasIds);
 
         $this->command->info('✅ Relaciones creadas exitosamente.');

@@ -12,7 +12,6 @@ class InstitucionSeeder extends Seeder
      */
     public function run(): void
     {
-        // Lista de instituciones educativas
         $instituciones = [
             'Colegio Nacional (Sucre)',
             'Unidad Educativa Santa Cruz 2',
@@ -24,13 +23,11 @@ class InstitucionSeeder extends Seeder
             'Colegio San Agustín',
             'Colegio Alemán',
             'Instituto Americano',
-            // Puedes agregar más aquí según necesites
         ];
 
         $this->command->info('🏫 Verificando y creando instituciones...');
 
         foreach ($instituciones as $nombre) {
-            // firstOrCreate verifica si existe por nombre; si no, lo crea.
             Institucion::firstOrCreate([
                 'nombre' => $nombre
             ]);

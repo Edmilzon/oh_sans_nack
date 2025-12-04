@@ -33,7 +33,6 @@ class Olimpiada2022Seeder extends Seeder
         DB::transaction(function () {
             $this->command->info('⏳ Iniciando seeder histórico para Olimpiada 2022...');
 
-            // 1. Asegurar Grados de Escolaridad
             $gradosNombres = [
                 '1ro de Secundaria', '2do de Secundaria', '3ro de Secundaria',
                 '4to de Secundaria', '5to de Secundaria', '6to de Secundaria'
@@ -43,14 +42,11 @@ class Olimpiada2022Seeder extends Seeder
             }
             $grado1ro = GradoEscolaridad::where('nombre', '1ro de Secundaria')->first();
             $grado2do = GradoEscolaridad::where('nombre', '2do de Secundaria')->first();
-
-            // 2. Crear la Olimpiada 2022 (Inactiva/Histórica)
             $olimpiada = Olimpiada::firstOrCreate(
                 ['gestion' => '2022'],
                 ['nombre' => 'Olimpiada Científica Estudiantil 2022', 'estado' => false]
             );
 
-            // 3. Áreas y Niveles Base
             $areasNombres = ['Matemáticas', 'Física', 'Informática', 'Química', 'Biología', 'Robótica'];
             foreach ($areasNombres as $nombre) {
                 Area::firstOrCreate(['nombre' => $nombre]);
@@ -65,7 +61,6 @@ class Olimpiada2022Seeder extends Seeder
                 return;
             }
 
-            // 4. Configurar AreaOlimpiada (Vincular áreas a la gestión 2022)
             $mapaAreaOlimpiada = [];
             foreach ($areas as $area) {
                 $ao = AreaOlimpiada::firstOrCreate([
@@ -75,17 +70,14 @@ class Olimpiada2022Seeder extends Seeder
                 $mapaAreaOlimpiada[$area->nombre] = $ao;
             }
 
-            // 5. Crear Usuarios Clave (Responsable y Evaluador del 2022)
-            // Persona Responsable 2022 (SIN GENERO)
             $pResp = Persona::firstOrCreate(['ci' => 'RESP-2022'], [
                 'nombre' => 'Roberto', 'apellido' => 'Carlos', 'email' => 'roberto.2022@test.com', 'telefono' => '70002022'
             ]);
             $uResp = Usuario::firstOrCreate(['email' => 'roberto.2022@test.com'], [
                 'id_persona' => $pResp->id_persona,
-                'password' => 'admin2022' // El modelo hace hash
+                'password' => 'admin2022'
             ]);
 
-            // Persona Evaluador 2022 (SIN GENERO)
             $pEval = Persona::firstOrCreate(['ci' => 'EVAL-2022'], [
                 'nombre' => 'Julia', 'apellido' => 'Roberts', 'email' => 'julia.2022@test.com', 'telefono' => '70002023'
             ]);
@@ -94,14 +86,12 @@ class Olimpiada2022Seeder extends Seeder
                 'password' => 'eval2022'
             ]);
 
-            // Asignar Roles
             $rolResp = Rol::firstOrCreate(['nombre' => 'Responsable Area']);
             $rolEval = Rol::firstOrCreate(['nombre' => 'Evaluador']);
 
             $uResp->roles()->syncWithoutDetaching([$rolResp->id_rol => ['id_olimpiada' => $olimpiada->id_olimpiada]]);
             $uEval->roles()->syncWithoutDetaching([$rolEval->id_rol => ['id_olimpiada' => $olimpiada->id_olimpiada]]);
 
-            // 6. Asignar Responsabilidad (Robótica y Física)
             if (isset($mapaAreaOlimpiada['Robótica'])) {
                 ResponsableArea::firstOrCreate(['id_usuario' => $uResp->id_usuario, 'id_area_olimpiada' => $mapaAreaOlimpiada['Robótica']->id_area_olimpiada]);
             }
@@ -109,7 +99,6 @@ class Olimpiada2022Seeder extends Seeder
                 ResponsableArea::firstOrCreate(['id_usuario' => $uResp->id_usuario, 'id_area_olimpiada' => $mapaAreaOlimpiada['Física']->id_area_olimpiada]);
             }
 
-            // 7. Configurar AreaNivel para Robótica (Nivel 1)
             $anRobotica = null;
             if (isset($mapaAreaOlimpiada['Robótica'])) {
                 $anRobotica = AreaNivel::firstOrCreate([
@@ -117,14 +106,12 @@ class Olimpiada2022Seeder extends Seeder
                     'id_nivel' => $nivel1->id_nivel
                 ], ['es_activo' => true]);
 
-                // Asignar grados
                 $anRobotica->gradosEscolaridad()->syncWithoutDetaching([
                     $grado1ro->id_grado_escolaridad,
                     $grado2do->id_grado_escolaridad
                 ]);
             }
 
-            // 8. Permisos de Evaluación (EvaluadorAn)
             $evaluadorAn = null;
             if ($anRobotica) {
                 $evaluadorAn = EvaluadorAn::firstOrCreate([
@@ -134,11 +121,9 @@ class Olimpiada2022Seeder extends Seeder
                 ]);
             }
 
-            // 9. Instituciones y Departamentos
             $inst = Institucion::firstOrCreate(['nombre' => 'Instituto Americano']);
             $depto = Departamento::firstOrCreate(['nombre' => 'Cochabamba']);
 
-            // 10. Competidores (Equipo de Robótica)
             $competidoresData = [
                 ['nombre' => 'Alan', 'apellido' => 'Turing', 'ci' => 'ROB-001', 'genero' => 'M'],
                 ['nombre' => 'Ada', 'apellido' => 'Lovelace', 'ci' => 'ROB-002', 'genero' => 'F'],
@@ -147,7 +132,6 @@ class Olimpiada2022Seeder extends Seeder
 
             $competidoresCreados = [];
             foreach ($competidoresData as $data) {
-                // Crear Persona SIN GENERO
                 $p = Persona::firstOrCreate(['ci' => $data['ci']], [
                     'nombre' => $data['nombre'],
                     'apellido' => $data['apellido'],
@@ -164,21 +148,19 @@ class Olimpiada2022Seeder extends Seeder
                         'id_departamento' => $depto->id_departamento,
                         'id_grado_escolaridad' => $grado1ro->id_grado_escolaridad,
                         'contacto_tutor' => 'TutorRob22',
-                        'genero' => $data['genero'], // CON GENERO AQUI
-                        'estado_evaluacion' => 'finalizado' // Histórico
+                        'genero' => $data['genero'],
+                        'estado_evaluacion' => 'finalizado'
                     ]);
                 }
             }
 
             $this->command->info('Competidores de Robótica 2022 creados.');
 
-            // 11. Fases, Competencia y Evaluaciones
             $faseFinal = FaseGlobal::firstOrCreate(
                 ['codigo' => 'FIN-22', 'id_olimpiada' => $olimpiada->id_olimpiada],
                 ['nombre' => 'Fase Final Nacional', 'orden' => 3]
             );
 
-            // Crear Competencia
             $competencia = null;
             $examen = null;
             if ($anRobotica) {
@@ -188,7 +170,6 @@ class Olimpiada2022Seeder extends Seeder
                     'estado' => false,
                     'id_fase_global' => $faseFinal->id_fase_global,
                     'id_area_nivel' => $anRobotica->id_area_nivel,
-                    // 'id_persona' => $pResp->id_persona // Esta columna ya no existe en 'competencia'
                 ]);
 
                 $examen = ExamenConf::create([
@@ -199,13 +180,11 @@ class Olimpiada2022Seeder extends Seeder
                 ]);
             }
 
-            // Evaluaciones
             if ($competencia && $examen && $evaluadorAn) {
                 $notas = [98.50, 99.00, 85.00];
                 foreach ($competidoresCreados as $idx => $comp) {
                     Evaluacion::create([
                         'id_competidor' => $comp->id_competidor,
-                        // 'id_competencia' ya no está en la tabla 'evaluacion'
                         'id_examen_conf' => $examen->id_examen_conf,
                         'id_evaluador_an' => $evaluadorAn->id_evaluador_an,
                         'nota' => $notas[$idx] ?? 0,
@@ -216,7 +195,6 @@ class Olimpiada2022Seeder extends Seeder
                     ]);
                 }
 
-                // 12. Medallero
                 Medallero::create(['puesto' => 1, 'medalla' => 'Oro', 'id_competidor' => $competidoresCreados[1]->id_competidor, 'id_competencia' => $competencia->id_competencia]);
                 Medallero::create(['puesto' => 2, 'medalla' => 'Plata', 'id_competidor' => $competidoresCreados[0]->id_competidor, 'id_competencia' => $competencia->id_competencia]);
                 Medallero::create(['puesto' => 3, 'medalla' => 'Bronce', 'id_competidor' => $competidoresCreados[2]->id_competidor, 'id_competencia' => $competencia->id_competencia]);

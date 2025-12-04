@@ -38,21 +38,20 @@ class AreaNivelSeeder extends Seeder
             return;
         }
 
-        foreach ($areas as $area) {
 
+        foreach ($areas as $area) {
             $areaOlimpiada = AreaOlimpiada::firstOrCreate([
                 'id_area' => $area->id_area,
                 'id_olimpiada' => $olimpiada->id_olimpiada
             ]);
 
             $numNiveles = match ($area->nombre) {
-                'Matemáticas' => 3,       
-                'Física', 'Química' => 2, 
-                default => 1              
+                'Matemáticas' => 3,
+                'Física', 'Química' => 2,
+                default => 1
             };
 
             for ($i = 0; $i < $numNiveles; $i++) {
-
                 $nivel = $niveles->slice($i, 1)->first();
 
                 if ($nivel) {
@@ -65,17 +64,17 @@ class AreaNivelSeeder extends Seeder
 
                     $gradosParaNivel = [];
 
-                    if ($i == 0) { 
+                    if ($i == 0) {
                         $g1 = $grados->first(fn($g) => stripos($g->nombre, '1ro') !== false);
                         $g2 = $grados->first(fn($g) => stripos($g->nombre, '2do') !== false);
                         if ($g1) $gradosParaNivel[] = $g1->id_grado_escolaridad;
                         if ($g2) $gradosParaNivel[] = $g2->id_grado_escolaridad;
-                    } elseif ($i == 1) { 
+                    } elseif ($i == 1) {
                         $g3 = $grados->first(fn($g) => stripos($g->nombre, '3ro') !== false);
                         $g4 = $grados->first(fn($g) => stripos($g->nombre, '4to') !== false);
                         if ($g3) $gradosParaNivel[] = $g3->id_grado_escolaridad;
                         if ($g4) $gradosParaNivel[] = $g4->id_grado_escolaridad;
-                    } elseif ($i == 2) { 
+                    } elseif ($i == 2) {
                         $g5 = $grados->first(fn($g) => stripos($g->nombre, '5to') !== false);
                         $g6 = $grados->first(fn($g) => stripos($g->nombre, '6to') !== false);
                         if ($g5) $gradosParaNivel[] = $g5->id_grado_escolaridad;

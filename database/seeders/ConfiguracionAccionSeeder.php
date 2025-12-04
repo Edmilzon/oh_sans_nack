@@ -13,7 +13,6 @@ class ConfiguracionAccionSeeder extends Seeder
 
     public function run(): void
     {
-
         $olimpiada = Olimpiada::where('gestion', date('Y'))->first()
                      ?? Olimpiada::latest('id_olimpiada')->first();
 
@@ -42,11 +41,9 @@ class ConfiguracionAccionSeeder extends Seeder
             ['fase' => $faseConfig, 'accion' => $accionRegEstud, 'habilitada' => true],
             ['fase' => $faseConfig, 'accion' => $accionCargarNotas, 'habilitada' => false],
             ['fase' => $faseConfig, 'accion' => $accionPubClasif, 'habilitada' => false],
-
             ['fase' => $faseEval, 'accion' => $accionRegEstud, 'habilitada' => false],
             ['fase' => $faseEval, 'accion' => $accionCargarNotas, 'habilitada' => true],
             ['fase' => $faseEval, 'accion' => $accionPubClasif, 'habilitada' => false],
-
             ['fase' => $faseFinal, 'accion' => $accionRegEstud, 'habilitada' => false],
             ['fase' => $faseFinal, 'accion' => $accionCargarNotas, 'habilitada' => true],
             ['fase' => $faseFinal, 'accion' => $accionPubClasif, 'habilitada' => true],
@@ -58,7 +55,6 @@ class ConfiguracionAccionSeeder extends Seeder
             $habilitada = $item['habilitada'];
 
             if ($fase && $accion) {
-
                 ConfiguracionAccion::firstOrCreate(
                     [
                         'id_fase_global'    => $fase->id_fase_global,
