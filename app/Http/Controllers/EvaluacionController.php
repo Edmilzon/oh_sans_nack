@@ -17,13 +17,6 @@ class EvaluacionController extends Controller
         $this->evaluacionService = $evaluacionService;
     }
 
-    /**
-     * Almacena una nueva evaluación para un competidor en una competencia específica.
-     *
-     * @param Request $request La petición HTTP.
-     * @param int $id_examen_conf El ID de la configuración del examen.
-     * @return JsonResponse
-     */
     public function store(Request $request, int $id_examen_conf): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -36,7 +29,7 @@ class EvaluacionController extends Controller
         }
 
         try {
-            // Mapeo de claves por si el frontend envía camelCase (id_evaluadorAN)
+
             $data = [
                 'id_competidor' => $request->input('id_competidor'),
                 'id_evaluador_an' => $request->input('id_evaluador_an') ?: $request->input('id_evaluadorAN'),
@@ -54,13 +47,6 @@ class EvaluacionController extends Controller
         }
     }
 
-    /**
-     * Actualiza una evaluación existente.
-     *
-     * @param Request $request
-     * @param int $id_evaluacion
-     * @return JsonResponse
-     */
     public function update(Request $request, int $id_evaluacion): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -85,18 +71,11 @@ class EvaluacionController extends Controller
         }
     }
 
-    /**
-     * Finaliza una evaluación, guardando la nota y marcándola como 'Calificado'.
-     *
-     * @param Request $request
-     * @param int $id_evaluacion
-     * @return JsonResponse
-     */
     public function finalizarCalificacion(Request $request, int $id_evaluacion): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'nota' => 'required|numeric|min:0',
-            'observaciones' => 'nullable|string', // 'observaciones' en plural como en el service
+            'observaciones' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -114,13 +93,6 @@ class EvaluacionController extends Controller
         }
     }
 
-    /**
-     * Descalifica a un competidor en una evaluación específica.
-     *
-     * @param Request $request
-     * @param int $id_evaluacion
-     * @return JsonResponse
-     */
     public function descalificar(Request $request, int $id_evaluacion): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -142,12 +114,6 @@ class EvaluacionController extends Controller
         }
     }
 
-    /**
-     * Obtiene todas las evaluaciones calificadas para una competencia.
-     *
-     * @param int $id_competencia
-     * @return JsonResponse
-     */
     public function getCalificados(int $id_competencia): JsonResponse
     {
         try {
@@ -161,12 +127,6 @@ class EvaluacionController extends Controller
         }
     }
 
-    /**
-     * Obtiene la última evaluación de un competidor específico.
-     *
-     * @param int $id_competidor
-     * @return JsonResponse
-     */
     public function getUltimaPorCompetidor(int $id_competidor): JsonResponse
     {
         try {

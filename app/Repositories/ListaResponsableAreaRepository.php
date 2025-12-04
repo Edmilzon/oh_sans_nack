@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 class ListaResponsableAreaRepository
 {
    public function getNivelesByArea(int $idArea): Collection
-{
+    {
     $gestionActual = date('Y');
 
     return DB::table('area_nivel as an')
@@ -27,7 +27,7 @@ class ListaResponsableAreaRepository
         ->distinct()
         ->orderBy('n.nombre')
         ->get();
-}
+    }
 
 
     public function getAreaPorResponsable(int $idResponsable): Collection
@@ -46,9 +46,6 @@ class ListaResponsableAreaRepository
             ->get();
     }
 
-    /**
-     * Lista los competidores filtrando por área/nivel/grado 
-     */
     public function listarPorAreaYNivel(
     int $idResponsable,
     ?int $idArea,
@@ -56,9 +53,8 @@ class ListaResponsableAreaRepository
     ?int $idGrado,
     ?string $genero = null,
     ?string $departamento = null
-): Collection
-{
-    // Obtener áreas del responsable
+    ): Collection
+    {
     $areasDelResponsable = DB::table('responsable_area')
         ->join('area_olimpiada', 'responsable_area.id_area_olimpiada', '=', 'area_olimpiada.id_area_olimpiada')
         ->where('responsable_area.id_usuario', $idResponsable)
@@ -70,7 +66,6 @@ class ListaResponsableAreaRepository
         return collect();
     }
 
-    // Si mandaron un texto que no es género, lo tomamos como departamento
     if ($genero && !in_array(strtolower($genero), ['m', 'f', 'masculino', 'femenino'])) {
         $departamento = $genero;
         $genero = null;
@@ -88,15 +83,12 @@ class ListaResponsableAreaRepository
         ->join('olimpiada', 'area_olimpiada.id_olimpiada', '=', 'olimpiada.id_olimpiada')
         ->whereIn('area.id_area', $areasDelResponsable);
 
-    // Gestión actual
     $query->where('olimpiada.gestion', date('Y'));
 
-    // Filtros
     if ($idArea) $query->where('area.id_area', $idArea);
     if ($idNivel) $query->where('nivel.id_nivel', $idNivel);
     if ($idGrado) $query->where('grado_escolaridad.id_grado_escolaridad', $idGrado);
 
-    // Filtro por género
     if ($genero) {
         $g = strtolower($genero);
         if (in_array($g, ['m', 'masculino'])) {
@@ -106,12 +98,10 @@ class ListaResponsableAreaRepository
         }
     }
 
-    // Filtro por departamento (acepta id o nombre parcial, case-insensitive)
     if ($departamento) {
         if (is_numeric($departamento)) {
             $query->where('departamento.id_departamento', (int)$departamento);
         } else {
-            // filtro por nombre parcial (insensible a mayúsculas)
             $query->whereRaw('LOWER(departamento.nombre) LIKE ?', ['%' . mb_strtolower($departamento) . '%']);
         }
     }
@@ -135,12 +125,12 @@ class ListaResponsableAreaRepository
         ->orderBy('persona.apellido')
         ->orderBy('persona.nombre')
         ->get();
-}
+    }
+
     public function getCompetidoresPorAreaYNivel(int $id_competencia, int $idArea, int $idNivel): Collection
     {
         $gestionActual = date('Y');
 
-        // Primero, la consulta principal para obtener los competidores con los joins CORRECTOS.
         $competidores = DB::table('competidor')
             ->join('persona', 'competidor.id_persona', '=', 'persona.id_persona')
             ->join('institucion', 'competidor.id_institucion', '=', 'institucion.id_institucion')
@@ -194,7 +184,6 @@ class ListaResponsableAreaRepository
 
         $competidorIds = $competidores->pluck('id_competidor');
 
-        // Segundo, obtenemos las evaluaciones para esos competidores
         $evaluaciones = DB::table('evaluacion')
             ->join('examen_conf', 'evaluacion.id_examen_conf', '=', 'examen_conf.id_examen_conf')
             ->whereIn('id_competidor', $competidorIds)
@@ -211,21 +200,20 @@ class ListaResponsableAreaRepository
             ->get()
             ->groupBy('id_competidor');
 
-        // Tercero, combinamos los datos
         return $competidores->map(function ($competidor) use ($evaluaciones) {
             $competidor->evaluaciones = $evaluaciones->get($competidor->id_competidor, collect());
             return $competidor;
         });
     }
+
    public function getListaGradosPorAreaNivel(int $idArea, int $idNivel): Collection
-{
+    {
     if ($idArea <= 0 || $idNivel <= 0) {
         return collect();
     }
 
     $gestionActual = date('Y');
 
-    // 1) Buscar grados por area_nivel + area_olimpiada + area_nivel_grado
     $gradoIds = DB::table('area_nivel_grado')
         ->join('area_nivel', 'area_nivel_grado.id_area_nivel', '=', 'area_nivel.id_area_nivel')
         ->join('area_olimpiada', 'area_nivel.id_area_olimpiada', '=', 'area_olimpiada.id_area_olimpiada')
@@ -245,18 +233,18 @@ class ListaResponsableAreaRepository
     return GradoEscolaridad::whereIn('id_grado_escolaridad', $gradoIds)
         ->orderBy('nombre')
         ->get();
-}
+    }
 
      public function getListaDepartamento()
-{
+    {
     return Departamento::all();
-}
-public function getListaGeneros(): array
-{
-    // Retorna un array de géneros
+    }
+    
+    public function getListaGeneros(): array
+    {
     return [
         ['id' => 'M', 'nombre' => 'Masculino'],
         ['id' => 'F', 'nombre' => 'Femenino']
     ];
-}
+    }
 }

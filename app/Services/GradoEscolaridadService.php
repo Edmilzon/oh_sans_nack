@@ -31,7 +31,6 @@ class GradoEscolaridadService
 
     public function create(array $data): GradoEscolaridad
     {
-        // Regla de Negocio: Estandarizar nombre a mayúsculas
         if (isset($data['nombre'])) {
             $data['nombre'] = mb_strtoupper($data['nombre']);
         }
@@ -55,7 +54,6 @@ class GradoEscolaridadService
     public function delete(int $id): bool
     {
         $grado = $this->findById($id);
-        // Futuro: Aquí validarías si tiene competidores antes de borrar
         return $this->gradoRepository->delete($grado);
     }
 }

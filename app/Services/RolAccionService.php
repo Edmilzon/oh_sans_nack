@@ -19,7 +19,6 @@ class RolAccionService
     {
         $rolAccion = $this->rolAccionRepository->getByRol($idRol);
 
-        // Formateamos la respuesta para que sea más limpia
         return $rolAccion->map(function ($item) {
             return [
                 'id_rol_accion' => $item->id_rol_accion,
@@ -37,8 +36,6 @@ class RolAccionService
     public function sincronizarAcciones(int $idRol, array $accionesIds): array
     {
         return DB::transaction(function () use ($idRol, $accionesIds) {
-            // Opcional: Limpiar anteriores si se desea un "sync" estricto
-            // $this->rolAccionRepository->eliminarTodasPorRol($idRol);
 
             $resultados = [];
             foreach ($accionesIds as $idAccion) {

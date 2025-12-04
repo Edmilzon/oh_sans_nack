@@ -28,7 +28,6 @@ class AccionSistema extends Model
         return $this->hasMany(Rol::class, 'rol_accion_sistema', 'id_accion_sistema', 'id_rol');
     }
 
-    // Obtener los roles directamente asociados a esta acción del sistema
     public function roles()
     {
         return $this->belongsToMany(Rol::class, 'rol_accion', 'id_accion_sistema', 'id_rol')

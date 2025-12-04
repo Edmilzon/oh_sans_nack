@@ -13,7 +13,6 @@ class StoreGradoEscolaridadRequest extends FormRequest
 
     public function rules(): array
     {
-        // Unique valida contra la tabla 'grado_escolaridad' columna 'nombre'
         return [
             'nombre' => ['required', 'string', 'max:255', 'unique:grado_escolaridad,nombre'],
         ];

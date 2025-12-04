@@ -15,14 +15,6 @@ class ExamenService
         $this->examenRepository = $examenRepository;
     }
 
-    /**
-     * Crea un nuevo examen y valida la lógica de negocio (ponderaciones).
-     *
-     * @param array $data
-     * @param int $id_competencia
-     * @return ExamenConf
-     * @throws \Exception
-     */
     public function crearExamen(array $data, int $id_competencia): ExamenConf
     {
         $competencia = Competencia::with('examenes')->findOrFail($id_competencia);

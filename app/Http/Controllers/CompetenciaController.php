@@ -17,12 +17,6 @@ class CompetenciaController extends Controller
         $this->competenciaService = $competenciaService;
     }
 
-    /**
-     * Crea una nueva competencia.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -40,23 +34,12 @@ class CompetenciaController extends Controller
         return response()->json($competencia, 201);
     }
 
-    /**
-     * Lista todas las competencias.
-     *
-     * @return JsonResponse
-     */
     public function index(): JsonResponse
     {
         $competencias = $this->competenciaService->obtenerCompetencias();
         return response()->json($competencias);
     }
 
-    /**
-     * Muestra una competencia específica.
-     *
-     * @param int $id_competencia
-     * @return JsonResponse
-     */
     public function show(int $id_competencia): JsonResponse
     {
         $competencia = $this->competenciaService->obtenerCompetenciaPorId($id_competencia);

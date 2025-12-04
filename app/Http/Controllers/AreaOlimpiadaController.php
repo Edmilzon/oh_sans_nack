@@ -18,12 +18,6 @@ class AreaOlimpiadaController extends Controller
         $this->areaOlimpiadaService = $areaOlimpiadaService;
     }
 
-    /**
-     * Obtiene todas las áreas asociadas a una olimpiada.
-     *
-     * @param int|string $identifier
-     * @return JsonResponse
-     */
     public function getAreasByOlimpiada(int $identifier): JsonResponse
     {
         try {
@@ -86,17 +80,17 @@ class AreaOlimpiadaController extends Controller
             $mensajeFase = '';
         
             if ($olimpiada) {
-                // Buscar fases globales de evaluación o calificación con cronograma activo
+
                 $faseActiva = FaseGlobal::where('id_olimpiada', $olimpiada->id_olimpiada)
                     ->where(function($query) {
-                        // Buscar fases que sean de evaluación o calificación
+
                         $query->where('nombre', 'like', '%Evaluación%')
                               ->orWhere('nombre', 'like', '%Calificación%')
                               ->orWhere('nombre', 'like', '%evaluación%')
                               ->orWhere('nombre', 'like', '%calificación%');
                     })
                     ->whereHas('cronogramas', function($query) {
-                        // Verificar que el cronograma esté activo (estado = true)
+
                         $query->where('estado', true);
                     })
                     ->first();
@@ -104,7 +98,7 @@ class AreaOlimpiadaController extends Controller
                 if ($faseActiva) {
                     $mensajeFase = 'La funcionalidad de asignar niveles a un Área no está disponible porque el proceso de evaluación ha iniciado. Solo puede ver las asignaciones previamente realizadas.';
                 } else {
-                    // Verificar si hay alguna fase global activa (para mostrar mensaje apropiado)
+
                     $faseGlobalActiva = FaseGlobal::where('id_olimpiada', $olimpiada->id_olimpiada)
                         ->whereHas('cronogramas', function($query) {
                             $query->where('estado', true);
@@ -112,10 +106,10 @@ class AreaOlimpiadaController extends Controller
                         ->first();
                     
                     if ($faseGlobalActiva) {
-                        // Si hay fase activa pero no es de evaluación/calificación (puede ser configuración, clasificación, premiación)
+
                         $mensajeFase = 'No existe un proceso de evaluación activo.';
                     } else {
-                        // No hay ninguna fase activa
+
                         $mensajeFase = 'No existe un proceso de evaluación.';
                     }
                 }

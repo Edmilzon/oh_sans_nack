@@ -18,17 +18,13 @@ class EvaluadorController extends Controller
         protected EvaluadorService $service
     ) {}
 
-    /**
-     * GET /api/v1/evaluadores
-     * Buscador Avanzado: Lista evaluadores con filtros, búsqueda y paginación.
-     */
     public function index(Request $request): JsonResponse
     {
         try {
-            // 1. Iniciar Query sobre el modelo Usuario
+
             $query = Usuario::query();
 
-            // 2. Unir con Persona para búsquedas de texto (Nombre/Apellido/CI)
+
             $query->join('persona', 'usuario.id_persona', '=', 'persona.id_persona')
                   ->select(
                       'usuario.*',
@@ -38,12 +34,10 @@ class EvaluadorController extends Controller
                       'persona.telefono'
                   );
 
-            // 3. FILTRO CRÍTICO: Solo usuarios que tengan (o hayan tenido) el rol 'Evaluador'
             $query->whereHas('roles', function($q) {
                 $q->where('nombre', 'Evaluador');
             });
 
-            // 4. BÚSQUEDA (Search Bar)
             if ($search = $request->input('search')) {
                 $query->where(function($q) use ($search) {
                     $q->where('persona.nombre', 'like', "%{$search}%")
@@ -53,9 +47,6 @@ class EvaluadorController extends Controller
                 });
             }
 
-            // 5. FILTROS ADICIONALES
-
-            // Filtro por Gestión (Olimpiada específica)
             if ($olimpiadaId = $request->input('olimpiada_id')) {
                 $query->whereHas('roles', function($q) use ($olimpiadaId) {
                     $q->where('nombre', 'Evaluador')
@@ -63,14 +54,12 @@ class EvaluadorController extends Controller
                 });
             }
 
-            // Filtro por Estado (Activo/Inactivo)
             if ($request->has('activo')) {
                  $activo = filter_var($request->input('activo'), FILTER_VALIDATE_BOOLEAN);
                  $query->where('usuario.estado', $activo);
             }
 
-            // 6. ORDENAMIENTO DINÁMICO
-            $sortField = $request->input('sort_by', 'created_at'); // Default: fecha creación
+            $sortField = $request->input('sort_by', 'created_at');
             $sortDirection = $request->input('sort_order', 'desc');
 
             $allowedSorts = ['nombre', 'apellido', 'ci', 'email', 'created_at'];
@@ -83,7 +72,6 @@ class EvaluadorController extends Controller
                 }
             }
 
-            // 7. PAGINACIÓN
             $perPage = $request->input('per_page', 15);
             $evaluadores = $query->paginate($perPage);
 
@@ -103,17 +91,9 @@ class EvaluadorController extends Controller
         }
     }
 
-    /**
-     * POST /api/v1/evaluadores
-     * Crea un nuevo evaluador desde cero (Persona + Usuario + Rol + Áreas).
-     * Usa StoreEvaluadorRequest para validaciones automáticas.
-     */
     public function store(StoreEvaluadorRequest $request): JsonResponse
     {
         try {
-            // Laravel ya validó los datos antes de llegar aquí gracias a StoreEvaluadorRequest.
-            // Si hay error (CI duplicado, email repetido), Laravel lanza una excepción
-            // y devuelve automáticamente el JSON de error 422.
 
             $data = $request->validated();
 
@@ -135,10 +115,6 @@ class EvaluadorController extends Controller
         }
     }
 
-    /**
-     * GET /api/v1/evaluadores/{id}
-     * Obtiene el detalle de un evaluador por su ID de Usuario.
-     */
     public function show($id): JsonResponse
     {
         try {
@@ -166,13 +142,8 @@ class EvaluadorController extends Controller
         }
     }
 
-    /**
-     * POST /api/v1/evaluadores/ci/{ci}/asignaciones
-     * Agrega nuevas áreas/niveles a un evaluador existente.
-     */
     public function addAsignaciones(Request $request, string $ci): JsonResponse
     {
-        // Validación manual aquí ya que es un payload específico
         $request->validate([
             'id_olimpiada'   => 'required|integer|exists:olimpiada,id_olimpiada',
             'area_nivel_ids' => 'required|array|min:1',
@@ -195,7 +166,6 @@ class EvaluadorController extends Controller
         } catch (\Exception $e) {
             Log::error("Error agregando asignaciones a CI $ci: " . $e->getMessage());
 
-            // Si el error es "Usuario no existe", devolvemos 404, sino 500
             $status = str_contains($e->getMessage(), 'no existe') ? 404 : 500;
 
             return response()->json([
@@ -206,10 +176,6 @@ class EvaluadorController extends Controller
         }
     }
 
-    /**
-     * GET /api/evaluadores/{id}/areas-niveles
-     * Obtiene solo las áreas y niveles asignados a un evaluador para la gestión actual.
-     */
     public function getAreasNivelesById($id): JsonResponse
     {
         try {
@@ -222,8 +188,6 @@ class EvaluadorController extends Controller
                 ], Response::HTTP_NOT_FOUND);
             }
 
-            // La lógica de negocio ya formatea esto en el repositorio.
-            // Solo extraemos la parte que nos interesa.
             $areasAsignadas = $evaluador['areas_asignadas'] ?? [];
 
             return response()->json([

@@ -14,9 +14,6 @@ class ReporteController extends Controller
         protected ReporteService $service
     ) {}
 
-    /**
-     * Endpoint Principal: Historial de Cambios de Calificaciones
-     */
     public function historialCalificaciones(GetHistorialRequest $request): JsonResponse
     {
         try {
@@ -39,9 +36,6 @@ class ReporteController extends Controller
         }
     }
 
-    /**
-     * Endpoint Auxiliar: Listar Áreas para el filtro
-     */
     public function getAreas(): JsonResponse
     {
         try {
@@ -52,9 +46,6 @@ class ReporteController extends Controller
         }
     }
 
-    /**
-     * Endpoint Auxiliar: Listar Niveles de un Área para el filtro
-     */
     public function getNivelesPorArea(int $idArea): JsonResponse
     {
         try {

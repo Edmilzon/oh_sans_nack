@@ -20,17 +20,11 @@ class Medallero extends Model
         'medalla',
     ];
 
-    /**
-     * Get the competidor that won the medal.
-     */
     public function competidor()
     {
         return $this->belongsTo(Competidor::class, 'id_competidor', 'id_competidor');
     }
 
-    /**
-     * Get the competencia for the medal.
-     */
     public function competencia()
     {
         return $this->belongsTo(Competencia::class, 'id_competencia', 'id_competencia');

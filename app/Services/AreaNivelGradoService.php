@@ -37,7 +37,6 @@ class AreaNivelGradoService
         );
     }
 
-    // Método para la ruta GET /area-nivel (índice)
     public function index(): array
     {
         return $this->getAreasConNivelesSimplificado();
@@ -103,7 +102,6 @@ class AreaNivelGradoService
                         ]
                     );
 
-                    // Asignar grados (sync mantiene solo los grados proporcionados)
                     $areaNivel->gradosEscolaridad()->sync($grupo['grados']);
 
                     $inserted[] = $areaNivel->load(['areaOlimpiada.area', 'nivel', 'gradosEscolaridad']);
@@ -198,7 +196,6 @@ class AreaNivelGradoService
                 ];
             }
 
-            // Obtener los area_niveles activos para esta área-olimpiada
             $areaNiveles = AreaNivel::with([
                 'nivel:id_nivel,nombre',
                 'gradosEscolaridad:id_grado_escolaridad,nombre'
@@ -212,7 +209,6 @@ class AreaNivelGradoService
                 'ids' => $areaNiveles->pluck('id_area_nivel')->toArray()
             ]);
 
-            // 1. Agrupar niveles con sus grados (por id_nivel)
             $nivelesMap = [];
             
             foreach ($areaNiveles as $areaNivel) {
@@ -226,7 +222,6 @@ class AreaNivelGradoService
                     ];
                 }
                 
-                // Agregar grados de este area_nivel
                 foreach ($areaNivel->gradosEscolaridad as $grado) {
                     $nivelesMap[$idNivel]['grados'][] = [
                         'id_grado_escolaridad' => $grado->id_grado_escolaridad,
@@ -235,7 +230,6 @@ class AreaNivelGradoService
                 }
             }
 
-            // Eliminar duplicados en grados
             foreach ($nivelesMap as &$nivelData) {
                 $nivelData['grados'] = collect($nivelData['grados'])
                     ->unique('id_grado_escolaridad')
@@ -243,7 +237,6 @@ class AreaNivelGradoService
                     ->toArray();
             }
 
-            // 2. Crear array de niveles individuales (cada area_nivel como registro separado)
             $nivelesIndividuales = $areaNiveles->map(function($areaNivel) {
                 return [
                     'id_area_nivel' => $areaNivel->id_area_nivel,
@@ -254,7 +247,6 @@ class AreaNivelGradoService
                 ];
             })->values();
 
-            // Formatear respuesta según el JSON solicitado
             $response = [
                 'success' => true,
                 'data' => [
@@ -289,12 +281,10 @@ class AreaNivelGradoService
         }
     }
 
-    // Método para la ruta GET /area-nivel/simplificado
     public function getAreasConNivelesSimplificado(): array
     {
         $olimpiadaActual = $this->obtenerOlimpiadaActual();
         
-        // Corregido: usar 'areaOlimpiada' (singular) en lugar de 'areaOlimpiadas'
         $areas = Area::with([
             'areaOlimpiada' => function($query) use ($olimpiadaActual) {
                 $query->where('id_olimpiada', $olimpiadaActual->id_olimpiada);
@@ -342,7 +332,6 @@ class AreaNivelGradoService
         ];
     }
 
-    // Método para la ruta POST /area-nivel/gestion/{gestion}/areas
      public function getNivelesGradosByAreasAndGestion(int $id_area, string $gestion): array
     {
         try {
@@ -470,7 +459,6 @@ class AreaNivelGradoService
         }
     }
 
-    // Método para la ruta POST /area-nivel/por-gestion
     public function getByGestionAndAreas(string $gestion, array $idAreas): array
     {
         $olimpiada = Olimpiada::where('gestion', $gestion)->firstOrFail();
@@ -489,7 +477,6 @@ class AreaNivelGradoService
         ];
     }
 
-    // GET /area-niveles/{id_area}
     public function getAreaNivelByAreaAll(int $id_area): array
     {
         $olimpiadaActual = $this->obtenerOlimpiadaActual();
@@ -508,7 +495,6 @@ class AreaNivelGradoService
         ];
     }
 
-    // GET /areas-con-niveles
     public function getAreasConNiveles(): array
     {
         $olimpiadaActual = $this->obtenerOlimpiadaActual();
@@ -572,7 +558,6 @@ class AreaNivelGradoService
         ];
     }
 
-    // GET /area-nivel/gestion/{gestion}
     public function getAreasConNivelesPorGestion(string $gestion): array
     {
         $olimpiada = Olimpiada::where('gestion', $gestion)->firstOrFail();
@@ -623,7 +608,6 @@ class AreaNivelGradoService
         ];
     }
 
-    // GET /area-nivel/olimpiada-con-grados/{id_olimpiada}
     public function getAreasConNivelesPorOlimpiada(int $idOlimpiada): array
     {
         $olimpiada = Olimpiada::findOrFail($idOlimpiada);

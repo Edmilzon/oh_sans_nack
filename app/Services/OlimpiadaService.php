@@ -13,10 +13,6 @@ class OlimpiadaService
         protected OlimpiadaRepository $olimpiadaRepository
     ) {}
 
-    /**
-     * Obtiene la olimpiada de la gestión actual o la crea si no existe.
-     * (El service ya no usa Olimpiada::firstOrCreate())
-     */
     public function obtenerOlimpiadaActual(): Olimpiada
     {
         $gestionActual = date('Y');
@@ -28,10 +24,6 @@ class OlimpiadaService
         );
     }
 
-    /**
-     * Obtiene una olimpiada para una gestión específica, creándola si no existe.
-     * (El service ya no usa Olimpiada::firstOrCreate())
-     */
     public function obtenerOlimpiadaPorGestion(string $gestion): Olimpiada
     {
         $nombreOlimpiada = "Olimpiada Científica Estudiantil $gestion";
@@ -42,18 +34,12 @@ class OlimpiadaService
         );
     }
 
-    /**
-     * Obtiene las olimpiadas anteriores a la gestión actual.
-     */
     public function obtenerOlimpiadasAnteriores(): Collection
     {
         $gestionActual = date('Y');
         return $this->olimpiadaRepository->getAnteriores($gestionActual);
     }
 
-    /**
-     * Obtiene todas las gestiones de olimpiadas y las formatea.
-     */
     public function obtenerGestiones(): Collection
     {
         $gestiones = $this->olimpiadaRepository->obtenerGestiones();

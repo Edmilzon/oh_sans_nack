@@ -17,7 +17,6 @@ class ImportarRequest extends FormRequest
             'nombre_archivo' => ['required', 'string', 'max:255'],
             'competidores' => ['required', 'array', 'min:1'],
 
-            // Validamos estructura, no existencia en BD (eso lo hace el Service por rendimiento)
             'competidores.*.persona.nombre' => ['required', 'string', 'max:255'],
             'competidores.*.persona.apellido' => ['required', 'string', 'max:255'],
             'competidores.*.persona.ci' => ['required', 'string', 'max:20'],

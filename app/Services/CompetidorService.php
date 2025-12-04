@@ -217,14 +217,6 @@ class CompetidorService
         ];
     }
 
-    /**
-     * Descalifica a un competidor a nivel de competencia.
-     *
-     * @param int $id_competidor
-     * @param string $observaciones
-     * @return Competidor
-     * @throws Exception
-     */
     public function descalificarCompetidor(int $id_competidor, string $observaciones): Competidor
     {
         $competidor = Competidor::findOrFail($id_competidor);

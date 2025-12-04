@@ -31,7 +31,6 @@ class DepartamentoService
 
     public function crearDepartamento(array $data): Departamento
     {
-        // Regla de negocio: Asegurar mayúsculas (opcional)
         $data['nombre'] = mb_strtoupper($data['nombre']);
 
         return $this->departamentoRepository->create($data);

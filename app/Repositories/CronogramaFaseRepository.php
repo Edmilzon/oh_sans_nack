@@ -35,10 +35,6 @@ class CronogramaFaseRepository
         return $cronograma->delete();
     }
 
-    /**
-     * Devuelve los cronogramas filtrados por la Olimpiada padre de la Fase.
-     * Incluye los datos de la Fase para que el frontend sepa de qué etapa es la fecha.
-     */
     public function obtenerPorOlimpiada(int $idOlimpiada): Collection
     {
         return \App\Model\CronogramaFase::query()

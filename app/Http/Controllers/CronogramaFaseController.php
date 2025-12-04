@@ -43,9 +43,6 @@ class CronogramaFaseController extends Controller
         return response()->json(['message' => 'Cronograma eliminado correctamente']);
     }
 
-    /**
-     * Obtiene todos los cronogramas de la gestión/olimpiada vigente.
-     */
     public function listarActuales(): JsonResponse
     {
         try {

@@ -13,16 +13,14 @@ class ReporteService
 
     public function obtenerHistorial(int $limit, ?int $idArea, ?string $idsNivelesStr, ?string $search = null): array
     {
-        // Procesar ids_niveles (string "1,2,3" -> array [1,2,3])
+
         $idsNiveles = $idsNivelesStr ? array_map('intval', explode(',', $idsNivelesStr)) : null;
 
         $paginator = $this->repository->getHistorialCambios($limit, $idArea, $idsNiveles, $search);
 
-        // CORRECCIÓN: Usamos collect($paginator->items()) en lugar de getCollection()
-        // para cumplir con la interfaz LengthAwarePaginator
+
         $dataTransformada = collect($paginator->items())->map(function ($item) {
 
-            // Lógica de negocio: Determinar Acción
             $esPrimeraCalificacion = (float)$item->nota_anterior == 0;
             $accion = $esPrimeraCalificacion ? 'Calificar' : 'Modificar';
 
@@ -47,7 +45,6 @@ class ReporteService
             ];
         });
 
-        // Estructura de respuesta con Meta datos de paginación
         return [
             'success' => true,
             'data'    => $dataTransformada,

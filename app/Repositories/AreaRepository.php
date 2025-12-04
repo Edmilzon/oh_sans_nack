@@ -16,8 +16,6 @@ class AreaRepository{
 
         }
 
-    
-
         public function getAreasByGestion(string $gestion)
 
         {

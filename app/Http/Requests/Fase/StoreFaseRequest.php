@@ -17,7 +17,6 @@ class StoreFaseRequest extends FormRequest
             'nombre'       => ['required', 'string', 'max:255'],
             'fecha_inicio' => ['required', 'date'],
             'fecha_fin'    => ['required', 'date', 'after_or_equal:fecha_inicio'],
-            // 'orden' no es crítico en competencia, pero lo aceptamos si viene
             'orden'        => ['nullable', 'integer'],
         ];
     }

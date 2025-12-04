@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Repositories\UsuarioRepository;
 use Illuminate\Support\Facades\Hash;
-use App\Model\Olimpiada; // Aseguramos importación
+use App\Model\Olimpiada;
 
 class UsuarioService
 {
@@ -15,9 +15,6 @@ class UsuarioService
         $this->usuarioRepository = $usuarioRepository;
     }
 
-    /**
-     * Autentica un usuario y genera un token de acceso.
-     */
     public function login(array $credentials): ?array
     {
         $usuario = $this->usuarioRepository->findByEmail($credentials['email']);
@@ -43,9 +40,6 @@ class UsuarioService
         ];
     }
 
-    /**
-     * Obtiene la información detallada de un usuario por su CI.
-     */
     public function getUsuarioDetalladoPorCi(string $ci): ?array
     {
         $usuario = $this->usuarioRepository->findByCiWithDetails($ci);
@@ -54,24 +48,20 @@ class UsuarioService
             return null;
         }
 
-        // Agrupación por gestión (ID Olimpiada)
         $rolesPorGestion = $usuario->roles->groupBy(function ($rol) {
             return $rol->pivot->id_olimpiada;
         })->map(function ($roles, $idOlimpiada) use ($usuario) {
 
-            // Obtener nombre de la gestión
             $gestionNombre = "Desconocida";
-            $olimpiada = Olimpiada::find($idOlimpiada); // O usar cache si es frecuente
+            $olimpiada = Olimpiada::find($idOlimpiada);
             if ($olimpiada) {
-                $gestionNombre = $olimpiada->gestion; // Ej: "2025"
+                $gestionNombre = $olimpiada->gestion;
             }
 
-            // Mapear Roles dentro de esa gestión
             $rolesFormatted = $roles->map(function ($rol) use ($usuario, $idOlimpiada) {
                 $detalles = null;
-                $rolName = $rol->nombre; // Ej: "Evaluador"
+                $rolName = $rol->nombre;
 
-                // CASO 1: RESPONSABLE DE ÁREA
                 if ($rolName === 'Responsable Area' || $rolName === 'Responsable de area') {
                     $areas = $usuario->responsableAreas
                         ->filter(fn ($ra) => $ra->areaOlimpiada && $ra->areaOlimpiada->id_olimpiada == $idOlimpiada)
@@ -85,7 +75,6 @@ class UsuarioService
                     }
                 }
 
-                // CASO 2: EVALUADOR (Ajustado a tu JSON)
                 elseif ($rolName === 'Evaluador') {
                     $asignaciones = $usuario->evaluadoresAn
                         ->filter(fn ($ea) =>
@@ -94,8 +83,7 @@ class UsuarioService
                             $ea->areaNivel->areaOlimpiada->id_olimpiada == $idOlimpiada
                         )
                         ->map(function ($ea) {
-                            // Tu JSON muestra "nombre_grado" en singular.
-                            // Si hay varios grados, los unimos por comas.
+
                             $nombresGrados = $ea->areaNivel->gradosEscolaridad->pluck('nombre')->join(', ');
 
                             return [
@@ -120,7 +108,7 @@ class UsuarioService
                 'gestion'      => $gestionNombre,
                 'roles'        => $rolesFormatted
             ];
-        })->values(); // Resetear índices del array para que sea JSON Array []
+        })->values();
 
         return [
             'id_usuario' => $usuario->id_usuario,

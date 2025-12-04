@@ -14,15 +14,8 @@ class AreaOlimpiadaService
         $this->areaOlimpiadaRepository = $areaOlimpiadaRepository;
     }
 
-    /**
-     * Obtiene las áreas para una olimpiada dada.
-     *
-     * @param int|string $identifier
-     * @return Collection
-     */
     public function getAreasByOlimpiada(int|string $identifier): Collection
     {
-        // Si el identificador es numérico y tiene 4 dígitos, asumimos que es una gestión.
         if (is_numeric($identifier) && strlen((string)$identifier) === 4) {
             return $this->areaOlimpiadaRepository->findAreasByGestion((string) $identifier);
         }

@@ -81,7 +81,6 @@ class ResponsableService
         });
     }
 
-    // Método para el Escenario 2/3 (Historial de Gestiones)
     public function getGestionesByCi(string $ci)
     {
         $usuario = $this->repo->getByCi($ci);
@@ -90,7 +89,6 @@ class ResponsableService
         return $this->repo->getGestionesByUsuario($usuario->id_usuario);
     }
 
-    // Método para el Escenario 2/3 (Historial de Áreas por Gestión)
     public function getAreasByCiAndGestion(string $ci, string $gestion)
     {
         $usuario = $this->repo->getByCi($ci);

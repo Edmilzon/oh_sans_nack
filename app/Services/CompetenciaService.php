@@ -16,7 +16,6 @@ class CompetenciaService
 
     public function crearCompetencia(array $data): Competencia
     {
-        // Aquí se puede añadir más lógica de negocio si es necesario
         return $this->competenciaRepository->crear($data);
     }
 

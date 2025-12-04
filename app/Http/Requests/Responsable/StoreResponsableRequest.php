@@ -17,29 +17,23 @@ class StoreResponsableRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Datos Personales
+
             'nombre'   => ['required', 'string', 'max:50'],
             'apellido' => ['required', 'string', 'max:50'],
 
-            // Unicidad estricta en Persona
             'ci'       => ['required', 'string', 'max:20', 'unique:persona,ci'],
             'telefono' => ['nullable', 'string', 'max:20', 'unique:persona,telefono'],
 
-            // Unicidad estricta en Usuario
             'email'    => ['required', 'email', 'max:100', 'unique:usuario,email'],
             'password' => ['required', 'string', 'min:8'],
 
-            // Contexto
             'id_olimpiada' => ['required', 'integer', 'exists:olimpiada,id_olimpiada'],
 
-            // Asignaciones (Array de IDs de Áreas puras)
             'areas'   => ['required', 'array', 'min:1'],
             'areas.*' => [
                 'integer',
                 'exists:area,id_area',
                 function ($attribute, $value, $fail) {
-                    // Validación Cruzada: Verificar que el Área esté habilitada para esta Olimpiada
-                    // (Debe existir en area_olimpiada)
                     $exists = DB::table('area_olimpiada')
                         ->where('id_area', $value)
                         ->where('id_olimpiada', $this->id_olimpiada)
@@ -53,9 +47,6 @@ class StoreResponsableRequest extends FormRequest
         ];
     }
 
-    /**
-     * Jerarquía de Errores: CI > Email > Teléfono
-     */
     protected function failedValidation(Validator $validator)
     {
         $errors = $validator->errors();

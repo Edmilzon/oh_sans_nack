@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-// Usamos la clase base del framework para evitar conflictos de Intelephense
 use Illuminate\Routing\Controller;
 use App\Services\FaseService;
 use App\Http\Requests\Fase\StoreFaseRequest;
@@ -17,8 +16,6 @@ class FaseController extends Controller
     public function __construct(
         protected FaseService $service
     ) {}
-
-    // --- CONFIGURACIÓN GLOBAL ---
 
     public function indexGlobales(): JsonResponse
     {
@@ -55,8 +52,6 @@ class FaseController extends Controller
     {
         return response()->json($this->service->getAccionesHabilitadas($idGestion, $idFase));
     }
-
-    // --- FASES ESPECÍFICAS (COMPETENCIAS) ---
 
     public function index(int $id_area_nivel): JsonResponse
     {
@@ -118,17 +113,7 @@ class FaseController extends Controller
 
         $nuevoEstadoStr = $request->input('estado');
 
-        // TRADUCCIÓN: String -> Boolean
-        // Asumimos:
-        // EN_EVALUACION = true (visible/activo)
-        // FINALIZADA = false (cerrado)
-        // NO_INICIADA = false (aún no visible)
-
         $estadoBool = ($nuevoEstadoStr === 'EN_EVALUACION');
-
-        // Actualizamos usando el servicio
-        // Nota: Si quieres guardar "FINALIZADA" real, necesitas cambiar la columna en DB.
-        // Con boolean, "FINALIZADA" y "NO_INICIADA" se guardan ambos como 0.
 
         $updated = $this->service->cambiarEstadoFase($id, $estadoBool);
 

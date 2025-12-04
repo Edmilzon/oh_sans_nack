@@ -31,10 +31,6 @@ class GetHistorialRequest extends FormRequest
         ];
     }
 
-    /**
-     * Prepara los datos antes de la validación.
-     * Útil si envían ids_niveles como array y lo queremos validar o viceversa.
-     */
     protected function prepareForValidation()
     {
         $this->merge([

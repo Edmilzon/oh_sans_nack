@@ -66,19 +66,16 @@ class AreaController extends Controller {
         }
     }
 
-    // GET /api/areas/actuales
     public function getActualesPlanas(): JsonResponse
     {
-        // 1. Obtener gestión actual
         $olimpiada = Olimpiada::latest('id_olimpiada')->first();
         if (!$olimpiada) return response()->json(['success'=>true, 'data'=>[]]);
 
-        // 2. Obtener áreas únicas de esa gestión
         $areas = AreaOlimpiada::with('area')
             ->where('id_olimpiada', $olimpiada->id_olimpiada)
             ->get()
-            ->pluck('area') // Extraemos el modelo Area
-            ->unique('id_area') // Evitar duplicados por si acaso
+            ->pluck('area')
+            ->unique('id_area')
             ->map(function($area) {
                 return [
                     'id_area' => $area->id_area,

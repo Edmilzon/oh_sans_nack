@@ -6,37 +6,25 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateConfiguracionRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+
     public function authorize(): bool
     {
-        // Aquí podrías agregar lógica de roles (ej: solo Admin),
-        // por ahora retornamos true para permitir el acceso.
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
+
     public function rules(): array
     {
         return [
-            // Validamos que venga el array principal
+
             'accionesPorFase' => ['required', 'array', 'min:1'],
 
-            // Validamos cada elemento dentro del array
             'accionesPorFase.*.idAccion' => ['required', 'integer', 'exists:accion_sistema,id_accion_sistema'],
             'accionesPorFase.*.idFase'   => ['required', 'integer', 'exists:fase_global,id_fase_global'],
             'accionesPorFase.*.habilitada' => ['required', 'boolean'],
         ];
     }
 
-    /**
-     * Mensajes personalizados para errores de validación.
-     */
     public function messages(): array
     {
         return [

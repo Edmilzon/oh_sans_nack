@@ -5,14 +5,10 @@ use App\Http\Controllers\EvaluacionController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\ResponsableController;
 use App\Http\Controllers\OlimpiadaController;
-// use App\Http\Controllers\EvaluadorController;
 use App\Http\Controllers\NivelController;
-// use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AreaOlimpiadaController;
 use App\Http\Controllers\EvaluadorController;
-// use App\Http\Controllers\ResponsableController;
-// use App\Http\Controllers\Responsable\CompetidorController as ResponsableCompetidorController;
 use App\Http\Controllers\ImportarcsvController;
 use App\Http\Controllers\ParametroController;
 use App\Http\Controllers\AreaNivelController;
@@ -26,7 +22,6 @@ use App\Http\Controllers\DepartamentoController;
 use App\Http\Controllers\InstitucionController;
 use App\Http\Controllers\AreaNivelGradoController;
 use App\Http\Controllers\ReporteController;
-
 use App\Http\Controllers\RolAccionController;
 use App\Http\Controllers\AccionDisponibilidadController;
 use App\Http\Controllers\SistemaEstadoController;
@@ -116,7 +111,7 @@ Route::get('/area/gestion/{gestion}', [AreaOlimpiadaController::class, 'getAreas
 Route::get('/niveles', [NivelController::class, 'index']);
 Route::get('/niveles/{id_nivel}', [NivelController::class, 'show']);
 
-// Grados de escolaridad
+//Grados de escolaridad
 Route::get('/grados-escolaridad', [GradoEscolaridadController::class, 'index']);
 Route::get('/grados-escolaridad/{id_grado_escolaridad}', [GradoEscolaridadController::class, 'show']);
 
@@ -175,10 +170,12 @@ Route::get('/fases/{id}/details', [FaseController::class, 'getFaseDetails']);
 Route::get('/sub-fases/area/{id_area}/nivel/{id_nivel}/olimpiada/{id_olimpiada}', [FaseController::class, 'getSubFases']);
 Route::apiResource('area-niveles.fases', FaseController::class)->shallow();
 
+//Competencia
 Route::apiResource('competencias', CompetenciaController::class)->only(['index', 'show', 'store']);
 Route::apiResource('competencias.examenes', ExamenController::class)->shallow()->only(['index', 'store']);
 Route::apiResource('examenes', ExamenController::class)->only(['show']);
 
+//Examenes/Evaluaciones
 Route::post('/examenes/{id_examen_conf}/evaluaciones', [EvaluacionController::class, 'store']);
 Route::get('/competencias/{id_competencia}/calificados', [EvaluacionController::class, 'getCalificados']);
 Route::get('/competidores/{id_competidor}/evaluacion', [EvaluacionController::class, 'getUltimaPorCompetidor']);
@@ -192,7 +189,7 @@ Route::get('/responsableGestion/{idResponsable}', [MedalleroController::class, '
 Route::get('/medallero/area/{idArea}/niveles', [MedalleroController::class, 'getNivelesPorArea']);
 Route::post('/medallero/configuracion', [MedalleroController::class, 'guardarMedallero']);
 
-// nuevos
+//Extras
 Route::apiResource('departamentos', DepartamentoController::class);
 Route::apiResource('grados-escolaridad', GradoEscolaridadController::class);
 Route::apiResource('instituciones', InstitucionController::class);
@@ -204,14 +201,14 @@ Route::get('/areas/actuales', [AreaController::class, 'getActualesPlanas']);
 Route::get('/area-nivel/olimpiada/{id_olimpiada}/area/{id_area}', [AreaNivelController::class, 'getNivelesPorAreaOlimpiada']);
 Route::patch('/sub-fases/{id_subfase}/estado', [FaseController::class, 'updateEstado']);
 
-// REPORTES Y TRAZABILIDAD
+//Reportes
 Route::prefix('reportes')->group(function () {
     Route::get('/historial-calificaciones', [ReporteController::class, 'historialCalificaciones']);
     Route::get('/areas', [ReporteController::class, 'getAreas']);
     Route::get('/areas/{idArea}/niveles', [ReporteController::class, 'getNivelesPorArea']);
 });
 
-//wilian
+//Rol
 Route::prefix('roles/{idRol}/acciones')->group(function () {
     Route::get('/', [RolAccionController::class, 'index']);
     Route::post('/', [RolAccionController::class, 'store']);
@@ -230,6 +227,7 @@ Route::get(
     [UsuarioAccionesController::class, 'index']
 );
 
+//Rutas de cronograma de fases
 Route::get('cronograma-fases/actuales', [CronogramaFaseController::class, 'listarActuales']);
 Route::get('fases-globales/actuales', [FaseGlobalController::class, 'listarActuales']);
 Route::apiResource('cronograma-fases', CronogramaFaseController::class);

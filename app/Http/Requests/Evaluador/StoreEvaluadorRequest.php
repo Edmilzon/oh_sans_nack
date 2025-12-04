@@ -17,11 +17,10 @@ class StoreEvaluadorRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Datos Personales
+
             'nombre'   => ['required', 'string', 'max:50'],
             'apellido' => ['required', 'string', 'max:50'],
 
-            // Reglas estrictas de unicidad
             'ci'       => ['required', 'string', 'max:20', 'unique:persona,ci'],
             'email'    => ['required', 'email', 'max:100', 'unique:usuario,email'],
             'telefono' => ['nullable', 'string', 'max:20', 'unique:persona,telefono'],
@@ -32,7 +31,7 @@ class StoreEvaluadorRequest extends FormRequest
             'area_nivel_ids.*' => [
                 'integer',
                 'exists:area_nivel,id_area_nivel',
-                // Validación Cruzada: El area_nivel_id debe pertenecer a la olimpiada
+
                 function ($attribute, $value, $fail) {
                     $exists = DB::table('area_nivel')
                         ->join('area_olimpiada', 'area_nivel.id_area_olimpiada', '=', 'area_olimpiada.id_area_olimpiada')
@@ -48,45 +47,31 @@ class StoreEvaluadorRequest extends FormRequest
         ];
     }
 
-    /**
-     * Sobrescribimos este método para controlar la jerarquía de errores.
-     */
     protected function failedValidation(Validator $validator)
     {
         $errors = $validator->errors();
 
-        // JERARQUÍA 1: Cédula de Identidad (El error más crítico)
-        // Si el CI ya existe, detenemos todo y solo mostramos esto.
         if ($errors->has('ci')) {
             $this->lanzarErrorUnico('ci', $errors->first('ci'));
         }
 
-        // JERARQUÍA 2: Correo Electrónico
-        // Si el CI pasó, pero el correo está repetido, mostramos solo esto.
         if ($errors->has('email')) {
             $this->lanzarErrorUnico('email', $errors->first('email'));
         }
 
-        // JERARQUÍA 3: Teléfono
-        // Si CI y Email pasaron, pero el teléfono está repetido.
         if ($errors->has('telefono')) {
             $this->lanzarErrorUnico('telefono', $errors->first('telefono'));
         }
 
-        // Si son otros errores (campos vacíos, contraseña corta, etc.),
-        // dejamos que Laravel muestre la lista completa normal.
         parent::failedValidation($validator);
     }
 
-    /**
-     * Helper para lanzar una respuesta JSON limpia con un solo error.
-     */
     private function lanzarErrorUnico($campo, $mensaje)
     {
         throw new HttpResponseException(response()->json([
-            'message' => $mensaje, // Mensaje principal limpio
+            'message' => $mensaje,
             'errors'  => [
-                $campo => [$mensaje] // Estructura estándar de Laravel pero con un solo campo
+                $campo => [$mensaje]
             ]
         ], 422));
     }

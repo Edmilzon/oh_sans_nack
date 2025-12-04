@@ -16,9 +16,6 @@ class ResponsableController extends Controller
         protected ResponsableService $service,
     ) {}
 
-    /**
-     * GET /api/responsables
-     */
     public function index(Request $request): JsonResponse
     {
         try {
@@ -67,9 +64,6 @@ class ResponsableController extends Controller
         }
     }
 
-    /**
-     * POST /api/responsables
-     */
     public function store(StoreResponsableRequest $request): JsonResponse
     {
         try {
@@ -85,9 +79,6 @@ class ResponsableController extends Controller
         }
     }
 
-    /**
-     * GET /api/responsables/{id}
-     */
     public function show($id): JsonResponse
     {
         try {
@@ -99,16 +90,11 @@ class ResponsableController extends Controller
         }
     }
 
-    /**
-     * PUT /api/responsables/ci/{ci}
-     */
     public function updateByCi(Request $request, string $ci): JsonResponse
     {
-        // Validación simple para update
         $request->validate([
             'nombre' => 'sometimes|string|max:50',
             'apellido' => 'sometimes|string|max:50',
-            // No validamos unique estricto aquí para simplificar, idealmente sí
         ]);
 
         try {
@@ -123,9 +109,6 @@ class ResponsableController extends Controller
         }
     }
 
-    /**
-     * POST /api/responsables/ci/{ci}/areas
-     */
     public function addAreas(Request $request, string $ci): JsonResponse
     {
         $request->validate([
@@ -147,9 +130,6 @@ class ResponsableController extends Controller
         }
     }
 
-    /**
-     * GET /api/responsables/ci/{ci}/gestiones
-     */
     public function getGestionesByCi(string $ci): JsonResponse
     {
         try {
@@ -160,9 +140,6 @@ class ResponsableController extends Controller
         }
     }
 
-    /**
-     * GET /api/responsables/ci/{ci}/gestion/{gestion}/areas
-     */
     public function getAreasByCiAndGestion(string $ci, string $gestion): JsonResponse
     {
         try {
@@ -173,9 +150,6 @@ class ResponsableController extends Controller
         }
     }
 
-    /**
-     * GET /api/responsables/areas/ocupadas/gestion/actual
-     */
     public function getOcupadasEnGestionActual(): JsonResponse
     {
         try {
@@ -191,7 +165,6 @@ class ResponsableController extends Controller
 
     public function areasConNivelesPorOlimpiadaActual(int $idUsuario): JsonResponse
     {
-        // Delegamos toda la lógica al servicio
         $data = $this->service->obtenerAreasConNiveles($idUsuario);
 
         return response()->json($data);
