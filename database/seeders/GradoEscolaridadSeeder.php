@@ -9,7 +9,6 @@ class GradoEscolaridadSeeder extends Seeder
 {
     public function run(): void
     {
-        // Lista estándar completa de grados
         $grados = [
             '1ro de Secundaria',
             '2do de Secundaria',
@@ -22,8 +21,6 @@ class GradoEscolaridadSeeder extends Seeder
         $this->command->info('Verificando grados de escolaridad...');
 
         foreach ($grados as $nombre) {
-            // firstOrCreate: Si existe, lo deja; si no, lo crea.
-            // Esto evita problemas de FK si intentas truncar una tabla en uso.
             GradoEscolaridad::firstOrCreate([
                 'nombre' => $nombre
             ]);

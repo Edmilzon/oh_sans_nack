@@ -34,17 +34,14 @@ class Olimpiadas2024Seeder extends Seeder
             $an = AreaNivel::firstOrCreate(['id_area_olimpiada' => $ao->id_area_olimpiada, 'id_nivel' => $nivel->id_nivel], ['es_activo' => true]);
             $an->gradosEscolaridad()->syncWithoutDetaching([$grado->id_grado_escolaridad]);
 
-            // Usuarios (Sin Genero en Persona)
             $pResp = Persona::firstOrCreate(['ci' => '9988777'], ['nombre' => 'Roberto', 'apellido' => 'Gomez', 'email' => 'rob@test.com', 'telefono' => '777']);
             $uResp = Usuario::firstOrCreate(['email' => 'rob@test.com'], ['id_persona' => $pResp->id_persona, 'password' => '123']);
 
-            // Competidores
             $inst = Institucion::firstOrCreate(['nombre' => 'San Agustin']);
             $depto = Departamento::firstOrCreate(['nombre' => 'La Paz']);
 
             $p = Persona::firstOrCreate(['ci' => '5678901'], [
                 'nombre' => 'Pedro', 'apellido' => 'Lopez', 'email' => 'pedro@test.com', 'telefono' => '000'
-                // SIN GENERO EN PERSONA
             ]);
 
             Competidor::firstOrCreate(['id_persona' => $p->id_persona, 'id_area_nivel' => $an->id_area_nivel], [
@@ -52,7 +49,7 @@ class Olimpiadas2024Seeder extends Seeder
                 'id_departamento' => $depto->id_departamento,
                 'id_grado_escolaridad' => $grado->id_grado_escolaridad,
                 'contacto_tutor' => 'Tutor',
-                'genero' => 'M', // CON GENERO EN COMPETIDOR
+                'genero' => 'M',
                 'estado_evaluacion' => 'disponible'
             ]);
 
