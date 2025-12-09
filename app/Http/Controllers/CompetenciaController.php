@@ -67,4 +67,30 @@ class CompetenciaController extends Controller
 
         return response()->json($competencia);
     }
+
+    public function getByAreaAndNivel(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_area' => 'required|integer|exists:areas,id_area',
+            'id_nivel' => 'required|integer|exists:niveles,id_nivel',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $competencia = $this->competenciaService->obtenerCompetenciaPorAreaYNivel($request->id_area, $request->id_nivel);
+
+        if (!$competencia) {
+            return response()->json(['message' => 'Competencia no encontrada.'], 404);
+        }
+
+        return response()->json($competencia);
+    }
+
+    public function getByAreaNivelId(int $id_area_nivel): JsonResponse
+    {
+        $competencias = $this->competenciaService->obtenerCompetenciasPorAreaNivelId($id_area_nivel);
+        return response()->json($competencias);
+    }
 }

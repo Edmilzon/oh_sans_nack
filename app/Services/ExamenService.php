@@ -45,4 +45,9 @@ class ExamenService
     {
         return $this->examenRepository->obtenerPorId($id_examen_conf);
     }
+
+    public function obtenerExamenesPorAreaYNivel(int $id_area, int $id_nivel)
+    {
+        return $this->examenRepository->obtenerPorAreaYNivel($id_area, $id_nivel);
+    }
 }

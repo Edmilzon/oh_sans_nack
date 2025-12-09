@@ -17,14 +17,14 @@ Accept: application/json
 
 ### ================= AÑADIR EXAMEN A COMPETENCIA =================
 
-@id_competencia_creada = 3
+@id_competencia_creada = 2
 POST {{hostname}}{{api_prefix}}/competencias/{{id_competencia_creada}}/examenes
 Content-Type: application/json
 Accept: application/json
 
 {
     "nombre": "Examen Teórico",
-    "ponderacion": 60,
+    "ponderacion": 40,
     "maxima_nota": 100
 }
 
@@ -69,13 +69,13 @@ Content-Type: application/json
 Accept: application/json
 
 {
-    "id_competidor": 21,
+    "id_competidor": 42,
     "id_evaluador_an": 4
 }
 
 ### PASO 2: CALIFICAR EVALUACIÓN (Estado: Pendiente -> Calificado)
 # El evaluador envía la nota y las observaciones para finalizar la calificación.
-@id_evaluacion_creada = 5
+@id_evaluacion_creada = 4
 POST {{hostname}}{{api_prefix}}/evaluaciones/{{id_evaluacion_creada}}/finalizar
 Content-Type: application/json
 Accept: application/json

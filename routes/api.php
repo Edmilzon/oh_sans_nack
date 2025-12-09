@@ -132,6 +132,7 @@ Route::get('/area-nivel/{id_olimpiada}', [AreaNivelController::class, 'getAreasC
 Route::get('/area-nivel/gestion/{gestion}', [AreaNivelController::class, 'getAreasConNivelesPorGestion']);
 Route::put('/area-nivel/{id}', [AreaNivelController::class, 'update']);
 Route::put('/area-nivel/por-area/{id_area}', [AreaNivelController::class, 'updateByArea']);
+Route::get('/area-nivel/{id_area_nivel}/competencias', [CompetenciaController::class, 'getByAreaNivelId']);
 
 // AreaNivelGrado
 Route::get('/area-nivel', [AreaNivelGradoController::class, 'index']);
@@ -175,8 +176,10 @@ Route::get('/fases/{id}/details', [FaseController::class, 'getFaseDetails']);
 Route::get('/sub-fases/area/{id_area}/nivel/{id_nivel}/olimpiada/{id_olimpiada}', [FaseController::class, 'getSubFases']);
 Route::apiResource('area-niveles.fases', FaseController::class)->shallow();
 
+Route::get('/competencias/por-area-nivel', [CompetenciaController::class, 'getByAreaAndNivel']);
 Route::apiResource('competencias', CompetenciaController::class)->only(['index', 'show', 'store']);
 Route::apiResource('competencias.examenes', ExamenController::class)->shallow()->only(['index', 'store']);
+Route::get('/examenes/por-area-nivel', [ExamenController::class, 'getByAreaAndNivel']);
 Route::apiResource('examenes', ExamenController::class)->only(['show']);
 
 Route::post('/examenes/{id_examen_conf}/evaluaciones', [EvaluacionController::class, 'store']);

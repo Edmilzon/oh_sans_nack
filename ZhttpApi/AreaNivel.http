@@ -1,0 +1,14 @@
+@hostname = http://localhost:8000
+@api_prefix = /api
+
+### ================= OBTENER COMPETENCIA POR AREA Y NIVEL =================
+GET {{hostname}}{{api_prefix}}/competencias/por-area-nivel?id_area=1&id_nivel=1
+Accept: application/json
+
+### ================= OBTENER EXAMENES POR AREA Y NIVEL =================
+GET {{hostname}}{{api_prefix}}/examenes/por-area-nivel?id_area=1&id_nivel=1
+Accept: application/json
+
+### ================= OBTENER COMPETENCIAS POR ID AREA NIVEL =================
+GET {{hostname}}{{api_prefix}}/area-nivel/1/competencias
+Accept: application/json

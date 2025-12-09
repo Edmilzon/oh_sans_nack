@@ -29,4 +29,14 @@ class CompetenciaService
     {
         return $this->competenciaRepository->obtenerPorId($id_competencia);
     }
+
+    public function obtenerCompetenciaPorAreaYNivel(int $id_area, int $id_nivel): ?Competencia
+    {
+        return $this->competenciaRepository->obtenerPorAreaYNivel($id_area, $id_nivel);
+    }
+
+    public function obtenerCompetenciasPorAreaNivelId(int $id_area_nivel)
+    {
+        return $this->competenciaRepository->obtenerPorAreaNivelId($id_area_nivel);
+    }
 }

@@ -76,4 +76,20 @@ class ExamenController extends Controller
 
         return response()->json($examen);
     }
+
+    public function getByAreaAndNivel(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_area' => 'required|integer|exists:areas,id_area',
+            'id_nivel' => 'required|integer|exists:niveles,id_nivel',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $examenes = $this->examenService->obtenerExamenesPorAreaYNivel($request->id_area, $request->id_nivel);
+
+        return response()->json($examenes);
+    }
 }

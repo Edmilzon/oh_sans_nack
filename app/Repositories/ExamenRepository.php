@@ -40,4 +40,15 @@ class ExamenRepository
     {
         return ExamenConf::find($id_examen_conf);
     }
+
+    public function obtenerPorAreaYNivel(int $id_area, int $id_nivel)
+    {
+        return ExamenConf::whereHas('competencia.areaNivel.areaOlimpiada', function ($query) use ($id_area) {
+                $query->where('id_area', $id_area);
+            })
+            ->whereHas('competencia.areaNivel', function ($query) use ($id_nivel) {
+                $query->where('id_nivel', $id_nivel);
+            })
+            ->get();
+    }
 }
