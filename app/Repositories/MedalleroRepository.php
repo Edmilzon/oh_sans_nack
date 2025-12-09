@@ -82,7 +82,5 @@ class MedalleroRepository
     }
 
     return $resultados;
-}
-
-
+    }
 }

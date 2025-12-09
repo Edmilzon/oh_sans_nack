@@ -46,7 +46,6 @@ class Competencia extends Model
 
     public function evaluaciones()
     {
-        // Relación a través de ExamenConf para obtener todas las evaluaciones de una competencia
         return $this->hasManyThrough(Evaluacion::class, ExamenConf::class, 'id_competencia', 'id_examen_conf', 'id_competencia', 'id_examen_conf');
     }
 

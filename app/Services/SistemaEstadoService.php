@@ -14,8 +14,6 @@ class SistemaEstadoService
 
     public function obtenerEstadoDelSistema(): array
     {
-        // 1. Detectar Gestión Actual (Por año calendario)
-        // Nota: Usamos el modelo Olimpiada directamente para no depender de repositorios externos
         $anioActual = date('Y');
         $olimpiada = Olimpiada::where('gestion', (string)$anioActual)->first();
 
@@ -27,10 +25,8 @@ class SistemaEstadoService
             ];
         }
 
-        // 2. Detectar Fase Global Activa (Usando nuestra tabla nueva)
         $cronograma = $this->cronogramaRepo->buscarFaseActiva($olimpiada->id_olimpiada);
 
-        // 3. Construir Respuesta
         return [
             'estado_general' => 'activo',
             'servidor_fecha' => Carbon::now()->toIso8601String(),
@@ -45,7 +41,7 @@ class SistemaEstadoService
                 'codigo' => $cronograma->faseGlobal->codigo,
                 'fecha_cierre' => $cronograma->fecha_fin->toIso8601String(),
                 'tiempo_restante' => $cronograma->fecha_fin->diffForHumans(),
-            ] : null // Puede haber gestión activa pero ninguna fase corriendo en este preciso instante
+            ] : null
         ];
     }
 }

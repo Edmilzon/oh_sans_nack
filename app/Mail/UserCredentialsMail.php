@@ -18,9 +18,6 @@ class UserCredentialsMail extends Mailable
     public $password;
     public $rol;
 
-    /**
-     * Create a new message instance.
-     */
     public function __construct(string $nombreUsuario, string $email, string $password, string $rol)
     {
         $this->nombreUsuario = $nombreUsuario;
@@ -29,9 +26,6 @@ class UserCredentialsMail extends Mailable
         $this->rol = $rol;
     }
 
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
@@ -39,9 +33,6 @@ class UserCredentialsMail extends Mailable
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
         return new Content(

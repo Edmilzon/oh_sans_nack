@@ -8,7 +8,7 @@ class StoreCronogramaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Acceso público permitido
+        return true;
     }
 
     public function rules(): array

@@ -50,7 +50,7 @@ class DepartamentoController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        // Validación inline simple para update (puedes crear un FormRequest separado si prefieres)
+
         $request->validate([
             'nombre' => 'sometimes|string|max:20|unique:departamento,nombre,' . $id . ',id_departamento'
         ]);

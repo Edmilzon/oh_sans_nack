@@ -12,8 +12,6 @@ class UsusariosSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Buscar la olimpiada de la gestión actual
-        // Prioriza la del año actual (creada por OlimpiadaSeeder)
         $olimpiada = Olimpiada::where('gestion', date('Y'))->first();
 
         if (!$olimpiada) {
@@ -21,7 +19,6 @@ class UsusariosSeeder extends Seeder
             return;
         }
 
-        // 2. Datos de prueba estructurados (Persona + Usuario + Rol)
         $usuariosData = [
             [
                 'rol_nombre' => 'Administrador',
@@ -33,8 +30,8 @@ class UsusariosSeeder extends Seeder
                     'email' => 'admin.persona@test.com',
                 ],
                 'usuario' => [
-                    'email' => 'admin@ohsansi.com', // Email de acceso
-                    'password' => 'admin123' // Texto plano (el modelo lo encripta)
+                    'email' => 'admin@ohsansi.com',
+                    'password' => 'admin123'
                 ]
             ],
             [
@@ -70,26 +67,22 @@ class UsusariosSeeder extends Seeder
         $this->command->info('Creando usuarios y asignando roles...');
 
         foreach ($usuariosData as $data) {
-            // A. Crear o Buscar Persona (Evita duplicados por CI)
             $persona = Persona::firstOrCreate(
                 ['ci' => $data['persona']['ci']],
                 $data['persona']
             );
 
-            // B. Crear o Buscar Usuario vinculado
             $usuario = Usuario::firstOrCreate(
                 ['email' => $data['usuario']['email']],
                 [
                     'id_persona' => $persona->id_persona,
-                    'password'   => $data['usuario']['password'] // El modelo aplica el Hash automáticamente
+                    'password'   => $data['usuario']['password']
                 ]
             );
 
-            // C. Asignar Rol en la tabla pivote (usuario_rol)
             $rol = Rol::where('nombre', $data['rol_nombre'])->first();
 
             if ($rol) {
-                // Verificamos si ya tiene el rol en esta olimpiada para no duplicar
                 $yaTieneRol = $usuario->roles()
                                       ->where('rol.id_rol', $rol->id_rol)
                                       ->wherePivot('id_olimpiada', $olimpiada->id_olimpiada)

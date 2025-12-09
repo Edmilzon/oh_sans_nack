@@ -19,14 +19,7 @@ return new class extends Migration
 
     public function up(): void
     {
-        // ADVERTENCIA: Esta migración es destructiva.
-        // Si solo quieres reiniciar la base de datos, es mejor usar:
-        // php artisan migrate:fresh
         $this->down();
-
-        // ==========================================
-        // 1. TABLAS BASE
-        // ==========================================
 
         Schema::create('accion_sistema', function (Blueprint $table) {
             $table->id('id_accion_sistema');
@@ -126,10 +119,6 @@ return new class extends Migration
             $table->string('nombre', 60);
             $table->timestamps();
         });
-
-        // ==========================================
-        // 2. TABLAS CON FK (Nivel 1) - Todas las FKs pasan a unsignedBigInteger
-        // ==========================================
 
         Schema::create('usuario', function (Blueprint $table) {
             $table->id('id_usuario');
@@ -405,7 +394,6 @@ return new class extends Migration
                   ->onDelete('cascade');
         });
 
-        // Reactivamos FKs
         Schema::enableForeignKeyConstraints();
     }
 

@@ -7,9 +7,7 @@ use App\Model\AccionSistema;
 
 class AccionSistemaSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+
     public function run(): void
     {
         $acciones = [
@@ -33,7 +31,7 @@ class AccionSistemaSeeder extends Seeder
         $this->command->info('⚙️ Configurando acciones del sistema...');
 
         foreach ($acciones as $data) {
-            // Buscamos por el código único. Si no existe, lo crea.
+
             AccionSistema::firstOrCreate(
                 ['codigo' => $data['codigo']],
                 [

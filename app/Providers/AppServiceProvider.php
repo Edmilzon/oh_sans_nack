@@ -8,20 +8,14 @@ use App\Observers\EvaluacionObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
+
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        // Aquí registramos el observador
         Evaluacion::observe(EvaluacionObserver::class);
     }
 }

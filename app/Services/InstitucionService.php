@@ -31,7 +31,6 @@ class InstitucionService
 
     public function create(array $data): Institucion
     {
-        // Estandarizar nombre a mayúsculas
         if (isset($data['nombre'])) {
             $data['nombre'] = mb_strtoupper($data['nombre']);
         }
@@ -53,7 +52,6 @@ class InstitucionService
     public function delete(int $id): bool
     {
         $institucion = $this->findById($id);
-        // Aquí podrías validar si hay competidores inscritos en esta institución
         return $this->institucionRepository->delete($institucion);
     }
 }

@@ -17,9 +17,6 @@ class RolAccionController extends Controller
         $this->rolAccionService = $rolAccionService;
     }
 
-    /**
-     * Obtener acciones asignadas a un rol.
-     */
     public function index(int $idRol): JsonResponse
     {
         try {
@@ -39,9 +36,6 @@ class RolAccionController extends Controller
         }
     }
 
-    /**
-     * Asignar múltiples acciones a un rol.
-     */
     public function store(Request $request, int $idRol): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -70,9 +64,6 @@ class RolAccionController extends Controller
         }
     }
 
-    /**
-     * Revocar una acción específica de un rol.
-     */
     public function destroy(int $idRol, int $idAccion): JsonResponse
     {
         try {

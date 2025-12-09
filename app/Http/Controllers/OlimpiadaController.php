@@ -13,9 +13,6 @@ class OlimpiadaController extends Controller
         protected OlimpiadaService $olimpiadaService
     ) {}
 
-    /**
-     * Endpoint: GET /api/olimpiadas/anteriores
-     */
     public function olimpiadasAnteriores(): JsonResponse
     {
         try {
@@ -35,9 +32,6 @@ class OlimpiadaController extends Controller
         }
     }
 
-    /**
-     * Endpoint: GET /api/olimpiadas/actual
-     */
     public function olimpiadaActual(): JsonResponse
     {
         try {
@@ -57,9 +51,6 @@ class OlimpiadaController extends Controller
         }
     }
 
-    /**
-     * Endpoint: GET /api/gestiones
-     */
     public function gestiones(): JsonResponse
     {
         try {

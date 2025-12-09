@@ -18,16 +18,8 @@ class ExamenController extends Controller
         $this->examenService = $examenService;
     }
 
-    /**
-     * Crea un nuevo examen para una competencia.
-     *
-     * @param Request $request
-     * @param int $id_competencia
-     * @return JsonResponse
-     */
     public function store(Request $request, int $id_competencia): JsonResponse
     {
-        // Asegurarse que la competencia exista primero
         Competencia::findOrFail($id_competencia);
 
         $validator = Validator::make($request->all(), [
@@ -48,24 +40,12 @@ class ExamenController extends Controller
         }
     }
 
-    /**
-     * Lista todos los exámenes de una competencia.
-     *
-     * @param int $id_competencia
-     * @return JsonResponse
-     */
     public function index(int $id_competencia): JsonResponse
     {
         $examenes = $this->examenService->obtenerExamenesPorCompetencia($id_competencia);
         return response()->json($examenes);
     }
 
-    /**
-     * Muestra un examen específico.
-     *
-     * @param int $id_examen_conf
-     * @return JsonResponse
-     */
     public function show(int $id_examen_conf): JsonResponse
     {
         $examen = $this->examenService->obtenerExamenPorId($id_examen_conf);

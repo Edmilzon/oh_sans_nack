@@ -25,8 +25,6 @@ class EvaluadorSeeder extends Seeder
             return;
         }
 
-        // CORRECCIÓN: Buscar AreaNivel a través de AreaOlimpiada
-        // Filtramos area_nivel que pertenezca a un area_olimpiada de ESTA olimpiada
         $areaNivel = AreaNivel::whereHas('areaOlimpiada', function($q) use ($olimpiada) {
             $q->where('id_olimpiada', $olimpiada->id_olimpiada);
         })->with(['areaOlimpiada.area', 'nivel'])->first();
@@ -36,7 +34,6 @@ class EvaluadorSeeder extends Seeder
             return;
         }
 
-        // Acceder a los datos a través de la relación correcta
         $nombreArea = $areaNivel->areaOlimpiada->area->nombre;
         $nombreNivel = $areaNivel->nivel->nombre;
         $idAreaNivel = $areaNivel->id_area_nivel;
@@ -57,7 +54,6 @@ class EvaluadorSeeder extends Seeder
                 $email = strtolower("eval.{$i}.{$nombreArea}@ohsansi.com");
                 $email = str_replace(' ', '', $email);
 
-                // Crear Persona (Sin Genero)
                 $persona = Persona::firstOrCreate(
                     ['ci' => $ci],
                     [
@@ -65,11 +61,9 @@ class EvaluadorSeeder extends Seeder
                         'apellido' => "Nivel {$idAreaNivel}",
                         'email'    => "personal.{$email}",
                         'telefono' => "6000000{$i}"
-                        // 'genero' => ... ELIMINADO: No existe en tabla persona
                     ]
                 );
 
-                // Crear Usuario
                 $usuario = Usuario::firstOrCreate(
                     ['email' => $email],
                     [
@@ -78,7 +72,6 @@ class EvaluadorSeeder extends Seeder
                     ]
                 );
 
-                // Asignar Rol
                 if (!$usuario->roles()
                         ->where('rol.id_rol', $rolEvaluador->id_rol)
                         ->wherePivot('id_olimpiada', $olimpiada->id_olimpiada)
@@ -89,7 +82,6 @@ class EvaluadorSeeder extends Seeder
                     ]);
                 }
 
-                // Asignar Permiso
                 EvaluadorAn::firstOrCreate([
                     'id_usuario'    => $usuario->id_usuario,
                     'id_area_nivel' => $idAreaNivel

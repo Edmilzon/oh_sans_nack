@@ -43,7 +43,7 @@ class AreaNivel extends Model
     {
         return $this->hasMany(Competencia::class, 'id_area_nivel');
     }
-    // Relación a través de AreaOlimpiada para llegar al Área
+
     public function area()
     {
         return $this->hasOneThrough(Area::class, AreaOlimpiada::class, 'id_area_olimpiada', 'id_area', 'id_area_olimpiada', 'id_area');
@@ -73,9 +73,9 @@ class AreaNivel extends Model
     {
         return $this->belongsToMany(
             GradoEscolaridad::class,
-            'area_nivel_grado', // Nombre de la tabla pivote
-            'id_area_nivel',    // FK de este modelo en la pivote
-            'id_grado_escolaridad' // FK del otro modelo en la pivote
+            'area_nivel_grado',
+            'id_area_nivel',
+            'id_grado_escolaridad'
         );
     }
 }

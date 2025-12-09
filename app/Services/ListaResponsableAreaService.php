@@ -32,14 +32,14 @@ class ListaResponsableAreaService
         return $this->listaResponsableAreaRepository->getAreaPorResponsable($idResponsable);
     }
 
-  public function listarPorAreaYNivel(
+    public function listarPorAreaYNivel(
     int $idResponsable,
     ?int $idArea,
     ?int $idNivel,
     ?int $idGrado,
     ?string $genero = null,
     ?string $departamento = null
-): Collection {
+    ): Collection {
     return $this->listaResponsableAreaRepository->listarPorAreaYNivel(
         $idResponsable,
         $idArea,
@@ -48,10 +48,10 @@ class ListaResponsableAreaService
         $genero,
         $departamento
     );
-}
+    }
 
-public function getListaGrados(?int $idArea, int $idNivel): Collection
-{
+    public function getListaGrados(?int $idArea, int $idNivel): Collection
+    {
     if ($idNivel <= 0) {
         return collect();
     }
@@ -63,19 +63,18 @@ public function getListaGrados(?int $idArea, int $idNivel): Collection
 
     return $this->listaResponsableAreaRepository
         ->getListaGradosPorNivel($idNivel);
-}
+    }
 
-   public function getListaDepartamento(){
+    public function getListaDepartamento(){
     return $this->listaResponsableAreaRepository->getListaDepartamento();
-} 
+    } 
    public function getListaGeneros(): array
-{
+    {
     return $this->listaResponsableAreaRepository->getListaGeneros();
-}
+    }
 
     public function getCompetidoresPorAreaYNivel(int $id_competencia, int $idArea, int $idNivel): Collection
     {
         return $this->listaResponsableAreaRepository->getCompetidoresPorAreaYNivel($id_competencia, $idArea, $idNivel);
     }
-
 }

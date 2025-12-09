@@ -14,12 +14,10 @@ class AsignarAreasResponsable2Seeder extends Seeder
 
         $idUsuario = 2;
 
-        // IDs de área_olimpiada que deseas asignar
-        $areas = [4,5]; // <--- CAMBIA ESTOS 3 A TUS IDs REALES
+        $areas = [4,5];
 
         foreach ($areas as $idAreaOlimpiada) {
 
-            // Verificar si existe esa área
             $area = DB::table('area_olimpiada')
                 ->where('id_area_olimpiada', $idAreaOlimpiada)
                 ->first();
@@ -29,7 +27,6 @@ class AsignarAreasResponsable2Seeder extends Seeder
                 continue;
             }
 
-            // Crear asignación
             ResponsableArea::firstOrCreate([
                 'id_usuario'        => $idUsuario,
                 'id_area_olimpiada' => $idAreaOlimpiada,

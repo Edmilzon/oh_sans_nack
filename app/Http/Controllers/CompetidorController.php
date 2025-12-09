@@ -14,13 +14,6 @@ class CompetidorController extends Controller
         protected CompetidorService $competidorService
     ) {}
 
-    /**
-     * Descalifica a un competidor de la competencia.
-     *
-     * @param Request $request
-     * @param int $id_competidor
-     * @return JsonResponse
-     */
     public function descalificar(Request $request, int $id_competidor): JsonResponse
     {
         $validator = Validator::make($request->all(), [

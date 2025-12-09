@@ -14,12 +14,9 @@ class UsuarioController extends Controller
         protected UsuarioService $usuarioService
     ) {}
 
-    /**
-     * Login de usuario.
-     */
     public function login(LoginRequest $request): JsonResponse
     {
-        // La validación ya se hizo en LoginRequest
+
         $result = $this->usuarioService->login($request->validated());
 
         if (!$result) {
@@ -29,9 +26,6 @@ class UsuarioController extends Controller
         return response()->json($result);
     }
 
-    /**
-     * Obtener usuario detallado por CI.
-     */
     public function showByCi(string $ci): JsonResponse
     {
         try {

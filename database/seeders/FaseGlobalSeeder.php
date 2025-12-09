@@ -13,7 +13,6 @@ class FaseGlobalSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Obtener la Olimpiada actual para vincular las fases
         $olimpiada = Olimpiada::where('gestion', date('Y'))->first()
                      ?? Olimpiada::latest('id_olimpiada')->first();
 
@@ -40,7 +39,6 @@ class FaseGlobalSeeder extends Seeder
         $this->command->info('Generando fases globales...');
 
         foreach ($fases as $fase) {
-            // Buscamos por código y olimpiada para evitar duplicados en la misma gestión
             FaseGlobal::firstOrCreate(
                 [
                     'codigo'       => $fase['codigo'],

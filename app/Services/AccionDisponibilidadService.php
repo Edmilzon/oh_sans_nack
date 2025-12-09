@@ -13,9 +13,6 @@ class AccionDisponibilidadService
 
     public function listarAcciones(int $idRol, int $idFaseGlobal, int $idGestion): Collection
     {
-        // Aquí podrías agregar validaciones de negocio extra si hicieran falta
-        // (ej: verificar si la olimpiada está activa, etc.)
-
         return $this->repository->obtenerAccionesHabilitadas($idRol, $idFaseGlobal, $idGestion);
     }
 }

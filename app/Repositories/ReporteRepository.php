@@ -8,9 +8,7 @@ use Illuminate\Support\Collection;
 
 class ReporteRepository
 {
-    /**
-     * Obtiene el historial de cambios con filtros avanzados.
-     */
+
     public function getHistorialCambios(int $limit, ?int $idArea, ?array $idsNiveles, ?string $search = null): LengthAwarePaginator
     {
         $query = DB::table('log_cambio_nota as log')
@@ -25,7 +23,6 @@ class ReporteRepository
             ->join('nivel as n', 'an.id_nivel', '=', 'n.id_nivel')
             ->join('area_olimpiada as ao', 'an.id_area_olimpiada', '=', 'ao.id_area_olimpiada')
             ->join('area as a', 'ao.id_area', '=', 'a.id_area')
-            // JOIN EXTRA para asegurar contexto de Olimpiada (opcional pero recomendado para consistencia)
             ->join('olimpiada as o', 'ao.id_olimpiada', '=', 'o.id_olimpiada')
 
             ->select(
@@ -42,12 +39,8 @@ class ReporteRepository
                 'a.nombre as nombre_area',
                 'n.id_nivel',
                 'n.nombre as nombre_nivel',
-                'o.gestion' // Útil para saber de qué gestión es el cambio
+                'o.gestion'
             );
-
-        // Si se requiere filtrar SOLO por la gestión activa en el historial, descomenta esto:
-        // $query->where('o.estado', true);
-        // Nota: Generalmente el historial histórico se deja abierto, pero los combos sí se filtran.
 
         if ($idArea) {
             $query->where('a.id_area', $idArea);
@@ -70,24 +63,18 @@ class ReporteRepository
         return $query->paginate($limit);
     }
 
-    /**
-     * CORREGIDO: Obtiene solo áreas de la OLIMPIADA ACTIVA.
-     */
     public function getAreasSimples(): Collection
     {
         return DB::table('area as a')
             ->join('area_olimpiada as ao', 'a.id_area', '=', 'ao.id_area')
             ->join('olimpiada as o', 'ao.id_olimpiada', '=', 'o.id_olimpiada')
-            ->where('o.estado', true) // <--- FILTRO CLAVE: Solo gestión actual
+            ->where('o.estado', true)
             ->select('a.id_area', 'a.nombre')
-            ->distinct() // Evita duplicados si hubiera mala configuración
+            ->distinct()
             ->orderBy('a.nombre')
             ->get();
     }
 
-    /**
-     * Obtiene niveles por área FILTRANDO POR OLIMPIADA ACTIVA.
-     */
     public function getNivelesPorArea(int $idArea): Collection
     {
         return DB::table('area_nivel as an')
@@ -95,7 +82,7 @@ class ReporteRepository
             ->join('nivel as n', 'an.id_nivel', '=', 'n.id_nivel')
             ->join('olimpiada as o', 'ao.id_olimpiada', '=', 'o.id_olimpiada')
             ->where('ao.id_area', $idArea)
-            ->where('o.estado', true) // <--- FILTRO CLAVE: Solo gestión actual
+            ->where('o.estado', true)
             ->select('n.id_nivel', 'n.nombre')
             ->distinct()
             ->orderBy('n.nombre')
