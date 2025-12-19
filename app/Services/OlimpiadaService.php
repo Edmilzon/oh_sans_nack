@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Model\Olimpiada;
 use App\Repositories\OlimpiadaRepository;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class OlimpiadaService
@@ -53,5 +54,25 @@ class OlimpiadaService
                 'esActual' => (string)$olimpiada->gestion === (string)$currentYear,
             ];
         });
+    }
+
+    public function crearOlimpiada(array $data): Olimpiada
+    {
+        return $this->olimpiadaRepository->create($data);
+    }
+
+    public function activarOlimpiada(int $idOlimpiada): bool
+    {
+        return DB::transaction(function () use ($idOlimpiada) {
+
+            $this->olimpiadaRepository->desactivarTodas();
+            
+            return $this->olimpiadaRepository->activar($idOlimpiada);
+        });
+    }
+
+    public function obtenerOlimpiadaPorId(int $id): ?Olimpiada
+    {
+        return $this->olimpiadaRepository->find($id);
     }
 }

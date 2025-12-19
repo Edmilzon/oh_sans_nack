@@ -22,6 +22,16 @@ class Olimpiada extends Model {
         'estado' => 'boolean',
     ];
 
+    public static $rules = [
+        'nombre' => 'required|string|max:255',
+        'gestion' => 'required|string|size:4',
+    ];
+
+    public static $updateRules = [
+        'nombre' => 'string|max:255',
+        'gestion' => 'string|size:4',
+    ];
+
     public function areas() {
         return $this->belongsToMany(Area::class, 'area_olimpiada', 'id_olimpiada', 'id_area')->withTimestamps();
     }

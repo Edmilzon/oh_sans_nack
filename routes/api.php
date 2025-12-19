@@ -93,9 +93,17 @@ Route::prefix('evaluadores')->group(function () {
 Route::get('olimpiadas/{identifier}/areas', [AreaOlimpiadaController::class, 'getAreasByOlimpiada']);
 
 //Rutas Olimpiada
+Route::prefix('olimpiadas')->group(function () {
+
+    Route::get('/', [OlimpiadaController::class, 'index']);
+    Route::post('/', [OlimpiadaController::class, 'store']);
+    Route::patch('/{id}/activar', [OlimpiadaController::class, 'activar']);
+    Route::put('/{id}/activar', [OlimpiadaController::class, 'activar']);
+});
 Route::get('/olimpiadas/anteriores', [OlimpiadaController::class, 'olimpiadasAnteriores']);
 Route::get('/olimpiadas/actual', [OlimpiadaController::class, 'olimpiadaActual']);
 Route::get('/gestiones', [OlimpiadaController::class, 'gestiones']);
+
 
 
 //Rutas para la gestión de niveles
@@ -171,11 +179,8 @@ Route::get('/fases/{id}/details', [FaseController::class, 'getFaseDetails']);
 Route::get('/sub-fases/area/{id_area}/nivel/{id_nivel}/olimpiada/{id_olimpiada}', [FaseController::class, 'getSubFases']);
 Route::apiResource('area-niveles.fases', FaseController::class)->shallow();
 
-<<<<<<< HEAD
 Route::get('/competencias/por-area-nivel', [CompetenciaController::class, 'getByAreaAndNivel']);
-=======
 //Competencia
->>>>>>> f2f3e31509265f99eb7a6c15347525b3111fb983
 Route::apiResource('competencias', CompetenciaController::class)->only(['index', 'show', 'store']);
 Route::apiResource('competencias.examenes', ExamenController::class)->shallow()->only(['index', 'store']);
 Route::get('/examenes/por-area-nivel', [ExamenController::class, 'getByAreaAndNivel']);

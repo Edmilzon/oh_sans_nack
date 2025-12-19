@@ -51,4 +51,29 @@ class OlimpiadaRepository
             ->orderBy('id_olimpiada', 'desc')
             ->first();
     }
+
+     public function create(array $data): Olimpiada
+    {
+        return $this->model->create(array_merge($data, ['estado' => false]));
+    }
+
+    public function find(int $id): ?Olimpiada
+    {
+        return $this->model->find($id);
+    }
+
+    public function desactivarTodas(): void
+    {
+        $this->model->query()->update(['estado' => false]);
+    }
+
+    public function activar(int $id): bool
+    {
+        return $this->model->where('id_olimpiada', $id)->update(['estado' => true]);
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        return $this->model->where('id_olimpiada', $id)->update($data);
+    }
 }
