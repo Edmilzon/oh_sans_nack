@@ -6,6 +6,7 @@ use App\Services\OlimpiadaService;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Exception;
 
 class OlimpiadaController extends Controller
