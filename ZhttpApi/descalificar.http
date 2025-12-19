@@ -1,0 +1,12 @@
+@hostname = http://localhost:8000
+@api_prefix = /api
+
+POST {{hostname}}{{api_prefix}}/sala-evaluacion/11/descalificar
+Content-Type: application/json
+Accept: application/json
+
+{
+    "user_id": 1,
+    "motivo": "Incumplimiento de reglas"
+}
+

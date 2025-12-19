@@ -180,7 +180,10 @@ Route::get('/sub-fases/area/{id_area}/nivel/{id_nivel}/olimpiada/{id_olimpiada}'
 Route::apiResource('area-niveles.fases', FaseController::class)->shallow();
 
 Route::get('/competencias/por-area-nivel', [CompetenciaController::class, 'getByAreaAndNivel']);
+<<<<<<< HEAD
 //Competencia
+=======
+>>>>>>> 50d9a34a5c1a1bee9d98a47875e5bf25f74446e0
 Route::apiResource('competencias', CompetenciaController::class)->only(['index', 'show', 'store']);
 Route::apiResource('competencias.examenes', ExamenController::class)->shallow()->only(['index', 'store']);
 Route::get('/examenes/por-area-nivel', [ExamenController::class, 'getByAreaAndNivel']);
